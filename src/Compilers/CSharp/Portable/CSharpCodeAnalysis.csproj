@@ -828,6 +828,7 @@
     <Compile Include="Syntax\TypeDeclarationSyntax.cs" />
     <Compile Include="Syntax\TypeSyntax.cs" />
     <Compile Include="Syntax\XmlNameAttributeElementKind.cs" />
+    <Compile Include="TestGround\TestGroundFIle1.cs" />
     <Compile Include="Utilities\EnumExtensions.cs" />
     <Compile Include="Utilities\FirstAmongEqualsSet.cs" />
     <Compile Include="Utilities\FunctionExtensions.cs" />
@@ -889,6 +890,9 @@
     <InternalsVisibleToTest Include="Microsoft.CodeAnalysis.Scripting.CSharp.Desktop.UnitTests" />
     <InternalsVisibleToTest Include="Roslyn.Services.Editor.CSharp.UnitTests" />
     <InternalsVisibleToTest Include="Roslyn.Services.Editor.UnitTests2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
   </ItemGroup>
   <Import Project="..\CSharpAnalyzerDriver\CSharpAnalyzerDriver.projitems" Label="Shared" />
   <ImportGroup Label="Targets">

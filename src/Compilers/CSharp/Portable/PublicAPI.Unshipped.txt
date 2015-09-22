@@ -16,6 +16,7 @@ Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax.WithLoadKeyword(M
 Microsoft.CodeAnalysis.CSharp.SyntaxKind.LoadDirectiveTrivia = 8923 -> Microsoft.CodeAnalysis.CSharp.SyntaxKind
 Microsoft.CodeAnalysis.CSharp.SyntaxKind.LoadKeyword = 8485 -> Microsoft.CodeAnalysis.CSharp.SyntaxKind
 Microsoft.CodeAnalysis.CSharp.SyntaxKind.ShebangTrivia = 8922 -> Microsoft.CodeAnalysis.CSharp.SyntaxKind
+Microsoft.CodeAnalysis.CSharp.TestGround.TestGroundFile1
 override Microsoft.CodeAnalysis.CSharp.CSharpParseOptions.CommonWithKind(Microsoft.CodeAnalysis.SourceCodeKind kind) -> Microsoft.CodeAnalysis.ParseOptions
 override Microsoft.CodeAnalysis.CSharp.CSharpSyntaxRewriter.VisitLoadDirectiveTrivia(Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax node) -> Microsoft.CodeAnalysis.SyntaxNode
 override Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax.Accept(Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor visitor) -> void
@@ -31,5 +32,6 @@ static Microsoft.CodeAnalysis.CSharp.SyntaxExtensions.NormalizeWhitespace(this M
 static Microsoft.CodeAnalysis.CSharp.SyntaxExtensions.NormalizeWhitespace(this Microsoft.CodeAnalysis.SyntaxTriviaList list, string indentation, bool elasticTrivia) -> Microsoft.CodeAnalysis.SyntaxTriviaList
 static Microsoft.CodeAnalysis.CSharp.SyntaxFactory.LoadDirectiveTrivia(Microsoft.CodeAnalysis.SyntaxToken file, bool isActive) -> Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax
 static Microsoft.CodeAnalysis.CSharp.SyntaxFactory.LoadDirectiveTrivia(Microsoft.CodeAnalysis.SyntaxToken hashToken, Microsoft.CodeAnalysis.SyntaxToken loadKeyword, Microsoft.CodeAnalysis.SyntaxToken file, Microsoft.CodeAnalysis.SyntaxToken endOfDirectiveToken, bool isActive) -> Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax
+static Microsoft.CodeAnalysis.CSharp.TestGround.TestGroundFile1.Main(string[] args, System.Action<string> writeLine) -> void
 virtual Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor.VisitLoadDirectiveTrivia(Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax node) -> void
 virtual Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor<TResult>.VisitLoadDirectiveTrivia(Microsoft.CodeAnalysis.CSharp.Syntax.LoadDirectiveTriviaSyntax node) -> TResult
