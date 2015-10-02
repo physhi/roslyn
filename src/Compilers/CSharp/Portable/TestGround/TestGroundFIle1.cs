@@ -43,10 +43,19 @@ namespace HelloWorld
                 .AddReferences(mscorLib)
                 .AddSyntaxTrees(tree);
 
-            foreach(var ns in compilation.GlobalNamespace.GetNamespaceMembers())
-            {
-                TestGroundFile1.Dispatch(ns);
-            }
+            // foreach(var ns in compilation.GlobalNamespace.GetNamespaceMembers())
+            // { TestGroundFile1.Dispatch(ns); }
+
+            System.IO.MemoryStream peStream = new System.IO.MemoryStream(),
+                pdbStream = new System.IO.MemoryStream(),
+                xmlDocumentationStream = new System.IO.MemoryStream(),
+                resourceStream = new System.IO.MemoryStream();
+
+            compilation.Emit(
+                peStream,
+                pdbStream,
+                xmlDocumentationStream,
+                null);
 
             var metadata = mscorLib.GetMetadata() as AssemblyMetadata;
             var typeNames = metadata.GetAssembly().ManifestModule.TypeNames;
