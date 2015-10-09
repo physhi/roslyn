@@ -9,7 +9,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CodeGen
 {
-    internal partial class ILBuilder
+    internal partial class LBuilder
     {
         internal enum BlockType
         {
@@ -65,13 +65,13 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
             internal void Initialize(ILBuilder builder)
             {
-                this.builder = builder;
+                this.builder = builder as LBuilder;
                 this.FirstILMarker = -1;
                 this.LastILMarker = -1;
             }
 
             //parent builder
-            internal ILBuilder builder;
+            internal LBuilder builder;
 
             private Cci.PooledBlobBuilder _lazyRegularInstructions;
             public Cci.PooledBlobBuilder Writer
@@ -457,7 +457,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
                             Debug.Assert(toRemove == next || toRemove.TotalSize == 0);
                             Debug.Assert(!builder._labelInfos.Values.Any(li => li.bb == toRemove), 
                                 "nothing should branch to a trivial block at this point");
-                            toRemove.Reachability = ILBuilder.Reachability.NotReachable;
+                            toRemove.Reachability = LBuilder.Reachability.NotReachable;
                             toRemove = toRemove.NextBlock;
                         }
 

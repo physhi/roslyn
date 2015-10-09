@@ -10,7 +10,7 @@ using Cci = Microsoft.Cci;
 
 namespace Microsoft.CodeAnalysis.CodeGen
 {
-    internal partial class ILBuilder
+    internal partial class LBuilder
     {
         private sealed class LocalScopeManager
         {
@@ -41,17 +41,17 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 return scope;
             }
 
-            internal void FinishFilterCondition(ILBuilder builder)
+            internal void FinishFilterCondition(LBuilder builder)
             {
                 CurrentScope.FinishFilterCondition(builder);
             }
 
-            internal void ClosingScope(ILBuilder builder)
+            internal void ClosingScope(LBuilder builder)
             {
                 CurrentScope.ClosingScope(builder);
             }
 
-            internal void CloseScope(ILBuilder builder)
+            internal void CloseScope(LBuilder builder)
             {
                 var scope = _scopes.Pop();
                 scope.CloseScope(builder);
@@ -83,13 +83,13 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 return null;
             }
 
-            internal BasicBlock CreateBlock(ILBuilder builder)
+            internal BasicBlock CreateBlock(LBuilder builder)
             {
                 var scope = (LocalScopeInfo)CurrentScope;
                 return scope.CreateBlock(builder);
             }
 
-            internal SwitchBlock CreateSwitchBlock(ILBuilder builder)
+            internal SwitchBlock CreateSwitchBlock(LBuilder builder)
             {
                 var scope = (LocalScopeInfo)CurrentScope;
                 return scope.CreateSwitchBlock(builder);
@@ -209,15 +209,15 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 }
             }
 
-            public virtual void ClosingScope(ILBuilder builder)
+            public virtual void ClosingScope(LBuilder builder)
             {
             }
 
-            public virtual void CloseScope(ILBuilder builder)
+            public virtual void CloseScope(LBuilder builder)
             {
             }
 
-            public virtual void FinishFilterCondition(ILBuilder builder)
+            public virtual void FinishFilterCondition(LBuilder builder)
             {
                 throw ExceptionUtilities.Unreachable;
             }
@@ -370,7 +370,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 return locals != null && locals.Contains(local);
             }
 
-            public virtual BasicBlock CreateBlock(ILBuilder builder)
+            public virtual BasicBlock CreateBlock(LBuilder builder)
             {
                 var enclosingHandler = builder.EnclosingExceptionHandler;
                 var block = enclosingHandler == null ?
@@ -381,14 +381,14 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 return block;
             }
 
-            private static BasicBlock AllocatePooledBlock(ILBuilder builder)
+            private static BasicBlock AllocatePooledBlock(LBuilder builder)
             {
                 var block = BasicBlock.Pool.Allocate();
                 block.Initialize(builder);
                 return block;
             }
 
-            public SwitchBlock CreateSwitchBlock(ILBuilder builder)
+            public SwitchBlock CreateSwitchBlock(LBuilder builder)
             {
                 var block = new SwitchBlock(builder, builder.EnclosingExceptionHandler);
                 AddBlock(block);
@@ -588,7 +588,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             public int FilterHandlerStart
                 => _lastFilterConditionBlock.Start + _lastFilterConditionBlock.TotalSize;
 
-            public override void FinishFilterCondition(ILBuilder builder)
+            public override void FinishFilterCondition(LBuilder builder)
             {
                 Debug.Assert(_type == ScopeType.Filter);
                 Debug.Assert(_lastFilterConditionBlock == null);
@@ -596,7 +596,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 _lastFilterConditionBlock = builder.FinishFilterCondition();
             }
 
-            public override void ClosingScope(ILBuilder builder)
+            public override void ClosingScope(LBuilder builder)
             {
                 switch (_type)
                 {
@@ -617,12 +617,12 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 }
             }
 
-            public override void CloseScope(ILBuilder builder)
+            public override void CloseScope(LBuilder builder)
             {
                 Debug.Assert(LeaderBlock != null);
             }
 
-            public override BasicBlock CreateBlock(ILBuilder builder)
+            public override BasicBlock CreateBlock(LBuilder builder)
             {
                 Debug.Assert(builder.EnclosingExceptionHandler == this);
                 var block = (Blocks == null) ?
@@ -697,7 +697,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 return handler;
             }
 
-            public override void CloseScope(ILBuilder builder)
+            public override void CloseScope(LBuilder builder)
             {
                 Debug.Assert(_handlers.Count > 1);
 

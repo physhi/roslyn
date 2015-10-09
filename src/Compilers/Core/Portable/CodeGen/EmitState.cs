@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.CodeGen
 {
-    internal partial class ILBuilder
+    internal partial class LBuilder
     {
         /// <summary>
         /// Abstract Execution state. 

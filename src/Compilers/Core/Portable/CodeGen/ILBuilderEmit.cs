@@ -8,24 +8,24 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CodeGen
 {
-    internal partial class ILBuilder
+    internal partial class LBuilder
     {
-        internal void AdjustStack(int stackAdjustment)
+        public void AdjustStack(int stackAdjustment)
         {
             _emitState.AdjustStack(stackAdjustment);
         }
 
-        internal bool IsStackEmpty
+        public bool IsStackEmpty
         {
             get { return _emitState.CurStack == 0; }
         }
 
-        internal void EmitOpCode(ILOpCode code)
+        public void EmitOpCode(ILOpCode code)
         {
             this.EmitOpCode(code, code.NetStackBehavior());
         }
 
-        internal void EmitOpCode(ILOpCode code, int stackAdjustment)
+        public void EmitOpCode(ILOpCode code, int stackAdjustment)
         {
             Debug.Assert(!code.IsControlTransfer(),
                 "Control transferring opcodes should not be emitted directly. Use special methods such as EmitRet().");
@@ -36,19 +36,19 @@ namespace Microsoft.CodeAnalysis.CodeGen
             _emitState.InstructionAdded();
         }
 
-        internal void EmitToken(string value)
+        public void EmitToken(string value)
         {
             uint token = module?.GetFakeStringTokenForIL(value) ?? 0xFFFF;
             this.GetCurrentWriter().WriteUInt32(token);
         }
 
-        internal void EmitToken(Microsoft.Cci.IReference value, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
+        public void EmitToken(Microsoft.Cci.IReference value, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
         {
             uint token = module?.GetFakeSymbolTokenForIL(value, syntaxNode, diagnostics) ?? 0xFFFF;
             this.GetCurrentWriter().WriteUInt32(token);
         }
 
-        internal void EmitArrayBlockInitializer(ImmutableArray<byte> data, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
+        public void EmitArrayBlockInitializer(ImmutableArray<byte> data, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
         {
             // get helpers
             var initializeArray = module.GetInitArrayHelper();
@@ -67,7 +67,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// Mark current IL position with a label
         /// </summary>
-        internal void MarkLabel(object label)
+        public void MarkLabel(object label)
         {
             EndBlock();
 
@@ -124,7 +124,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             _instructionCountAtLastLabel = _emitState.InstructionsEmitted;
         }
 
-        internal void EmitBranch(ILOpCode code, object label, ILOpCode revOpCode = ILOpCode.Nop)
+        public void EmitBranch(ILOpCode code, object label, ILOpCode revOpCode = ILOpCode.Nop)
         {
             bool validOpCode = (code == ILOpCode.Nop) || code.IsBranchToLabel();
 
@@ -180,7 +180,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <param name="computeStringHashcodeDelegate">
         /// Delegate to compute string hash consistent with value of keyHash.
         /// </param>
-        internal void EmitStringSwitchJumpTable(
+        public void EmitStringSwitchJumpTable(
             KeyValuePair<ConstantValue, object>[] caseLabels,
             object fallThroughLabel,
             LocalOrParameter key,
@@ -211,7 +211,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// This value has already been loaded onto the execution stack.
         /// </param>
         /// <param name="keyTypeCode">Primitive type code of switch key.</param>
-        internal void EmitIntegerSwitchJumpTable(
+        public void EmitIntegerSwitchJumpTable(
             KeyValuePair<ConstantValue, object>[] caseLabels,
             object fallThroughLabel,
             LocalOrParameter key,
@@ -229,7 +229,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         // Method to emit the virtual switch instruction
-        internal void EmitSwitch(object[] labels)
+        public void EmitSwitch(object[] labels)
         {
             _emitState.AdjustStack(-1);
             int curStack = _emitState.CurStack;
@@ -257,7 +257,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             this.EndBlock();
         }
 
-        internal void EmitRet(bool isVoid)
+        public void EmitRet(bool isVoid)
         {
             // Cannot return from within an exception handler.
             Debug.Assert(!this.InExceptionHandler);
@@ -274,7 +274,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             this.EndBlock();
         }
 
-        internal void EmitThrow(bool isRethrow)
+        public void EmitThrow(bool isRethrow)
         {
             var block = this.GetCurrentBlock();
             if (isRethrow)
@@ -314,7 +314,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// Generates code that creates an instance of multidimensional array
         /// </summary>
-        internal void EmitArrayCreation(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
+        public void EmitArrayCreation(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
         {
             Debug.Assert(!arrayType.IsSZArray, "should be used only with multidimensional arrays");
 
@@ -328,7 +328,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// Generates code that loads an element of a multidimensional array
         /// </summary>
-        internal void EmitArrayElementLoad(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
+        public void EmitArrayElementLoad(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
         {
             Debug.Assert(!arrayType.IsSZArray, "should be used only with multidimensional arrays");
 
@@ -342,7 +342,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// Generates code that loads an address of an element of a multidimensional array.
         /// </summary>
-        internal void EmitArrayElementAddress(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
+        public void EmitArrayElementAddress(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
         {
             Debug.Assert(!arrayType.IsSZArray, "should be used only with multidimensional arrays");
 
@@ -356,7 +356,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// Generates code that stores an element of a multidimensional array.
         /// </summary>
-        internal void EmitArrayElementStore(Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
+        public void EmitArrayElementStore(Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode, DiagnosticBag diagnostics)
         {
             Debug.Assert(!arrayType.IsSZArray, "should be used only with multidimensional arrays");
 
@@ -367,7 +367,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             this.EmitToken(store, syntaxNode, diagnostics);
         }
 
-        internal void EmitLoad(LocalOrParameter localOrParameter)
+        public void EmitLoad(LocalOrParameter localOrParameter)
         {
             if (localOrParameter.Local != null)
             {
@@ -380,7 +380,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         // Generate a "load local" opcode with the given slot number.
-        internal void EmitLocalLoad(LocalDefinition local)
+        public void EmitLocalLoad(LocalDefinition local)
         {
             var slot = local.SlotIndex;
             switch (slot)
@@ -417,7 +417,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         // Generate a "store local" opcode with the given slot number.
-        internal void EmitLocalStore(LocalDefinition local)
+        public void EmitLocalStore(LocalDefinition local)
         {
             var slot = local.SlotIndex;
             switch (slot)
@@ -441,7 +441,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
-        internal void EmitLocalAddress(LocalDefinition local)
+        public void EmitLocalAddress(LocalDefinition local)
         {
             if (local.IsReference)
             {
@@ -465,7 +465,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         // Generate a "load argument" opcode with the given argument number.
-        internal void EmitLoadArgumentOpcode(int argNumber)
+        public void EmitLoadArgumentOpcode(int argNumber)
         {
             switch (argNumber)
             {
@@ -488,7 +488,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
-        internal void EmitLoadArgumentAddrOpcode(int argNumber)
+        public void EmitLoadArgumentAddrOpcode(int argNumber)
         {
             if (argNumber < 0xFF)
             {
@@ -503,7 +503,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         // Generate a "store argument" opcode with the given argument number.
-        internal void EmitStoreArgumentOpcode(int argNumber)
+        public void EmitStoreArgumentOpcode(int argNumber)
         {
             if (argNumber < 0xFF)
             {
@@ -517,7 +517,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
-        internal void EmitConstantValue(ConstantValue value)
+        public void EmitConstantValue(ConstantValue value)
         {
             ConstantValueTypeDiscriminator discriminator = value.Discriminator;
 
@@ -567,7 +567,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         // Generate a "load integer constant" opcode for the given value.
-        internal void EmitIntConstant(int value)
+        public void EmitIntConstant(int value)
         {
             ILOpCode code = ILOpCode.Nop;
             switch (value)
@@ -603,32 +603,32 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
-        internal void EmitBoolConstant(bool value)
+        public void EmitBoolConstant(bool value)
         {
             EmitIntConstant(value ? 1 : 0);
         }
 
-        internal void EmitByteConstant(byte value)
+        public void EmitByteConstant(byte value)
         {
             EmitIntConstant((int)value);
         }
 
-        internal void EmitSByteConstant(sbyte value)
+        public void EmitSByteConstant(sbyte value)
         {
             EmitIntConstant((int)value);
         }
 
-        internal void EmitShortConstant(short value)
+        public void EmitShortConstant(short value)
         {
             EmitIntConstant((int)value);
         }
 
-        internal void EmitUShortConstant(ushort value)
+        public void EmitUShortConstant(ushort value)
         {
             EmitIntConstant((int)value);
         }
 
-        internal void EmitLongConstant(long value)
+        public void EmitLongConstant(long value)
         {
             if (value >= int.MinValue && value <= int.MaxValue)
             {
@@ -647,19 +647,19 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
-        internal void EmitSingleConstant(float value)
+        public void EmitSingleConstant(float value)
         {
             EmitOpCode(ILOpCode.Ldc_r4);
             EmitFloat(value);
         }
 
-        internal void EmitDoubleConstant(double value)
+        public void EmitDoubleConstant(double value)
         {
             EmitOpCode(ILOpCode.Ldc_r8);
             EmitDouble(value);
         }
 
-        internal void EmitNullConstant()
+        public void EmitNullConstant()
         {
             EmitOpCode(ILOpCode.Ldnull);
         }
