@@ -5,12 +5,12 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
 {
-    using System.Reflection;
     using MetadataOrDiagnostic = System.Object;
 
     /// <summary>
@@ -52,28 +52,61 @@ namespace Microsoft.CodeAnalysis
         {
             private readonly MetadataImageKind _kind;
             private readonly int _index;
-            private readonly ImmutableArray<string> _aliases;
+            private readonly ImmutableArray<string> _aliasesOpt;
+            private readonly ImmutableArray<string> _recursiveAliasesOpt;
 
-            public static readonly ResolvedReference Skipped = default(ResolvedReference);
-
-            public ResolvedReference(int index, MetadataImageKind kind, ImmutableArray<string> aliases)
+            // uninitialized aliases
+            public ResolvedReference(int index, MetadataImageKind kind)
             {
                 Debug.Assert(index >= 0);
-
                 _index = index + 1;
                 _kind = kind;
-                _aliases = aliases;
             }
 
-            public ImmutableArray<string> Aliases
+            // initialized aliases
+            public ResolvedReference(int index, MetadataImageKind kind, ImmutableArray<string> aliasesOpt, ImmutableArray<string> recursiveAliasesOpt)
+                : this(index, kind)
+            {
+                // We have to have non-default aliases (empty are ok). We can have both recursive and non-recursive aliases if two references were merged.
+                Debug.Assert(!aliasesOpt.IsDefault || !recursiveAliasesOpt.IsDefault);
+
+                _aliasesOpt = aliasesOpt;
+                _recursiveAliasesOpt = recursiveAliasesOpt;
+            }
+
+            private bool IsUninitialized => _aliasesOpt.IsDefault && _recursiveAliasesOpt.IsDefault;
+
+            /// <summary>
+            /// Aliases that should be applied to the referenced assembly. 
+            /// Empty array means {"global"} (all namespaces and types in the global namespace of the assembly are accessible without qualification).
+            /// Null if not applicable (the reference only has recursive aliases).
+            /// </summary>
+            public ImmutableArray<string> AliasesOpt
             {
                 get
                 {
-                    Debug.Assert(!_aliases.IsDefault);
-                    return _aliases;
+                    Debug.Assert(!IsUninitialized);
+                    return _aliasesOpt;
                 }
             }
 
+            /// <summary>
+            /// Aliases that should be applied recursively to all dependent assemblies. 
+            /// Empty array means {"global"} (all namespaces and types in the global namespace of the assembly are accessible without qualification).
+            /// Null if not applicable (the reference only has simple aliases).
+            /// </summary>
+            public ImmutableArray<string> RecursiveAliasesOpt
+            {
+                get
+                {
+                    Debug.Assert(!IsUninitialized);
+                    return _recursiveAliasesOpt;
+                }
+            }
+
+            /// <summary>
+            /// default(<see cref="ResolvedReference"/>) is considered skipped.
+            /// </summary>
             public bool IsSkipped
             {
                 get
@@ -91,6 +124,9 @@ namespace Microsoft.CodeAnalysis
                 }
             }
 
+            /// <summary>
+            /// Index into an array of assemblies (not including the assembly being built) or an array of modules, depending on <see cref="Kind"/>.
+            /// </summary>
             public int Index
             {
                 get
@@ -102,7 +138,12 @@ namespace Microsoft.CodeAnalysis
 
             private string GetDebuggerDisplay()
             {
-                return IsSkipped ? "<skipped>" : (_kind == MetadataImageKind.Assembly ? "A[" : "M[") + Index + "]: aliases=" + _aliases.ToString();
+                return IsSkipped ? "<skipped>" : $"{(_kind == MetadataImageKind.Assembly ? "A" : "M")}[{Index}]:{DisplayAliases(_aliasesOpt, "aliases")}{DisplayAliases(_recursiveAliasesOpt, "recursive-aliases")}";
+            }
+
+            private static string DisplayAliases(ImmutableArray<string> aliasesOpt, string name)
+            {
+                return aliasesOpt.IsDefault ? "" : $" {name} = '{string.Join("','", aliasesOpt)}'";
             }
         }
 
@@ -152,7 +193,7 @@ namespace Microsoft.CodeAnalysis
 
             // Maps references that were added to the reference set (i.e. not filtered out as duplicates) to a set of names that 
             // can be used to alias these references. Duplicate assemblies contribute their aliases into this set.
-            Dictionary<MetadataReference, ArrayBuilder<string>> aliasMap = null;
+            Dictionary<MetadataReference, MergedAliases> lazyAliasMap = null;
 
             // Used to filter out duplicate references that reference the same file (resolve to the same full normalized path).
             var boundReferences = new Dictionary<MetadataReference, MetadataReference>(MetadataReferenceEqualityComparer.Instance);
@@ -183,7 +224,7 @@ namespace Microsoft.CodeAnalysis
                     // merge properties of compilation-based references if the underlying compilations are the same
                     if ((object)boundReference != existingReference)
                     {
-                        MergeReferenceProperties(existingReference, boundReference, diagnostics, ref aliasMap);
+                        MergeReferenceProperties(existingReference, boundReference, diagnostics, ref lazyAliasMap);
                     }
 
                     continue;
@@ -219,7 +260,7 @@ namespace Microsoft.CodeAnalysis
 
                             if (existingReference != null)
                             {
-                                MergeReferenceProperties(existingReference, boundReference, diagnostics, ref aliasMap);
+                                MergeReferenceProperties(existingReference, boundReference, diagnostics, ref lazyAliasMap);
                                 continue;
                             }
 
@@ -266,7 +307,7 @@ namespace Microsoft.CodeAnalysis
 
                                 if (existingReference != null)
                                 {
-                                    MergeReferenceProperties(existingReference, boundReference, diagnostics, ref aliasMap);
+                                    MergeReferenceProperties(existingReference, boundReference, diagnostics, ref lazyAliasMap);
                                     continue;
                                 }
 
@@ -324,6 +365,13 @@ namespace Microsoft.CodeAnalysis
                 boundReferenceDirectives = ImmutableArray<MetadataReference>.Empty;
             }
 
+            // We enumerated references in reverse order in the above code
+            // and thus assemblies and modules in the builders are reversed.
+            // Fix up all the indices and reverse the builder content now to get 
+            // the ordering matching the references.
+            // 
+            // Also fills in aliases.
+
             for (int i = 0; i < referenceMap.Length; i++)
             {
                 if (!referenceMap[i].IsSkipped)
@@ -331,8 +379,9 @@ namespace Microsoft.CodeAnalysis
                     int count = referenceMap[i].Kind == MetadataImageKind.Assembly
                         ? ((object)assembliesBuilder == null ? 0 : assembliesBuilder.Count)
                         : ((object)modulesBuilder == null ? 0 : modulesBuilder.Count);
+
                     int reversedIndex = count - 1 - referenceMap[i].Index;
-                    referenceMap[i] = new ResolvedReference(reversedIndex, referenceMap[i].Kind, GetAliases(references[i], aliasMap));
+                    referenceMap[i] = GetResolvedReferenceAndFreePropertyMapEntry(references[i], reversedIndex, referenceMap[i].Kind, lazyAliasMap);
                 }
             }
 
@@ -345,7 +394,7 @@ namespace Microsoft.CodeAnalysis
                 assembliesBuilder.ReverseContents();
                 assemblies = assembliesBuilder.ToImmutableAndFree();
             }
-
+            
             if (modulesBuilder == null)
             {
                 modules = ImmutableArray<PEModule>.Empty;
@@ -359,15 +408,28 @@ namespace Microsoft.CodeAnalysis
             return ImmutableArray.CreateRange(referenceMap);
         }
 
-        private static ImmutableArray<string> GetAliases(MetadataReference reference, Dictionary<MetadataReference, ArrayBuilder<string>> aliasMap)
+        private static ResolvedReference GetResolvedReferenceAndFreePropertyMapEntry(MetadataReference reference, int index, MetadataImageKind kind, Dictionary<MetadataReference, MergedAliases> propertyMapOpt)
         {
-            ArrayBuilder<string> aliases;
-            if (aliasMap != null && aliasMap.TryGetValue(reference, out aliases))
+            ImmutableArray<string> aliasesOpt, recursiveAliasesOpt;
+
+            MergedAliases mergedProperties;
+            if (propertyMapOpt != null && propertyMapOpt.TryGetValue(reference, out mergedProperties))
             {
-                return aliases.ToImmutableAndFree();
+                aliasesOpt = mergedProperties.AliasesOpt?.ToImmutableAndFree() ?? default(ImmutableArray<string>);
+                recursiveAliasesOpt = mergedProperties.RecursiveAliasesOpt?.ToImmutableAndFree() ?? default(ImmutableArray<string>);
+            }
+            else if (reference.Properties.HasRecursiveAliases)
+            {
+                aliasesOpt = default(ImmutableArray<string>);
+                recursiveAliasesOpt = reference.Properties.Aliases;
+            }
+            else
+            {
+                aliasesOpt = reference.Properties.Aliases;
+                recursiveAliasesOpt = default(ImmutableArray<string>);
             }
 
-            return reference.Properties.Aliases;
+            return new ResolvedReference(index, kind, aliasesOpt, recursiveAliasesOpt);
         }
 
         /// <summary>
@@ -493,43 +555,27 @@ namespace Microsoft.CodeAnalysis
         /// Merges aliases of the first observed reference (<paramref name="primaryReference"/>) with aliases specified for an equivalent reference (<paramref name="newReference"/>).
         /// Empty alias list is considered to be the same as a list containing "global", since in both cases C# allows unqualified access to the symbols.
         /// </summary>
-        private void MergeReferenceProperties(MetadataReference primaryReference, MetadataReference newReference, DiagnosticBag diagnostics, ref Dictionary<MetadataReference, ArrayBuilder<string>> aliasMap)
+        private void MergeReferenceProperties(MetadataReference primaryReference, MetadataReference newReference, DiagnosticBag diagnostics, ref Dictionary<MetadataReference, MergedAliases> lazyAliasMap)
         {
             if (!CheckPropertiesConsistency(newReference, primaryReference, diagnostics))
             {
                 return;
             }
 
-            if (aliasMap == null)
+            if (lazyAliasMap == null)
             {
-                aliasMap = new Dictionary<MetadataReference, ArrayBuilder<string>>();
+                lazyAliasMap = new Dictionary<MetadataReference, MergedAliases>();
             }
 
-            ArrayBuilder<string> aliases;
-            if (!aliasMap.TryGetValue(primaryReference, out aliases))
+            MergedAliases mergedAliases;
+            if (!lazyAliasMap.TryGetValue(primaryReference, out mergedAliases))
             {
-                aliases = ArrayBuilder<string>.GetInstance();
-                aliasMap.Add(primaryReference, aliases);
-
-                if (primaryReference.Properties.Aliases.IsEmpty)
-                {
-                    aliases.Add(MetadataReferenceProperties.GlobalAlias);
-                }
-                else
-                {
-                    aliases.AddRange(primaryReference.Properties.Aliases);
-                }
+                mergedAliases = new MergedAliases();
+                lazyAliasMap.Add(primaryReference, mergedAliases);
+                mergedAliases.Merge(primaryReference);
             }
 
-            // we could avoid duplicates but there is no need to do so:
-            if (newReference.Properties.Aliases.IsEmpty)
-            {
-                aliases.Add(MetadataReferenceProperties.GlobalAlias);
-            }
-            else
-            {
-                aliases.AddRange(newReference.Properties.Aliases);
-            }
+            mergedAliases.Merge(newReference);
         }
 
         /// <remarks>
@@ -542,7 +588,8 @@ namespace Microsoft.CodeAnalysis
                 assemblies = ArrayBuilder<AssemblyData>.GetInstance();
             }
 
-            referenceMap[referenceIndex] = new ResolvedReference(assemblies.Count, MetadataImageKind.Assembly, default(ImmutableArray<string>));
+            // aliases will be filled in later:
+            referenceMap[referenceIndex] = new ResolvedReference(assemblies.Count, MetadataImageKind.Assembly);
             assemblies.Add(data);
         }
 
@@ -556,14 +603,21 @@ namespace Microsoft.CodeAnalysis
                 modules = ArrayBuilder<PEModule>.GetInstance();
             }
 
-            referenceMap[referenceIndex] = new ResolvedReference(modules.Count, MetadataImageKind.Module, default(ImmutableArray<string>));
+            referenceMap[referenceIndex] = new ResolvedReference(modules.Count, MetadataImageKind.Module);
             modules.Add(module);
         }
 
-        // Returns null if an assembly of an equivalent identity has not been added previously, otherwise returns the reference that added it.
-        // - Both assembly names are strong (have keys) and are either equal or FX unified 
-        // - Both assembly names are weak (no keys) and have the same simple name.
-        private MetadataReference TryAddAssembly(AssemblyIdentity identity, MetadataReference boundReference, DiagnosticBag diagnostics, Location location,
+        /// <summary>
+        /// Returns null if an assembly of an equivalent identity has not been added previously, otherwise returns the reference that added it.
+        /// Two identities are considered equivalent if
+        /// - both assembly names are strong (have keys) and are either equal or FX unified 
+        /// - both assembly names are weak (no keys) and have the same simple name.
+        /// </summary>
+        private MetadataReference TryAddAssembly(
+            AssemblyIdentity identity,
+            MetadataReference boundReference,
+            DiagnosticBag diagnostics, 
+            Location location,
             ref Dictionary<string, List<ReferencedAssemblyIdentity>> referencesBySimpleName)
         {
             if (referencesBySimpleName == null)
@@ -586,7 +640,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     // Only compare strong with strong (weak is never equivalent to strong and vice versa).
                     // In order to eliminate duplicate references we need to try to match their identities in both directions since 
-                    // ReferenceMatchesDefinition is not neccessarily symmetric.
+                    // ReferenceMatchesDefinition is not necessarily symmetric.
                     // (e.g. System.Numerics.Vectors, Version=4.1+ matches System.Numerics.Vectors, Version=4.0, but not the other way around.)
                     if (other.Identity.IsStrongName && 
                         IdentityComparer.ReferenceMatchesDefinition(identity, other.Identity) &&
@@ -736,7 +790,7 @@ namespace Microsoft.CodeAnalysis
             // checked earlier:
             Debug.Assert(compilation.Options.MetadataReferenceResolver != null);
 
-            var references = compilation.Options.MetadataReferenceResolver.ResolveReference(reference, basePath, MetadataReferenceProperties.Assembly);
+            var references = compilation.Options.MetadataReferenceResolver.ResolveReference(reference, basePath, MetadataReferenceProperties.Assembly.WithRecursiveAliases(true));
             if (references.IsDefaultOrEmpty)
             {
                 return null;
@@ -754,13 +808,13 @@ namespace Microsoft.CodeAnalysis
         internal static AssemblyReferenceBinding[] ResolveReferencedAssemblies(
             ImmutableArray<AssemblyIdentity> references,
             ImmutableArray<AssemblyData> definitions,
-            AssemblyIdentityComparer assemblyIdentityComparer,
-            bool okToResolveAgainstCompilationBeingCreated)
+            int definitionStartIndex,
+            AssemblyIdentityComparer assemblyIdentityComparer)
         {
             var boundReferences = new AssemblyReferenceBinding[references.Length];
             for (int j = 0; j < references.Length; j++)
             {
-                boundReferences[j] = ResolveReferencedAssembly(references[j], definitions, assemblyIdentityComparer, okToResolveAgainstCompilationBeingCreated);
+                boundReferences[j] = ResolveReferencedAssembly(references[j], definitions, definitionStartIndex, assemblyIdentityComparer);
             }
 
             return boundReferences;
@@ -770,17 +824,17 @@ namespace Microsoft.CodeAnalysis
         /// Used to match AssemblyRef with AssemblyDef.
         /// </summary>
         /// <param name="definitions">Array of definition identities to match against.</param>
+        /// <param name="definitionStartIndex">An index of the first definition to consider, <paramref name="definitions"/> preceding this index are ignored.</param>
         /// <param name="reference">Reference identity to resolve.</param>
         /// <param name="assemblyIdentityComparer">Assembly identity comparer.</param>
-        /// <param name="okToResolveAgainstCompilationBeingCreated"> Is it Ok to resolve reference against the compilation we are creating?</param>
         /// <returns>
         /// Returns an index the reference is bound.
         /// </returns>
         internal static AssemblyReferenceBinding ResolveReferencedAssembly(
             AssemblyIdentity reference,
             ImmutableArray<AssemblyData> definitions,
-            AssemblyIdentityComparer assemblyIdentityComparer,
-            bool okToResolveAgainstCompilationBeingCreated)
+            int definitionStartIndex,
+            AssemblyIdentityComparer assemblyIdentityComparer)
         {
             // Dev11 C# compiler allows the versions to not match exactly, assuming that a newer library may be used instead of an older version.
             // For a given reference it finds a definition with the lowest version that is higher then or equal to the reference version.
@@ -790,9 +844,11 @@ namespace Microsoft.CodeAnalysis
             int minHigherVersionDefinition = -1;
             int maxLowerVersionDefinition = -1;
 
-            // NB: Start at 1, since we checked 0 above.
-            const int definitionOffset = 1;
-            for (int i = definitionOffset; i < definitions.Length; i++)
+            // Skip assembly being built for now; it will be considered at the very end:
+            bool resolveAgainstAssemblyBeingBuilt = definitionStartIndex == 0;
+            definitionStartIndex = Math.Max(definitionStartIndex, 1);
+
+            for (int i = definitionStartIndex; i < definitions.Length; i++)
             {
                 AssemblyIdentity definition = definitions[i].Identity;
 
@@ -825,6 +881,9 @@ namespace Microsoft.CodeAnalysis
                         }
 
                         continue;
+
+                    default:
+                        throw ExceptionUtilities.Unreachable;
                 }
             }
 
@@ -847,7 +906,7 @@ namespace Microsoft.CodeAnalysis
             // substitute for a collection of Windows.*.winmd compile-time references.
             if (reference.IsWindowsComponent())
             {
-                for (int i = definitionOffset; i < definitions.Length; i++)
+                for (int i = definitionStartIndex; i < definitions.Length; i++)
                 {
                     if (definitions[i].Identity.IsWindowsRuntime())
                     {
@@ -865,7 +924,7 @@ namespace Microsoft.CodeAnalysis
             // allow the compilation to match the reference.
             if (reference.ContentType == AssemblyContentType.WindowsRuntime)
             {
-                for (int i = definitionOffset; i < definitions.Length; i++)
+                for (int i = definitionStartIndex; i < definitions.Length; i++)
                 {
                     var definition = definitions[i].Identity;
                     var sourceCompilation = definitions[i].SourceCompilation;
@@ -885,7 +944,7 @@ namespace Microsoft.CodeAnalysis
             // As in the native compiler (see IMPORTER::MapAssemblyRefToAid), we compare against the
             // compilation (i.e. source) assembly as a last resort.  We follow the native approach of
             // skipping the public key comparison since we have yet to compute it.
-            if (okToResolveAgainstCompilationBeingCreated &&
+            if (resolveAgainstAssemblyBeingBuilt &&
                 AssemblyIdentityComparer.SimpleNameComparer.Equals(reference.Name, definitions[0].Identity.Name))
             {
                 Debug.Assert(definitions[0].Identity.PublicKeyToken.IsEmpty);

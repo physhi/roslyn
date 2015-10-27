@@ -1083,7 +1083,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 // For 'Shared' projects, IVSHierarchy returns a hierarchy item with < character in its name (i.e. <SharedProjectName>)
                 // as a child of the root item. There is no such item in the 'visual' hierarchy in solution explorer and no such folder
                 // is present on disk either. Since this is not a real 'folder', we exclude it from the contents of Document.Folders.
-                // Note: The parent of the hierarchy item that contains < characher in its name is VSITEMID.Root. So we don't need to
+                // Note: The parent of the hierarchy item that contains < character in its name is VSITEMID.Root. So we don't need to
                 // worry about accidental propagation out of the Shared project to any containing 'Solution' folders - the check for
                 // VSITEMID.Root below already takes care of that.
                 var name = (string)nameObj;
@@ -1144,7 +1144,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 string message = string.Format(ServicesVSResources.ERR_CantReadRulesetFileMessage, ruleSetFile.FilePath, ruleSetFile.GetException().Message);
                 var data = new DiagnosticData(
                     id: IDEDiagnosticIds.ErrorReadingRulesetId,
-                    category: ServicesVSResources.ErrorCategory,
+                    category: FeaturesResources.ErrorCategory,
                     message: message,
                     enuMessageForBingSearch: ServicesVSResources.ERR_CantReadRulesetFileMessage,
                     severity: DiagnosticSeverity.Error,
@@ -1319,7 +1319,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
         [Conditional("DEBUG")]
         private void ValidateReferences()
         {
-            // can happen when project is unloaded and reloaded or in venus (aspx) case
+            // can happen when project is unloaded and reloaded or in Venus (aspx) case
             if (_filePathOpt == null || _binOutputPathOpt == null || _objOutputPathOpt == null)
             {
                 return;

@@ -8,8 +8,9 @@ Imports Microsoft.CodeAnalysis.UseAutoProperty
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UseAutoProperty
-    <Export>
-    <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
+    ' https://github.com/dotnet/roslyn/issues/5408
+    '<Export>
+    '<DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Friend Class UseAutoPropertyAnalyzer
         Inherits AbstractUseAutoPropertyAnalyzer(Of PropertyBlockSyntax, FieldDeclarationSyntax, ModifiedIdentifierSyntax, ExpressionSyntax)
 
@@ -25,7 +26,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UseAutoProperty
 
         Protected Overrides Sub RegisterIneligibleFieldsAction(context As CompilationStartAnalysisContext, ineligibleFields As ConcurrentBag(Of IFieldSymbol))
             ' There are no syntactic constructs that make a field ineligible to be replaced with 
-            ' a property.  In C# you can't use a property in a ref/out positoin.  But that restriction
+            ' a property.  In C# you can't use a property in a ref/out position.  But that restriction
             ' doesn't apply to VB.
         End Sub
 
@@ -35,11 +36,11 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UseAutoProperty
         End Function
 
         Private Function CheckExpressionSyntactically(expression As ExpressionSyntax) As Boolean
-            If expression?.Kind() = SyntaxKind.SimpleMemberAccessExpression Then
+            If expression.IsKind(SyntaxKind.SimpleMemberAccessExpression) Then
                 Dim memberAccessExpression = DirectCast(expression, MemberAccessExpressionSyntax)
                 Return memberAccessExpression.Expression.Kind() = SyntaxKind.MeExpression AndAlso
                     memberAccessExpression.Name.Kind() = SyntaxKind.IdentifierName
-            ElseIf expression.Kind() = SyntaxKind.IdentifierName
+            ElseIf expression.IsKind(SyntaxKind.IdentifierName)
                 Return True
             End If
 
@@ -47,13 +48,21 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UseAutoProperty
         End Function
 
         Protected Overrides Function GetGetterExpression(getMethod As IMethodSymbol, cancellationToken As CancellationToken) As ExpressionSyntax
+            ' Getter has to be of the form:
+            '
+            '     Get
+            '         Return field
+            '     End Get
+            ' or
+            '     Get
+            '         Return Me.field
+            '     End Get
             Dim accessor = TryCast(TryCast(getMethod.DeclaringSyntaxReferences(0).GetSyntax(cancellationToken), AccessorStatementSyntax)?.Parent, AccessorBlockSyntax)
             Dim statements = accessor?.Statements
             If statements?.Count = 1 Then
-                ' this only works with a getter body with exactly one statement
-                Dim firstStatement = statements.Value(0)
-                If firstStatement.Kind() = SyntaxKind.ReturnStatement Then
-                    Dim expr = DirectCast(firstStatement, ReturnStatementSyntax).Expression
+                Dim statement = statements.Value(0)
+                If statement.Kind() = SyntaxKind.ReturnStatement Then
+                    Dim expr = DirectCast(statement, ReturnStatementSyntax).Expression
                     Return If(CheckExpressionSyntactically(expr), expr, Nothing)
                 End If
             End If
@@ -62,16 +71,27 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UseAutoProperty
         End Function
 
         Protected Overrides Function GetSetterExpression(setMethod As IMethodSymbol, semanticModel As SemanticModel, cancellationToken As CancellationToken) As ExpressionSyntax
+            ' Setter has to be of the form:
+            '
+            '     Set(value)
+            '         field = value
+            '     End Set
+            ' or
+            '     Set(value)
+            '         Me.field = value
+            '     End Set
             Dim setAccessor = TryCast(TryCast(setMethod.DeclaringSyntaxReferences(0).GetSyntax(cancellationToken), AccessorStatementSyntax)?.Parent, AccessorBlockSyntax)
-
-            Dim firstStatement = setAccessor?.Statements.SingleOrDefault()
-            If firstStatement?.Kind() = SyntaxKind.SimpleAssignmentStatement Then
-                Dim assignmentStatement = DirectCast(firstStatement, AssignmentStatementSyntax)
-                If assignmentStatement.Right.Kind() = SyntaxKind.IdentifierName Then
-                    Dim identifier = DirectCast(assignmentStatement.Right, IdentifierNameSyntax)
-                    Dim symbol = semanticModel.GetSymbolInfo(identifier).Symbol
-                    If setMethod.Parameters.Contains(TryCast(symbol, IParameterSymbol)) Then
-                        Return If(CheckExpressionSyntactically(assignmentStatement.Left), assignmentStatement.Left, Nothing)
+            Dim statements = setAccessor?.Statements
+            If statements?.Count = 1 Then
+                Dim statement = statements.Value(0)
+                If statement.IsKind(SyntaxKind.SimpleAssignmentStatement) Then
+                    Dim assignmentStatement = DirectCast(statement, AssignmentStatementSyntax)
+                    If assignmentStatement.Right.Kind() = SyntaxKind.IdentifierName Then
+                        Dim identifier = DirectCast(assignmentStatement.Right, IdentifierNameSyntax)
+                        Dim symbol = semanticModel.GetSymbolInfo(identifier).Symbol
+                        If setMethod.Parameters.Contains(TryCast(symbol, IParameterSymbol)) Then
+                            Return If(CheckExpressionSyntactically(assignmentStatement.Left), assignmentStatement.Left, Nothing)
+                        End If
                     End If
                 End If
             End If
@@ -91,8 +111,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UseAutoProperty
 
             ' the property doesn't have a setter currently. check all the types the field is 
             ' declared in.  If the field is written to outside of a constructor, then this 
-            ' field Is Not elegible for replacement with an auto prop.  We'd have to make 
-            ' the autoprop read/write, And that could be opening up the propert widely 
+            ' field Is Not eligible for replacement with an auto prop.  We'd have to make 
+            ' the autoprop read/write, And that could be opening up the property widely 
             ' (in accessibility terms) in a way the user would not want.
             Dim containingType = field.ContainingType
             For Each ref In containingType.DeclaringSyntaxReferences

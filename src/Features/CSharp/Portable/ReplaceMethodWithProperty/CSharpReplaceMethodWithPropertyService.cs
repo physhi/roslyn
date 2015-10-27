@@ -44,30 +44,40 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ReplaceMethodWithProper
             return containingMethod;
         }
 
+        public void RemoveSetMethod(SyntaxEditor editor, SyntaxNode setMethodDeclaration)
+        {
+            editor.RemoveNode(setMethodDeclaration);
+        }
+
+        public void ReplaceGetMethodWithProperty(
+            SyntaxEditor editor,
+            SemanticModel semanticModel,
+            GetAndSetMethods getAndSetMethods,
+            string propertyName, bool nameChanged)
+        {
+            var getMethodDeclaration = getAndSetMethods.GetMethodDeclaration as MethodDeclarationSyntax;
+            if (getMethodDeclaration == null)
+            {
+                return;
+            }
+
+            editor.ReplaceNode(getMethodDeclaration,
+                ConvertMethodsToProperty(semanticModel, editor.Generator, getAndSetMethods, propertyName, nameChanged));
+        }
+
         public SyntaxNode ConvertMethodsToProperty(
             SemanticModel semanticModel,
             SyntaxGenerator generator, GetAndSetMethods getAndSetMethods,
             string propertyName, bool nameChanged)
         {
             var getMethodDeclaration = getAndSetMethods.GetMethodDeclaration as MethodDeclarationSyntax;
-            if (getMethodDeclaration == null)
-            {
-                return getAndSetMethods.GetMethodDeclaration;
-            }
-
             var getAccessor = CreateGetAccessor(getAndSetMethods);
             var setAccessor = CreateSetAccessor(semanticModel, generator, getAndSetMethods);
-
-            var accessorList = SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(getAccessor));
-            if (setAccessor != null)
-            {
-                accessorList = accessorList.AddAccessors(new[] { setAccessor });
-            }
 
             var property = SyntaxFactory.PropertyDeclaration(
                 getMethodDeclaration.AttributeLists, getMethodDeclaration.Modifiers, 
                 getMethodDeclaration.ReturnType, getMethodDeclaration.ExplicitInterfaceSpecifier, 
-                GetPropertyName(getMethodDeclaration.Identifier, propertyName, nameChanged), accessorList);
+                GetPropertyName(getMethodDeclaration.Identifier, propertyName, nameChanged), accessorList: null);
 
             IEnumerable<SyntaxTrivia> trivia = getMethodDeclaration.GetLeadingTrivia();
             var setMethodDeclaration = getAndSetMethods.SetMethodDeclaration;
@@ -81,6 +91,16 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ReplaceMethodWithProper
             {
                 property = property.WithExpressionBody(getMethodDeclaration.ExpressionBody);
                 property = property.WithSemicolonToken(getMethodDeclaration.SemicolonToken);
+            }
+            else
+            {
+                var accessorList = SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(getAccessor));
+                if (setAccessor != null)
+                {
+                    accessorList = accessorList.AddAccessors(new[] { setAccessor });
+                }
+
+                property = property.WithAccessorList(accessorList);
             }
 
             return property.WithAdditionalAnnotations(Formatter.Annotation);
@@ -195,13 +215,13 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ReplaceMethodWithProper
             {
                 if (invocation.ArgumentList?.Arguments.Count != 1)
                 {
-                    var annotation = ConflictAnnotation.Create(CSharpFeaturesResources.OnlyMethodsWithASingleArgumentCanBeReplacedWithAProperty);
+                    var annotation = ConflictAnnotation.Create(FeaturesResources.OnlyMethodsWithASingleArgumentCanBeReplacedWithAProperty);
                     editor.ReplaceNode(nameNode, newName.WithIdentifier(newName.Identifier.WithAdditionalAnnotations(annotation)));
                     return;
                 }
 
                 // We use the callback form if "ReplaceNode" here because we want to see the
-                // invocation expressoin after any rewrites we already did when rewriting the
+                // invocation expression after any rewrites we already did when rewriting the
                 // 'get' references.
                 editor.ReplaceNode(invocation, (i, g) =>
                 {
@@ -255,7 +275,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ReplaceMethodWithProper
             if (!IsInvocationName(nameNode, invocationExpression))
             {
                 // Wasn't invoked.  Change the name, but report a conflict.
-                var annotation = ConflictAnnotation.Create(CSharpFeaturesResources.NonInvokedMethodCannotBeReplacedWithProperty);
+                var annotation = ConflictAnnotation.Create(FeaturesResources.NonInvokedMethodCannotBeReplacedWithProperty);
                 editor.ReplaceNode(nameNode, newName.WithIdentifier(newName.Identifier.WithAdditionalAnnotations(annotation)));
                 return;
             }

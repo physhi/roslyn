@@ -42,6 +42,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Interactive
             shell.LoadPackage(Guids.RoslynPackageId, out roslynPackage);
             Debug.Assert(core::Microsoft.CodeAnalysis.ErrorReporting.FatalError.Handler != null);
             Debug.Assert(core::Microsoft.CodeAnalysis.ErrorReporting.FatalError.NonFatalHandler != null);
+            Debug.Assert(core::Microsoft.CodeAnalysis.Internal.Log.Logger.GetLogger() != null);
 
             // Explicitly set up FatalError handlers for the InteractiveWindowPackage.
             // NB: Microsoft.CodeAnalysis.ErrorReporting.FatalError (InteractiveWindow), not 
@@ -51,16 +52,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Interactive
 
             _componentModel = (IComponentModel)GetService(typeof(SComponentModel));
             _interactiveWindowProvider = _componentModel.DefaultExportProvider.GetExportedValue<TVsInteractiveWindowProvider>();
+            KnownUIContexts.ShellInitializedContext.WhenActivated(() =>
+                _componentModel.GetService<HACK_ThemeColorFixer>());
 
             var menuCommandService = (OleMenuCommandService)GetService(typeof(IMenuCommandService));
             InitializeMenuCommands(menuCommandService);
             InitializeResetInteractiveFromProjectCommand(menuCommandService);
-
-            var telemetrySetupExtensions = _componentModel.GetExtensions<IRoslynTelemetrySetup>();
-            foreach (var telemetrySetup in telemetrySetupExtensions)
-            {
-                telemetrySetup.Initialize(this);
-            }
         }
 
         protected TVsInteractiveWindowProvider InteractiveWindowProvider

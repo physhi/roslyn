@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Common;
 using Microsoft.CodeAnalysis.Editor.Shared.Options;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -138,7 +139,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.TodoComments
                 return ImmutableArray<TodoItem>.Empty;
             }
 
-            // TODO let's think about what to do here. for now, let call it synchronously. also, there is no actual asynch-ness for the
+            // TODO let's think about what to do here. for now, let call it synchronously. also, there is no actual async-ness for the
             // TryGetExistingDataAsync, API just happen to be async since our persistent API is async API. but both caller and implementor are
             // actually not async.
             var existingData = _state.TryGetExistingDataAsync(document, cancellationToken).WaitAndGetResult(cancellationToken);
@@ -148,6 +149,14 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.TodoComments
             }
 
             return existingData.Items;
+        }
+
+        public IEnumerable<UpdatedEventArgs> GetTodoItemsUpdatedEventArgs(Workspace workspace, CancellationToken cancellationToken)
+        {
+            foreach (var documentId in _state.GetDocumentIds())
+            {
+                yield return new UpdatedEventArgs(Tuple.Create(this, documentId), workspace, documentId.ProjectId, documentId);
+            }
         }
 
         private static bool CheckVersions(Document document, VersionStamp textVersion, VersionStamp syntaxVersion, Data existingData)

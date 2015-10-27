@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
-
-extern alias WORKSPACES;
+extern alias Scripting;
 
 using System;
 using System.Collections.Generic;
@@ -24,12 +23,10 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Roslyn.Utilities;
 
-using RuntimeMetadataReferenceResolver = WORKSPACES::Microsoft.CodeAnalysis.Scripting.Hosting.RuntimeMetadataReferenceResolver;
-using NuGetPackageResolver = WORKSPACES::Microsoft.CodeAnalysis.Scripting.Hosting.NuGetPackageResolver;
-using GacFileResolver = WORKSPACES::Microsoft.CodeAnalysis.Scripting.Hosting.GacFileResolver;
-
 namespace Microsoft.CodeAnalysis.Interactive
 {
+    using RelativePathResolver = Scripting::Microsoft.CodeAnalysis.RelativePathResolver;
+
     internal partial class InteractiveHost
     {
         /// <summary>
@@ -41,12 +38,10 @@ namespace Microsoft.CodeAnalysis.Interactive
 
             private static TaskScheduler s_UIThreadScheduler;
 
-            private readonly InteractiveAssemblyLoader _assemblyLoader;
-            private readonly MetadataShadowCopyProvider _metadataFileProvider;
+            private InteractiveAssemblyLoader _assemblyLoader;
+            private MetadataShadowCopyProvider _metadataFileProvider;
             private ReplServiceProvider _replServiceProvider;
-
-            private readonly InteractiveHostObject _hostObject;
-            private ObjectFormattingOptions _formattingOptions;
+            private InteractiveScriptGlobals _globals;
 
             // Session is not thread-safe by itself, and the compilation
             // and execution of scripts are asynchronous operations.
@@ -108,22 +103,6 @@ namespace Microsoft.CodeAnalysis.Interactive
 
             public Service()
             {
-                // TODO (tomat): we should share the copied files with the host
-                _metadataFileProvider = new MetadataShadowCopyProvider(
-                    Path.Combine(Path.GetTempPath(), "InteractiveHostShadow"),
-                    noShadowCopyDirectories: s_systemNoShadowCopyDirectories);
-
-                _assemblyLoader = new InteractiveAssemblyLoader(_metadataFileProvider);
-
-                _formattingOptions = new ObjectFormattingOptions(
-                    memberFormat: MemberDisplayFormat.Inline,
-                    quoteStrings: true,
-                    useHexadecimalNumbers: false,
-                    maxOutputLength: 200,
-                    memberIndentation: "  ");
-
-                _hostObject = new InteractiveHostObject();
-
                 var initialState = new EvaluationState(
                     scriptState: null,
                     scriptOptions: ScriptOptions.Default,
@@ -158,21 +137,35 @@ namespace Microsoft.CodeAnalysis.Interactive
                 return null;
             }
 
-            public void Initialize(Type replServiceProviderType)
+            public void Initialize(Type replServiceProviderType, string cultureName)
             {
-                Contract.ThrowIfNull(replServiceProviderType);
+                Debug.Assert(replServiceProviderType != null);
+                Debug.Assert(cultureName != null);
+
+                Debug.Assert(_metadataFileProvider == null);
+                Debug.Assert(_assemblyLoader == null);
+                Debug.Assert(_replServiceProvider == null);
+
+                // TODO (tomat): we should share the copied files with the host
+                _metadataFileProvider = new MetadataShadowCopyProvider(
+                    Path.Combine(Path.GetTempPath(), "InteractiveHostShadow"),
+                    noShadowCopyDirectories: s_systemNoShadowCopyDirectories,
+                    documentationCommentsCulture: new CultureInfo(cultureName));
+
+                _assemblyLoader = new InteractiveAssemblyLoader(_metadataFileProvider);
+
                 _replServiceProvider = (ReplServiceProvider)Activator.CreateInstance(replServiceProviderType);
+
+                _globals = new InteractiveScriptGlobals(Console.Out, _replServiceProvider.ObjectFormatter);
             }
 
             private MetadataReferenceResolver CreateMetadataReferenceResolver(ImmutableArray<string> searchPaths, string baseDirectory)
             {
                 return new RuntimeMetadataReferenceResolver(
-                   new RelativePathResolver(searchPaths, baseDirectory),
-                   null, // TODO
-                   new GacFileResolver(
-                       architectures: GacFileResolver.Default.Architectures,  // TODO (tomat)
-                       preferredCulture: CultureInfo.CurrentCulture), // TODO (tomat)
-                   (path, properties) => _metadataFileProvider.GetReference(path, properties));
+                    new RelativePathResolver(searchPaths, baseDirectory),
+                    null,
+                    GacFileResolver.IsAvailable ? new GacFileResolver(preferredCulture: CultureInfo.CurrentCulture) : null,
+                    (path, properties) => new ShadowCopyReference(_metadataFileProvider, path, properties));
             }
 
             private SourceReferenceResolver CreateSourceReferenceResolver(ImmutableArray<string> searchPaths, string baseDirectory)
@@ -345,11 +338,11 @@ namespace Microsoft.CodeAnalysis.Interactive
                 {
                     Directory.SetCurrentDirectory(baseDirectory);
 
-                    _hostObject.ReferencePaths.Clear();
-                    _hostObject.ReferencePaths.AddRange(referenceSearchPaths);
+                    _globals.ReferencePaths.Clear();
+                    _globals.ReferencePaths.AddRange(referenceSearchPaths);
 
-                    _hostObject.SourcePaths.Clear();
-                    _hostObject.SourcePaths.AddRange(sourceSearchPaths);
+                    _globals.SourcePaths.Clear();
+                    _globals.SourcePaths.AddRange(sourceSearchPaths);
                 }
                 finally
                 {
@@ -469,18 +462,9 @@ namespace Microsoft.CodeAnalysis.Interactive
 
             private void DisplaySubmissionResult(ScriptState<object> state)
             {
-                bool hasValue;
-                var resultType = state.Script.GetCompilation().GetSubmissionResultType(out hasValue);
-                if (hasValue)
+                if (state.Script.HasReturnValue())
                 {
-                    if (resultType != null && resultType.SpecialType == SpecialType.System_Void)
-                    {
-                        Console.Out.WriteLine(_replServiceProvider.ObjectFormatter.VoidDisplayString);
-                    }
-                    else
-                    {
-                        Console.Out.WriteLine(_replServiceProvider.ObjectFormatter.FormatObject(state.ReturnValue, _formattingOptions));
-                    }
+                    _globals.Print(state.ReturnValue);
                 }
             }
 
@@ -502,12 +486,12 @@ namespace Microsoft.CodeAnalysis.Interactive
             private EvaluationState CompleteExecution(EvaluationState state, RemoteAsyncOperation<RemoteExecutionResult> operation, bool success)
             {
                 // send any updates to the host object and current directory back to the client:
-                var currentSourcePaths = _hostObject.SourcePaths.List.ToArray();
-                var currentReferencePaths = _hostObject.ReferencePaths.List.ToArray();
+                var currentSourcePaths = _globals.SourcePaths.ToArray();
+                var currentReferencePaths = _globals.ReferencePaths.ToArray();
                 var currentWorkingDirectory = Directory.GetCurrentDirectory();
 
                 var changedSourcePaths = currentSourcePaths.SequenceEqual(state.SourceSearchPaths) ? null : currentSourcePaths;
-                var changedReferencePaths = currentSourcePaths.SequenceEqual(state.ReferenceSearchPaths) ? null : currentReferencePaths;
+                var changedReferencePaths = currentReferencePaths.SequenceEqual(state.ReferenceSearchPaths) ? null : currentReferencePaths;
                 var changedWorkingDirectory = currentWorkingDirectory == state.WorkingDirectory ? null : currentWorkingDirectory;
 
                 operation.Completed(new RemoteExecutionResult(success, changedSourcePaths, changedReferencePaths, changedWorkingDirectory));
@@ -525,12 +509,12 @@ namespace Microsoft.CodeAnalysis.Interactive
                 ScriptOptions newOptions = state.ScriptOptions;
                 if (changedReferencePaths != null || changedWorkingDirectory != null)
                 {
-                    newOptions = newOptions.WithCustomMetadataResolution(CreateMetadataReferenceResolver(newReferencePaths, newWorkingDirectory));
+                    newOptions = newOptions.WithMetadataResolver(CreateMetadataReferenceResolver(newReferencePaths, newWorkingDirectory));
                 }
 
                 if (changedSourcePaths != null || changedWorkingDirectory != null)
                 {
-                    newOptions = newOptions.WithCustomSourceResolution(CreateSourceReferenceResolver(newSourcePaths, newWorkingDirectory));
+                    newOptions = newOptions.WithSourceResolver(CreateSourceReferenceResolver(newSourcePaths, newWorkingDirectory));
                 }
 
                 return new EvaluationState(
@@ -569,7 +553,7 @@ namespace Microsoft.CodeAnalysis.Interactive
             // TODO (tomat): testing only
             public void SetTestObjectFormattingOptions()
             {
-                _formattingOptions = new ObjectFormattingOptions(
+                _globals.PrintOptions = new ObjectFormattingOptions(
                     memberFormat: MemberDisplayFormat.Inline,
                     quoteStrings: true,
                     useHexadecimalNumbers: false,
@@ -608,7 +592,7 @@ namespace Microsoft.CodeAnalysis.Interactive
                         // The base directory for relative paths is the directory that contains the .rsp file.
                         // Note that .rsp files included by this .rsp file will share the base directory (Dev10 behavior of csc/vbc).
                         var rspDirectory = Path.GetDirectoryName(initializationFileOpt);
-                        var args = parser.Parse(new[] { "@" + initializationFileOpt }, rspDirectory, RuntimeEnvironment.GetRuntimeDirectory(), null /* TODO: pass a valid value*/);
+                        var args = parser.Parse(new[] { "@" + initializationFileOpt }, rspDirectory, RuntimeEnvironment.GetRuntimeDirectory(), null);
 
                         foreach (var error in args.Errors)
                         {
@@ -618,16 +602,9 @@ namespace Microsoft.CodeAnalysis.Interactive
 
                         if (args.Errors.Length == 0)
                         {
-                            // TODO (tomat): other arguments
-                            // TODO (tomat): parse options
-
                             var metadataResolver = CreateMetadataReferenceResolver(args.ReferencePaths, rspDirectory);
-
-                            _hostObject.ReferencePaths.Clear();
-                            _hostObject.ReferencePaths.AddRange(args.ReferencePaths);
-
-                            _hostObject.SourcePaths.Clear();
-
+                            var sourceResolver = CreateSourceReferenceResolver(args.SourcePaths, rspDirectory);
+                            
                             var metadataReferences = new List<PortableExecutableReference>();
                             foreach (CommandLineReference cmdLineReference in args.MetadataReferences)
                             {
@@ -641,37 +618,38 @@ namespace Microsoft.CodeAnalysis.Interactive
                                 }
                             }
 
-                            // only search for scripts next to the .rsp file:
-                            var sourceSearchPaths = ImmutableArray<string>.Empty;
+                            var scriptPathOpt = args.SourceFiles.IsEmpty ? null : args.SourceFiles[0].Path;
 
                             var rspState = new EvaluationState(
                                 state.ScriptStateOpt,
-                                state.ScriptOptions.AddReferences(metadataReferences),
-                                sourceSearchPaths,
+                                state.ScriptOptions.
+                                    WithFilePath(scriptPathOpt).
+                                    WithReferences(metadataReferences).
+                                    WithImports(CommandLineHelpers.GetImports(args)).
+                                    WithMetadataResolver(metadataResolver).
+                                    WithSourceResolver(sourceResolver),
+                                args.SourcePaths,
                                 args.ReferencePaths,
                                 rspDirectory);
 
-                            foreach (CommandLineSourceFile file in args.SourceFiles)
-                            {
-                                // execute all files as scripts (matches csi/vbi semantics)
+                            _globals.ReferencePaths.Clear();
+                            _globals.ReferencePaths.AddRange(args.ReferencePaths);
 
-                                string fullPath = ResolveRelativePath(file.Path, rspDirectory, sourceSearchPaths, displayPath: true);
-                                if (fullPath != null)
+                            _globals.SourcePaths.Clear();
+                            _globals.SourcePaths.AddRange(args.SourcePaths);
+
+                            _globals.Args.AddRange(args.ScriptArguments);
+
+                            if (scriptPathOpt != null)
+                            {
+                                var newScriptState = await ExecuteFileAsync(rspState, scriptPathOpt).ConfigureAwait(false);
+                                if (newScriptState != null)
                                 {
-                                    var newScriptState = await ExecuteFileAsync(rspState, fullPath).ConfigureAwait(false);
-                                    if (newScriptState != null)
-                                    {
-                                        rspState = rspState.WithScriptState(newScriptState);
-                                    }
+                                    rspState = rspState.WithScriptState(newScriptState);
                                 }
                             }
 
-                            state = new EvaluationState(
-                                rspState.ScriptStateOpt,
-                                rspState.ScriptOptions,
-                                ImmutableArray<string>.Empty,
-                                args.ReferencePaths,
-                                state.WorkingDirectory);
+                            state = rspState;
                         }
                     }
 
@@ -757,7 +735,7 @@ namespace Microsoft.CodeAnalysis.Interactive
             {
                 Script script;
 
-                var scriptOptions = options.WithPath(path).WithIsInteractive(path == null);
+                var scriptOptions = options.WithFilePath(path);
 
                 if (previousScript != null)
                 {
@@ -765,17 +743,13 @@ namespace Microsoft.CodeAnalysis.Interactive
                 }
                 else
                 {
-                    script = _replServiceProvider.CreateScript<object>(code, scriptOptions, _hostObject.GetType(), _assemblyLoader);
+                    script = _replServiceProvider.CreateScript<object>(code, scriptOptions, _globals.GetType(), _assemblyLoader);
                 }
 
-                // force build so exception is thrown now if errors are found.
-                try
+                var diagnostics = script.Build();
+                if (diagnostics.HasAnyErrors())
                 {
-                    script.Build();
-                }
-                catch (CompilationErrorException e)
-                {
-                    DisplayInteractiveErrors(e.Diagnostics, Console.Error);
+                    DisplayInteractiveErrors(diagnostics, Console.Error);
                     return null;
                 }
 
@@ -879,7 +853,7 @@ namespace Microsoft.CodeAnalysis.Interactive
                     try
                     {
                         var task = (stateOpt == null) ?
-                            script.RunAsync(_hostObject, CancellationToken.None) :
+                            script.RunAsync(_globals, CancellationToken.None) :
                             script.ContinueAsync(stateOpt, CancellationToken.None);
 
                         return await task.ConfigureAwait(false);

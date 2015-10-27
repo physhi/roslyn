@@ -310,5 +310,7 @@ namespace Microsoft.CodeAnalysis.Internal.Log
         VisualBasic_Interactive_Window,
 
         NonFatalWatson,
+        GlobalOperationRegistration,
+        CommandHandler_FindAllReference,
     }
 }

@@ -86,7 +86,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 
             public override AbstractTableEntriesSnapshot<DiagnosticData> CreateSnapshot(AbstractTableEntriesSource<DiagnosticData> source, int version, ImmutableArray<TableItem<DiagnosticData>> items, ImmutableArray<ITrackingPoint> trackingPoints)
             {
-                // Build doens't support tracking point.
+                // Build doesn't support tracking point.
                 return new TableEntriesSnapshot((DiagnosticTableEntriesSource)source, version, items);
             }
 
@@ -149,7 +149,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                            Hash.Combine(diagnostic.DataLocation.OriginalEndColumn,
                            Hash.Combine(diagnostic.DataLocation.OriginalEndLine,
                            Hash.Combine(diagnostic.DataLocation.OriginalFilePath,
-                           Hash.Combine(diagnostic.Id.GetHashCode(), diagnostic.Message.GetHashCode()))))));
+                           Hash.Combine(diagnostic.IsSuppressed,
+                           Hash.Combine(diagnostic.Id.GetHashCode(), diagnostic.Message.GetHashCode())))))));
                 }
             }
 
@@ -182,34 +183,37 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                         case StandardTableKeyNames.ErrorRank:
                             // build error gets highest rank
                             content = ValueTypeCache.GetOrCreate(ErrorRank.Lexical);
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.ErrorSeverity:
                             content = ValueTypeCache.GetOrCreate(GetErrorCategory(data.Severity));
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.ErrorCode:
                             content = data.Id;
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.ErrorCodeToolTip:
                             content = GetHelpLinkToolTipText(data);
+                            return content != null;
+                        case StandardTableKeyNames.HelpKeyword:
+                            content = data.Id;
                             return content != null;
                         case StandardTableKeyNames.HelpLink:
                             content = GetHelpLink(data);
                             return content != null;
                         case StandardTableKeyNames.ErrorCategory:
                             content = data.Category;
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.ErrorSource:
                             content = ValueTypeCache.GetOrCreate(ErrorSource.Build);
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.BuildTool:
                             content = _source.BuildTool;
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.Text:
                             content = data.Message;
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.DocumentName:
                             content = GetFileName(data.DataLocation?.OriginalFilePath, data.DataLocation?.MappedFilePath);
-                            return true;
+                            return content != null;
                         case StandardTableKeyNames.Line:
                             content = data.DataLocation?.MappedStartLine ?? 0;
                             return true;
