@@ -13,21 +13,21 @@ namespace Microsoft.CodeAnalysis.CodeGen
 {
     internal interface ILBuilder
     {
-        LocalSlotManager LocalSlotManager { get; }
+        bool HasDynamicLocal { get; }
 
         int InstructionsEmitted { get; }
 
         bool InExceptionHandler { get; }
 
-        ImmutableArray<byte> RealizedIL { get; set; }
+        LocalSlotManager LocalSlotManager { get; }
 
         ushort MaxStack { get; }
+
+        ImmutableArray<byte> RealizedIL { get; set; }
 
         SequencePointList RealizedSequencePoints { get; }
 
         ImmutableArray<ExceptionHandlerRegion> RealizedExceptionHandlers { get; }
-
-        bool HasDynamicLocal { get; }
 
         int GetILOffsetFromMarker(int _asyncCatchHandlerOffset);
 
@@ -97,14 +97,6 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
         void CloseStateMachineScope();
 
-        void EmitStringSwitchJumpTable(
-            KeyValuePair<ConstantValue, object>[] caseLabels,
-            object fallThroughLabel,
-            LocalOrParameter key,
-            LocalDefinition keyHash,
-            SwitchStringJumpTableEmitter.EmitStringCompareAndBranch emitStringCondBranchDelegate,
-            SwitchStringJumpTableEmitter.GetStringHashCode computeStringHashcodeDelegate);
-
         void AddLocalConstantToScope(LocalConstantDefinition localConstantDef);
 
         void AddLocalToScope(LocalDefinition local);
@@ -117,17 +109,25 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
         void FreeBasicBlocks();
 
-        void EmitSwitch(object[] labels);
-
         void EmitArrayElementAddress(IArrayTypeReference arrayTypeReference, SyntaxNode syntax, DiagnosticBag _diagnostics);
 
         void DefineInitialHiddenSequencePoint();
+
+        void EmitSwitch(object[] labels);
 
         void EmitIntegerSwitchJumpTable(
             KeyValuePair<ConstantValue, object>[] caseLabels,
             object fallThroughLabel,
             LocalOrParameter key,
             Cci.PrimitiveTypeCode keyTypeCode);
+
+        void EmitStringSwitchJumpTable(
+            KeyValuePair<ConstantValue, object>[] caseLabels,
+            object fallThroughLabel,
+            LocalOrParameter key,
+            LocalDefinition keyHash,
+            SwitchStringJumpTableEmitter.EmitStringCompareAndBranch emitStringCondBranchDelegate,
+            SwitchStringJumpTableEmitter.GetStringHashCode computeStringHashcodeDelegate);
 
         void EmitNullConstant();
 
