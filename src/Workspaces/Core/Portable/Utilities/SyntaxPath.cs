@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 
@@ -61,8 +61,8 @@ namespace Roslyn.Utilities
                 // the location of a node, a linear walk is still needed to find it in its parent
                 // collection.
 
-                int ordinal = 0;
-                int kind = nodeOrToken.RawKind;
+                var ordinal = 0;
+                var kind = nodeOrToken.RawKind;
                 foreach (var child in parent.ChildNodesAndTokens())
                 {
                     if (nodeOrToken == child)
@@ -71,7 +71,7 @@ namespace Roslyn.Utilities
                         return;
                     }
 
-                    if (!_trackKinds || (_trackKinds && child.RawKind == kind))
+                    if (!_trackKinds || child.RawKind == kind)
                     {
                         ordinal++;
                     }
@@ -87,7 +87,7 @@ namespace Roslyn.Utilities
         /// </summary>
         public bool TryResolve(SyntaxNode root, out SyntaxNodeOrToken nodeOrToken)
         {
-            nodeOrToken = default(SyntaxNodeOrToken);
+            nodeOrToken = default;
 
             var current = (SyntaxNodeOrToken)root;
             foreach (var segment in _segments)
@@ -100,7 +100,7 @@ namespace Roslyn.Utilities
                 }
             }
 
-            if (!_trackKinds || (_trackKinds && current.RawKind == _kind))
+            if (!_trackKinds || current.RawKind == _kind)
             {
                 nodeOrToken = current;
                 return true;
@@ -114,7 +114,7 @@ namespace Roslyn.Utilities
             var ordinal = segment.Ordinal;
             foreach (var child in current.ChildNodesAndTokens())
             {
-                if (!_trackKinds || (_trackKinds && child.RawKind == segment.Kind))
+                if (!_trackKinds || child.RawKind == segment.Kind)
                 {
                     if (ordinal == 0)
                     {
@@ -127,7 +127,7 @@ namespace Roslyn.Utilities
                 }
             }
 
-            return default(SyntaxNodeOrToken);
+            return default;
         }
 
         public bool TryResolve<TNode>(SyntaxTree syntaxTree, CancellationToken cancellationToken, out TNode node)
@@ -139,8 +139,7 @@ namespace Roslyn.Utilities
         public bool TryResolve<TNode>(SyntaxNode root, out TNode node)
             where TNode : SyntaxNode
         {
-            SyntaxNodeOrToken nodeOrToken;
-            if (TryResolve(root, out nodeOrToken) &&
+            if (TryResolve(root, out var nodeOrToken) &&
                 nodeOrToken.IsNode &&
                 nodeOrToken.AsNode() is TNode)
             {
@@ -200,7 +199,7 @@ namespace Roslyn.Utilities
         {
             var hash = 1;
 
-            for (int i = 0; i < _segments.Count; i++)
+            for (var i = 0; i < _segments.Count; i++)
             {
                 var segment = _segments[i];
                 hash = Hash.Combine(Hash.Combine(segment.Kind, segment.Ordinal), hash);

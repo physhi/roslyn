@@ -26,9 +26,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense
         // stop.
         protected TSession sessionOpt;
 
-        protected bool IsSessionActive { get { return sessionOpt != null; } }
+        protected bool IsSessionActive => sessionOpt != null;
 
-        public AbstractController(ITextView textView, ITextBuffer subjectBuffer, IIntelliSensePresenter<TPresenterSession, TEditorSession> presenter, IAsynchronousOperationListener asyncListener, IDocumentProvider documentProvider, string asyncOperationId)
+        protected AbstractController(IThreadingContext threadingContext, ITextView textView, ITextBuffer subjectBuffer, IIntelliSensePresenter<TPresenterSession, TEditorSession> presenter, IAsynchronousOperationListener asyncListener, IDocumentProvider documentProvider, string asyncOperationId)
+            : base(threadingContext)
         {
             this.TextView = textView;
             this.SubjectBuffer = subjectBuffer;

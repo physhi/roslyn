@@ -38,12 +38,20 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Gets the name of a symbol as it appears in metadata. Most of the time, this
         /// is the same as the Name property, with the following exceptions:
-        /// 1) The metadata name of generic types includes the "`1", "`2" etc. suffix that
+        /// <list type="number">
+        /// <item>
+        /// <description>The metadata name of generic types includes the "`1", "`2" etc. suffix that
         /// indicates the number of type parameters (it does not include, however, names of
-        /// containing types or namespaces).
-        /// 2) The metadata name of explicit interface names have spaces removed, compared to
-        /// the name property.
-        /// 3) The length of names is limited to not exceed metadata restrictions.
+        /// containing types or namespaces). </description>
+        /// </item>
+        /// <item>
+        /// <description>The metadata name of explicit interface names have spaces removed, compared to
+        /// the name property.</description>
+        /// </item>
+        /// <item>
+        /// <description>The length of names is limited to not exceed metadata restrictions.</description>
+        /// </item>
+        /// </list>
         /// </summary>
         string MetadataName { get; }
 
@@ -121,14 +129,18 @@ namespace Microsoft.CodeAnalysis
         /// used by code, but that are simply declared implicitly rather than with explicit language
         /// syntax.
         /// 
+        /// <para>
         /// Examples include (this list is not exhaustive):
-        ///   the default constructor for a class or struct that is created if one is not provided,
-        ///   the BeginInvoke/Invoke/EndInvoke methods for a delegate,
-        ///   the generated backing field for an auto property or a field-like event,
-        ///   the "this" parameter for non-static methods,
-        ///   the "value" parameter for a property setter,
-        ///   the parameters on indexer accessor methods (not on the indexer itself),
-        ///   methods in anonymous types
+        /// <list type="bullet">
+        /// <item><description>The default constructor for a class or struct that is created if one is not provided.</description></item>
+        /// <item><description>The BeginInvoke/Invoke/EndInvoke methods for a delegate.</description></item>
+        /// <item><description>The generated backing field for an auto property or a field-like event.</description></item>
+        /// <item><description>The "this" parameter for non-static methods.</description></item>
+        /// <item><description>The "value" parameter for a property setter.</description></item>
+        /// <item><description>The parameters on indexer accessor methods (not on the indexer itself).</description></item>
+        /// <item><description>Methods in anonymous types.</description></item>
+        /// </list>
+        /// </para>
         /// </remarks>
         bool IsImplicitlyDeclared { get; }
 
@@ -150,10 +162,12 @@ namespace Microsoft.CodeAnalysis
         /// one or more syntax nodes only if the symbol was declared in source code and also was
         /// not implicitly declared (see the IsImplicitlyDeclared property). 
         /// 
+        /// <para>
         /// Note that for namespace symbol, the declaring syntax might be declaring a nested namespace.
         /// For example, the declaring syntax node for N1 in "namespace N1.N2 {...}" is the entire
         /// NamespaceDeclarationSyntax for N1.N2. For the global namespace, the declaring syntax will
         /// be the CompilationUnitSyntax.
+        /// </para>
         /// </summary>
         /// <returns>
         /// The syntax node(s) that declared the symbol. If the symbol was declared in metadata
@@ -247,22 +261,40 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Indicates that this symbol uses metadata that cannot be supported by the language.
         /// 
+        /// <para>
         /// Examples include:
-        ///    - Pointer types in VB
-        ///    - ByRef return type
-        ///    - Required custom modifiers
-        ///    
+        /// <list type="bullet">
+        /// <item><description>Pointer types in VB</description></item>
+        /// <item><description>ByRef return type</description></item>
+        /// <item><description>Required custom modifiers</description></item>
+        /// </list>
+        /// </para>
+        /// 
+        /// <para>
         /// This is distinguished from, for example, references to metadata symbols defined in assemblies that weren't referenced.
         /// Symbols where this returns true can never be used successfully, and thus should never appear in any IDE feature.
+        /// </para>
         /// 
+        /// <para>
         /// This is set for metadata symbols, as follows:
-        /// Type - if a type is unsupported (e.g., a pointer type, etc.)
-        /// Method - parameter or return type is unsupported
-        /// Field - type is unsupported
-        /// Event - type is unsupported
-        /// Property - type is unsupported
-        /// Parameter - type is unsupported
+        /// <list type="bullet">
+        /// <item><description>Type - if a type is unsupported (for example, a pointer type)</description></item>
+        /// <item><description>Method - parameter or return type is unsupported</description></item>
+        /// <item><description>Field - type is unsupported</description></item>
+        /// <item><description>Event - type is unsupported</description></item>
+        /// <item><description>Property - type is unsupported</description></item>
+        /// <item><description>Parameter - type is unsupported</description></item>
+        /// </list>
+        /// </para>
         /// </summary>
         bool HasUnsupportedMetadata { get; }
+
+        /// <summary>
+        /// Determines if this symbol is equal to another, according to the rules of the provided <see cref="SymbolEqualityComparer"/>
+        /// </summary>
+        /// <param name="other">The other symbol to compare against</param>
+        /// <param name="equalityComparer">The <see cref="SymbolEqualityComparer"/> to use when comparing symbols</param>
+        /// <returns>True if the symbols are equivalent.</returns>
+        bool Equals(ISymbol other, SymbolEqualityComparer equalityComparer);
     }
 }

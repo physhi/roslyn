@@ -79,7 +79,7 @@ End Module
 
         End Sub
 
-        <WorkItem(543829, "DevDiv")>
+        <WorkItem(543829, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543829")>
         <Fact()>
         Public Sub AnonymousTypeSymbolWithExplicitNew()
             Dim compilationDef =
@@ -96,7 +96,7 @@ End Module
     </compilation>
             Dim text As String = compilationDef.Value.Replace(vbLf, vbCrLf)
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
             CompilationUtils.AssertNoDiagnostics(compilation)
 
             Dim tree As SyntaxTree = compilation.SyntaxTrees(0)
@@ -161,7 +161,7 @@ End Module
                     Assert.Equal(1, members.Length)
                     Assert.Equal(member, members(0))
 
-                    ' IsImplicitlyDeclared: Return false. The foo = bar clause in 
+                    ' IsImplicitlyDeclared: Return false. The goo = bar clause in 
                     '                       the new { } clause serves as the declaration.
                     Assert.False(member.IsImplicitlyDeclared)
 
@@ -187,7 +187,7 @@ End Module
             Next
         End Sub
 
-        <WorkItem(543829, "DevDiv")>
+        <WorkItem(543829, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543829")>
         <Fact()>
         Public Sub AnonymousTypeSymbolImplicit()
             Dim compilationDef =
@@ -218,7 +218,7 @@ End Module
     </compilation>
             Dim text As String = compilationDef.Value.Replace(vbLf, vbCrLf)
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
             CompilationUtils.AssertNoDiagnostics(compilation)
 
             Dim tree As SyntaxTree = compilation.SyntaxTrees(0)
@@ -265,7 +265,7 @@ End Module
 
         End Sub
 
-        <WorkItem(543829, "DevDiv")>
+        <WorkItem(543829, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543829")>
         <Fact()>
         Public Sub AnonymousDelegateSymbolImplicit()
             Dim compilationDef =
@@ -291,7 +291,7 @@ End Module
     </compilation>
             Dim text As String = compilationDef.Value.Replace(vbLf, vbCrLf)
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
             CompilationUtils.AssertNoDiagnostics(compilation)
 
             Dim tree As SyntaxTree = compilation.SyntaxTrees(0)
@@ -336,7 +336,7 @@ End Module
 
         End Sub
 
-        <WorkItem(543829, "DevDiv")>
+        <WorkItem(543829, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543829")>
         <Fact()>
         Public Sub AnonymousDelegateSymbolImplicit2()
             Dim compilationDef =
@@ -360,7 +360,7 @@ End Module
     </compilation>
             Dim text As String = compilationDef.Value.Replace(vbLf, vbCrLf)
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndReferences(compilationDef, {SystemRef, SystemCoreRef, MsvbRef})
             CompilationUtils.AssertNoDiagnostics(compilation)
 
             Dim tree As SyntaxTree = compilation.SyntaxTrees(0)
@@ -394,13 +394,16 @@ End Module
             ' check 'b'
             Dim posB As Integer = text.IndexOf("del_b", StringComparison.Ordinal)
             Dim declaratorB = tree.GetRoot().FindToken(posB).Parent.FirstAncestorOrSelf(Of VariableDeclaratorSyntax)()
+            Dim delegateA = DirectCast(model.GetDeclaredSymbol(declaratorA.Names(0)), LocalSymbol).Type
             CheckAnonymousTypeImplicit(DirectCast(model.GetDeclaredSymbol(declaratorB.Names(0)), LocalSymbol),
                                        tree.GetRoot().FindToken(sub2).Parent.Parent.GetLocation,
-                                       DirectCast(model.GetDeclaredSymbol(declaratorA.Names(0)), LocalSymbol).Type,
+                                       delegateA,
                                        False,
                                        tree.GetRoot().FindToken(x2 - 2).GetLocation(),
                                        tree.GetRoot().FindToken(y2 - 2).GetLocation())
 
+            Assert.IsType(Of AnonymousTypeManager.AnonymousDelegatePublicSymbol)(delegateA)
+            Assert.False(DirectCast(delegateA, INamedTypeSymbol).IsSerializable)
         End Sub
 
         Private Sub CheckAnonymousTypeImplicit(local As LocalSymbol, location As Location, anotherType As TypeSymbol, isType As Boolean, ParamArray locations() As Location)
@@ -440,7 +443,7 @@ End Module
                     Assert.Equal(1, members.Length)
                     Assert.Equal(member, members(0))
 
-                    ' IsImplicitlyDeclared: Return true. The foo = bar clause initializes 
+                    ' IsImplicitlyDeclared: Return true. The goo = bar clause initializes 
                     '                       a property on the implicitly-declared type.
                     Assert.True(member.IsImplicitlyDeclared)
 
@@ -648,7 +651,7 @@ Module M
         Return Nothing
     End Function
 
-    Sub Foo(o As String)
+    Sub Goo(o As String)
         Dim at = [#0 New With {.f1 = o.ExtF, Key .f2 = .f1, .f3 = DirectCast(.f2, Integer)} 0#]
     End Sub
 
@@ -669,7 +672,7 @@ End Module
             Assert.Equal(1, typeInfo.Type.Interfaces.Length)
         End Sub
 
-        <Fact(), WorkItem(542245, "DevDiv")>
+        <Fact(), WorkItem(542245, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542245")>
         Public Sub AnonymousTypeReferenceLambdas()
             Dim compilationDef =
     <compilation name="AnonymousTypeReferenceLambda">
@@ -1044,7 +1047,7 @@ End Module
             Assert.Equal("Public Property a As Integer", info.Symbol.ToDisplayString())
         End Sub
 
-        <WorkItem(543723, "DevDiv")>
+        <WorkItem(543723, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543723")>
         <Fact()>
         Public Sub AnonymousTypeFieldDeclarationIdentifier4()
             Dim compilationDef =
@@ -1071,7 +1074,7 @@ End Class
             Assert.Equal("Program", info.Symbol.ToDisplayString())
         End Sub
 
-        <WorkItem(543723, "DevDiv")>
+        <WorkItem(543723, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543723")>
         <Fact()>
         Public Sub AnonymousTypePropertyDeclarationIdentifier4()
             Dim compilationDef =
@@ -1316,7 +1319,7 @@ End Module
                          model.GetTypeInfo(DirectCast(nodes(0), ExpressionSyntax)).Type.ToDisplayString())
         End Sub
 
-        <WorkItem(542268, "DevDiv")>
+        <WorkItem(542268, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542268")>
         <Fact()>
         Public Sub AnonymousTypeCreationSymbolInAsNew_TypeInference_Cycle()
             Dim compilationDef =
@@ -1350,7 +1353,7 @@ BC42104: Variable 'tmp' is used before it has been assigned a value. A null refe
                          model.GetTypeInfo(DirectCast(nodes(0), ExpressionSyntax)).Type.ToDisplayString())
         End Sub
 
-        <WorkItem(542268, "DevDiv")>
+        <WorkItem(542268, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542268")>
         <Fact()>
         Public Sub AnonymousTypeCreationSymbolInAsNew_TypeInference_Cycle1()
             Dim compilationDef =
@@ -1447,7 +1450,7 @@ BC36010: 'Using' operand of type '&lt;anonymous type: Key aa As Integer, bb As I
                          model.GetSymbolInfo(DirectCast(nodes(0), ExpressionSyntax)).Symbol.ToDisplayString())
         End Sub
 
-        <Fact(), WorkItem(528745, "DevDiv")>
+        <Fact(), WorkItem(528745, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528745")>
         Public Sub AnonymousTypeCreationSymbolInAsNew_Field()
             Dim compilationDef =
     <compilation name="AnonymousTypeCreationSymbolInAsNew_Field">
@@ -1688,7 +1691,7 @@ End Module
     </file>
 </compilation>
 
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees(0)
             Dim model = comp.GetSemanticModel(tree)
             Dim anonProps = tree.GetRoot().DescendantNodes().OfType(Of FieldInitializerSyntax)()
@@ -1715,7 +1718,7 @@ End Class
     </file>
 </compilation>
 
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees(0)
             Dim model = comp.GetSemanticModel(tree)
             Dim anonProps = tree.GetRoot().DescendantNodes().OfType(Of FieldInitializerSyntax)()
@@ -1766,7 +1769,7 @@ End Class
     </file>
 </compilation>
 
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees(0)
             Dim model = comp.GetSemanticModel(tree)
             Dim anonProps = tree.GetRoot().DescendantNodes().OfType(Of FieldInitializerSyntax)()
@@ -1790,11 +1793,11 @@ End Enum
 
 Structure S
     Public Shared sField As E
-    Public Interface IFoo
+    Public Interface IGoo
     End Interface
 
-    Public Property GetFoo As IFoo
-    Public Function GetFoo2() As Action(Of UShort)
+    Public Property GetGoo As IGoo
+    Public Function GetGoo2() As Action(Of UShort)
         Return Nothing
     End Function
 End Structure
@@ -1802,22 +1805,22 @@ End Structure
 Class AnonTypeTest
 
     Function F() As Action(Of UShort)
-        Dim anonType1 = New With {.a1 = New With {S.sField, .ifoo = New With {New S().GetFoo}}}
-        Dim anonType2 = New With {.a1 = New With {.a2 = New With {.a2 = S.sField, .a3 = New With {.a3 = New S().GetFoo2()}}}}
+        Dim anonType1 = New With {.a1 = New With {S.sField, .igoo = New With {New S().GetGoo}}}
+        Dim anonType2 = New With {.a1 = New With {.a2 = New With {.a2 = S.sField, .a3 = New With {.a3 = New S().GetGoo2()}}}}
         Return anonType2.a1.a2.a3.a3
     End Function
 End Class
     </file>
 </compilation>
 
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees(0)
             Dim model = comp.GetSemanticModel(tree)
             Dim anonProps = tree.GetRoot().DescendantNodes().OfType(Of FieldInitializerSyntax)()
             Assert.Equal(9, anonProps.Count())
             Dim symList = From ap In anonProps Let apsym = model.GetDeclaredSymbol(ap) Order By apsym.Name Select apsym.Name
             Dim results = String.Join(", ", symList)
-            Assert.Equal("a1, a1, a2, a2, a3, a3, GetFoo, ifoo, sField", results)
+            Assert.Equal("a1, a1, a2, a2, a3, a3, GetGoo, igoo, sField", results)
         End Sub
 
         <Fact>
@@ -1840,7 +1843,7 @@ End Module
     </file>
 </compilation>
 
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees(0)
             Dim model = comp.GetSemanticModel(tree)
 
@@ -1890,7 +1893,7 @@ End Module
     </file>
 </compilation>
 
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees(0)
             Dim model = comp.GetSemanticModel(tree)
 
@@ -1963,7 +1966,7 @@ End Module
             Dim spans As New List(Of TextSpan)
             ExtractTextIntervals(text, spans)
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndReferences(text, {SystemRef, SystemCoreRef, MsvbRef})
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndReferences(text, {SystemRef, SystemCoreRef, MsvbRef})
             If errors Is Nothing Then
                 CompilationUtils.AssertNoErrors(compilation)
             Else
@@ -2036,7 +2039,7 @@ End Module
         <Fact>
         <WorkItem(2928, "https://github.com/dotnet/roslyn/issues/2928")>
         Public Sub ContainingSymbol()
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
 <compilation>
     <file name="a.vb">
 Module Test

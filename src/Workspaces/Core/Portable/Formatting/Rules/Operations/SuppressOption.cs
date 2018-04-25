@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Formatting.Rules
 {
@@ -28,6 +27,11 @@ namespace Microsoft.CodeAnalysis.Formatting.Rules
         // a suppression operation containing elastic trivia in its start/end token will be ignored
         // since they can't be used to determine line alignment between two tokens.
         // this option will make engine to accept the operation even if start/end token has elastic trivia
-        IgnoreElastic = 0x10
+        IgnoreElasticWrapping = 0x10,
+
+        /// <summary>
+        /// Completely disable formatting within a span.
+        /// </summary>
+        DisableFormatting = 0x20,
     }
 }

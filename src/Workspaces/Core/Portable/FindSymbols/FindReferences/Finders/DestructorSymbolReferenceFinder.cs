@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,30 +14,34 @@ namespace Microsoft.CodeAnalysis.FindSymbols.Finders
             return symbol.MethodKind == MethodKind.Destructor;
         }
 
-        protected override Task<IEnumerable<ISymbol>> DetermineCascadedSymbolsAsync(
-            IMethodSymbol symbol,
+        protected override Task<ImmutableArray<SymbolAndProjectId>> DetermineCascadedSymbolsAsync(
+            SymbolAndProjectId<IMethodSymbol> symbol,
             Solution solution,
             IImmutableSet<Project> projects,
+            FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
-            return SpecializedTasks.EmptyEnumerable<ISymbol>();
+            return SpecializedTasks.EmptyImmutableArray<SymbolAndProjectId>();
         }
 
-        protected override Task<IEnumerable<Document>> DetermineDocumentsToSearchAsync(
+        protected override Task<ImmutableArray<Document>> DetermineDocumentsToSearchAsync(
             IMethodSymbol symbol,
             Project project,
             IImmutableSet<Document> documents,
+            FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
-            return SpecializedTasks.EmptyEnumerable<Document>();
+            return SpecializedTasks.EmptyImmutableArray<Document>();
         }
 
-        protected override Task<IEnumerable<ReferenceLocation>> FindReferencesInDocumentAsync(
+        protected override Task<ImmutableArray<FinderLocation>> FindReferencesInDocumentAsync(
             IMethodSymbol methodSymbol,
             Document document,
+            SemanticModel semanticModel,
+            FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
-            return SpecializedTasks.EmptyEnumerable<ReferenceLocation>();
+            return SpecializedTasks.EmptyImmutableArray<FinderLocation>();
         }
     }
 }

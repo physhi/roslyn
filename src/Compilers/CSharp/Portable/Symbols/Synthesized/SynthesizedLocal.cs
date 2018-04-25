@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
 {
@@ -15,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     internal sealed class SynthesizedLocal : LocalSymbol
     {
         private readonly MethodSymbol _containingMethodOpt;
-        private readonly TypeSymbol _type;
+        private readonly TypeWithAnnotations _type;
         private readonly SynthesizedLocalKind _kind;
         private readonly SyntaxNode _syntaxOpt;
         private readonly bool _isPinned;
@@ -24,19 +25,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 #if DEBUG
         private readonly int _createdAtLineNumber;
         private readonly string _createdAtFilePath;
+#endif
 
         internal SynthesizedLocal(
             MethodSymbol containingMethodOpt,
-            TypeSymbol type,
+            TypeWithAnnotations type,
             SynthesizedLocalKind kind,
             SyntaxNode syntaxOpt = null,
             bool isPinned = false,
-            RefKind refKind = RefKind.None,
+            RefKind refKind = RefKind.None
+#if DEBUG
+            ,
             [CallerLineNumber]int createdAtLineNumber = 0,
-            [CallerFilePath]string createdAtFilePath = null)
+            [CallerFilePath]string createdAtFilePath = null
+#endif
+            )
         {
-            Debug.Assert(type.SpecialType != SpecialType.System_Void);
+            Debug.Assert(!type.IsVoidType());
             Debug.Assert(!kind.IsLongLived() || syntaxOpt != null);
+            Debug.Assert(refKind != RefKind.Out);
 
             _containingMethodOpt = containingMethodOpt;
             _type = type;
@@ -45,26 +52,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             _isPinned = isPinned;
             _refKind = refKind;
 
+#if DEBUG
             _createdAtLineNumber = createdAtLineNumber;
             _createdAtFilePath = createdAtFilePath;
-        }
-#else
-        internal SynthesizedLocal(
-            MethodSymbol containingMethodOpt,
-            TypeSymbol type,
-            SynthesizedLocalKind kind,
-            SyntaxNode syntaxOpt = null,
-            bool isPinned = false,
-            RefKind refKind = RefKind.None)
-        {
-            _containingMethodOpt = containingMethodOpt;
-            _type = type;
-            _kind = kind;
-            _syntaxOpt = syntaxOpt;
-            _isPinned = isPinned;
-            _refKind = refKind;
-        }
 #endif
+        }
+
         public SyntaxNode SyntaxOpt
         {
             get { return _syntaxOpt; }
@@ -81,7 +74,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 _refKind);
         }
 
-        internal override RefKind RefKind
+        public override RefKind RefKind
         {
             get { return _refKind; }
         }
@@ -101,6 +94,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _kind; }
         }
 
+        internal override SyntaxNode ScopeDesignatorOpt
+        {
+            get { return null; }
+        }
+
         internal override SyntaxToken IdentifierToken
         {
             get { return default(SyntaxToken); }
@@ -116,7 +114,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return null; }
         }
 
-        public override TypeSymbol Type
+        public override TypeWithAnnotations TypeWithAnnotations
         {
             get { return _type; }
         }
@@ -152,6 +150,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return true; }
         }
 
+        /// <summary>
+        /// Compiler should always be synthesizing locals with correct escape semantics.
+        /// Checking escape scopes is not valid here.
+        /// </summary>
+        internal override uint ValEscapeScope => throw ExceptionUtilities.Unreachable;
+
+        /// <summary>
+        /// Compiler should always be synthesizing locals with correct escape semantics.
+        /// Checking escape scopes is not valid here.
+        /// </summary>
+        internal override uint RefEscapeScope => throw ExceptionUtilities.Unreachable;
+
         internal override ConstantValue GetConstantValue(SyntaxNode node, LocalSymbol inProgress, DiagnosticBag diagnostics)
         {
             return null;
@@ -162,10 +172,33 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return ImmutableArray<Diagnostic>.Empty;
         }
 
-        private new string GetDebuggerDisplay()
+#if DEBUG
+        private static int _nextSequence = 0;
+        // Produce a token that helps distinguish one variable from another when debugging
+        private int _sequence = System.Threading.Interlocked.Increment(ref _nextSequence);
+
+        internal string DumperString()
         {
             var builder = new StringBuilder();
-            builder.Append((_kind == SynthesizedLocalKind.UserDefined) ? "<temp>" : _kind.ToString());
+            builder.Append(_type.ToDisplayString(SymbolDisplayFormat.TestFormat));
+            builder.Append(' ');
+            builder.Append(_kind.ToString());
+            builder.Append('.');
+            builder.Append(_sequence);
+            return builder.ToString();
+        }
+#endif
+
+        override internal string GetDebuggerDisplay()
+        {
+            var builder = new StringBuilder();
+            builder.Append('<');
+            builder.Append(_kind.ToString());
+            builder.Append('>');
+#if DEBUG
+            builder.Append('.');
+            builder.Append(_sequence);
+#endif
             builder.Append(' ');
             builder.Append(_type.ToDisplayString(SymbolDisplayFormat.TestFormat));
 

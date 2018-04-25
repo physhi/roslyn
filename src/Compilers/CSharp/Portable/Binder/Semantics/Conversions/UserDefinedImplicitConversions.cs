@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
@@ -15,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     internal abstract partial class ConversionsBase
     {
         /// <remarks>
-        /// NOTE: Keep this method in sync with AnalyzeImplicitUserDefinedConversionForSwitchGoverningType.
+        /// NOTE: Keep this method in sync with <see cref="AnalyzeImplicitUserDefinedConversionForV6SwitchGoverningType"/>.
         /// </remarks>
         private UserDefinedConversionResult AnalyzeImplicitUserDefinedConversions(
             BoundExpression sourceExpression,
@@ -132,7 +133,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// type to any target type.
         /// </summary>
         /// <remarks>
-        /// Currently allowAnyTarget flag is only set to true by AnalyzeImplicitUserDefinedConversionForSwitchGoverningType,
+        /// Currently allowAnyTarget flag is only set to true by <see cref="AnalyzeImplicitUserDefinedConversionForV6SwitchGoverningType"/>,
         /// where we must consider user defined implicit conversions from the type of the switch expression to
         /// any of the possible switch governing types.
         /// </remarks>
@@ -251,7 +252,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         continue;
                     }
 
-                    TypeSymbol convertsFrom = op.ParameterTypes[0];
+                    TypeSymbol convertsFrom = op.GetParameterType(0);
                     TypeSymbol convertsTo = op.ReturnType;
                     Conversion fromConversion = EncompassingImplicitConversion(sourceExpression, source, convertsFrom, ref useSiteDiagnostics);
                     Conversion toConversion = allowAnyTarget ? Conversion.Identity :
@@ -316,7 +317,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // SPEC: If any of the operators in U convert from S then SX is S.
             if ((object)source != null)
             {
-                if (u.Any(conv => conv.FromType == source))
+                if (u.Any(conv => TypeSymbol.Equals(conv.FromType, source, TypeCompareKind.ConsiderEverything2)))
                 {
                     return source;
                 }
@@ -350,7 +351,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // We have previously written the appropriate "ToType" into the conversion analysis
             // to perpetuate this fiction.
 
-            if (u.Any(conv => conv.ToType == target))
+            if (u.Any(conv => TypeSymbol.Equals(conv.ToType, target, TypeCompareKind.ConsiderEverything2)))
             {
                 return target;
             }
@@ -361,12 +362,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         private static int LiftingCount(UserDefinedConversionAnalysis conv)
         {
             int count = 0;
-            if (conv.FromType != conv.Operator.ParameterTypes[0])
+            if (!TypeSymbol.Equals(conv.FromType, conv.Operator.GetParameterType(0), TypeCompareKind.ConsiderEverything2))
             {
                 count += 1;
             }
 
-            if (conv.ToType != conv.Operator.ReturnType)
+            if (!TypeSymbol.Equals(conv.ToType, conv.Operator.ReturnType, TypeCompareKind.ConsiderEverything2))
             {
                 count += 1;
             }
@@ -376,7 +377,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private static int? MostSpecificConversionOperator(TypeSymbol sx, TypeSymbol tx, ImmutableArray<UserDefinedConversionAnalysis> u)
         {
-            return MostSpecificConversionOperator(conv => conv.FromType == sx && conv.ToType == tx, u);
+            return MostSpecificConversionOperator(conv => TypeSymbol.Equals(conv.FromType, sx, TypeCompareKind.ConsiderEverything2) && TypeSymbol.Equals(conv.ToType, tx, TypeCompareKind.ConsiderEverything2), u);
         }
 
         /// <summary>
@@ -554,20 +555,18 @@ namespace Microsoft.CodeAnalysis.CSharp
                 // Doesn't even exist.
                 case ConversionKind.NoConversion:
 
-                // Specifically disallowed because there would be subtle
-                // consequences for the overload betterness rules.
+                // These are conversions from expression and do not apply.
+                // Specifically disallowed because there would be subtle consequences for the overload betterness rules.
+                case ConversionKind.ImplicitDynamic:
                 case ConversionKind.MethodGroup:
                 case ConversionKind.AnonymousFunction:
-                case ConversionKind.ImplicitDynamic:
                 case ConversionKind.InterpolatedString:
-
-                // DELIBERATE SPEC VIOLATION: 
-                // We do not support an encompassing implicit conversion from a zero constant
-                // to an enum type, because the native compiler did not.  It would be a breaking
-                // change.
+                case ConversionKind.SwitchExpression:
                 case ConversionKind.ImplicitEnumeration:
+                case ConversionKind.StackAllocToPointerType:
+                case ConversionKind.StackAllocToSpanType:
 
-                // Not built in.
+                // Not "standard".
                 case ConversionKind.ImplicitUserDefined:
                 case ConversionKind.ExplicitUserDefined:
 
@@ -582,6 +581,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case ConversionKind.PointerToInteger:
                 case ConversionKind.IntegerToPointer:
                 case ConversionKind.IntPtr:
+                case ConversionKind.ExplicitTupleLiteral:
+                case ConversionKind.ExplicitTuple:
                     return false;
 
                 // Spec'd in C# 4.
@@ -596,6 +597,14 @@ namespace Microsoft.CodeAnalysis.CSharp
                 // Added to spec in Roslyn timeframe.
                 case ConversionKind.NullLiteral:
                 case ConversionKind.NullToPointer:
+
+                // Added for C# 7.
+                case ConversionKind.ImplicitTupleLiteral:
+                case ConversionKind.ImplicitTuple:
+                case ConversionKind.ImplicitThrow:
+
+                // Added for C# 7.1
+                case ConversionKind.DefaultLiteral:
                     return true;
 
                 default:
@@ -647,7 +656,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     TypeSymbol leftType = extract(left);
                     TypeSymbol rightType = extract(right);
-                    if (leftType == rightType)
+                    if (TypeSymbol.Equals(leftType, rightType, TypeCompareKind.ConsiderEverything2))
                     {
                         return BetterResult.Equal;
                     }
@@ -686,7 +695,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     TypeSymbol leftType = extract(left);
                     TypeSymbol rightType = extract(right);
-                    if (leftType == rightType)
+                    if (TypeSymbol.Equals(leftType, rightType, TypeCompareKind.ConsiderEverything2))
                     {
                         return BetterResult.Equal;
                     }
@@ -808,7 +817,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <remarks>
         /// NOTE: Keep this method in sync with AnalyzeImplicitUserDefinedConversion.
         /// </remarks>
-        protected UserDefinedConversionResult AnalyzeImplicitUserDefinedConversionForSwitchGoverningType(TypeSymbol source, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
+        protected UserDefinedConversionResult AnalyzeImplicitUserDefinedConversionForV6SwitchGoverningType(TypeSymbol source, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
         {
             // SPEC:    The governing type of a switch statement is established by the switch expression.
             // SPEC:    1) If the type of the switch expression is sbyte, byte, short, ushort, int, uint,
@@ -821,7 +830,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             // NOTE:    This method implements part (2) above, it should be called only if (1) is false for source type.
             Debug.Assert((object)source != null);
-            Debug.Assert(!source.IsValidSwitchGoverningType());
+            Debug.Assert(!source.IsValidV6SwitchGoverningType());
 
             // NOTE: For (2) we use an approach similar to native compiler's approach, but call into the common code for analyzing user defined implicit conversions.
             // NOTE:    (a) Compute the set of types D from which user-defined conversion operators should be considered by considering only the source type.
@@ -887,7 +896,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             ImmutableArray<UserDefinedConversionAnalysis> u = ubuild.ToImmutableAndFree();
 
             // (c) Find that conversion with the least amount of lifting
-            int? best = MostSpecificConversionOperator(conv => conv.ToType.IsValidSwitchGoverningType(isTargetTypeOfUserDefinedOp: true), u);
+            int? best = MostSpecificConversionOperator(conv => conv.ToType.IsValidV6SwitchGoverningType(isTargetTypeOfUserDefinedOp: true), u);
             if (best != null)
             {
                 return UserDefinedConversionResult.Valid(u, best.Value);

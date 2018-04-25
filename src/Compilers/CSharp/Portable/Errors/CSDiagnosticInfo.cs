@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using Roslyn.Utilities;
+using System.Diagnostics;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -14,7 +15,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         private readonly ImmutableArray<Location> _additionalLocations;
 
         internal CSDiagnosticInfo(ErrorCode code)
-            : this(code, SpecializedCollections.EmptyArray<object>(), ImmutableArray<Symbol>.Empty, ImmutableArray<Location>.Empty)
+            : this(code, Array.Empty<object>(), ImmutableArray<Symbol>.Empty, ImmutableArray<Location>.Empty)
         {
         }
 
@@ -31,12 +32,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal CSDiagnosticInfo(ErrorCode code, object[] args, ImmutableArray<Symbol> symbols, ImmutableArray<Location> additionalLocations)
             : base(code, args, symbols)
         {
-            _additionalLocations = additionalLocations;
-        }
-
-        private CSDiagnosticInfo(bool isWarningAsError, ErrorCode code, object[] args, ImmutableArray<Symbol> symbols, ImmutableArray<Location> additionalLocations)
-            : base(isWarningAsError, code, args, symbols)
-        {
+            // Internal errors are abnormal and should not occur except where there are bugs in the compiler.
+            Debug.Assert(code != ErrorCode.ERR_InternalError);
             _additionalLocations = additionalLocations;
         }
 

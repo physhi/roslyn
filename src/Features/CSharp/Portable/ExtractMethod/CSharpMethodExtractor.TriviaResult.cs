@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.ExtractMethod;
-using Microsoft.CodeAnalysis.LanguageServices;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
@@ -26,15 +25,14 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     result);
             }
 
-            private CSharpTriviaResult(SemanticDocument document, ITriviaSavedResult result) :
-                base(document, result, (int)SyntaxKind.EndOfLineTrivia, (int)SyntaxKind.WhitespaceTrivia)
+            private CSharpTriviaResult(SemanticDocument document, ITriviaSavedResult result)
+                : base(document, result, (int)SyntaxKind.EndOfLineTrivia, (int)SyntaxKind.WhitespaceTrivia)
             {
             }
 
             protected override AnnotationResolver GetAnnotationResolver(SyntaxNode callsite, SyntaxNode method)
             {
-                var methodDefinition = method as MethodDeclarationSyntax;
-                if (callsite == null || methodDefinition == null)
+                if (callsite == null || !(method is MethodDeclarationSyntax methodDefinition))
                 {
                     return null;
                 }
@@ -44,8 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
 
             protected override TriviaResolver GetTriviaResolver(SyntaxNode method)
             {
-                var methodDefinition = method as MethodDeclarationSyntax;
-                if (methodDefinition == null)
+                if (!(method is MethodDeclarationSyntax methodDefinition))
                 {
                     return null;
                 }
@@ -66,19 +63,18 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     return token;
                 }
 
-                switch (location)
+                return location switch
                 {
-                    case TriviaLocation.BeforeBeginningOfSpan:
-                        return callsite.GetFirstToken(includeZeroWidth: true).GetPreviousToken(includeZeroWidth: true);
-                    case TriviaLocation.AfterEndOfSpan:
-                        return callsite.GetLastToken(includeZeroWidth: true).GetNextToken(includeZeroWidth: true);
-                    case TriviaLocation.AfterBeginningOfSpan:
-                        return method.Body.OpenBraceToken.GetNextToken(includeZeroWidth: true);
-                    case TriviaLocation.BeforeEndOfSpan:
-                        return method.Body.CloseBraceToken.GetPreviousToken(includeZeroWidth: true);
-                }
-
-                return Contract.FailWithReturn<SyntaxToken>("can't happen");
+                    TriviaLocation.BeforeBeginningOfSpan => callsite.GetFirstToken(includeZeroWidth: true).GetPreviousToken(includeZeroWidth: true),
+                    TriviaLocation.AfterEndOfSpan => callsite.GetLastToken(includeZeroWidth: true).GetNextToken(includeZeroWidth: true),
+                    TriviaLocation.AfterBeginningOfSpan => method.Body != null
+                        ? method.Body.OpenBraceToken.GetNextToken(includeZeroWidth: true)
+                        : method.ExpressionBody.ArrowToken.GetNextToken(includeZeroWidth: true),
+                    TriviaLocation.BeforeEndOfSpan => method.Body != null
+                        ? method.Body.CloseBraceToken.GetPreviousToken(includeZeroWidth: true)
+                        : method.SemicolonToken,
+                    _ => Contract.FailWithReturn<SyntaxToken>("can't happen"),
+                };
             }
 
             private IEnumerable<SyntaxTrivia> TriviaResolver(
@@ -92,35 +88,43 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                 // but not others can be dealt with here.
 
                 // method has no statement in them. so basically two trivia list now pointing to same thing. "{" and "}"
-                if (tokenPair.PreviousToken == method.Body.OpenBraceToken &&
-                    tokenPair.NextToken == method.Body.CloseBraceToken)
+                if (method.Body != null)
                 {
-                    return (location == TriviaLocation.AfterBeginningOfSpan) ?
-                        SpecializedCollections.SingletonEnumerable<SyntaxTrivia>(SyntaxFactory.ElasticMarker) :
-                        SpecializedCollections.EmptyEnumerable<SyntaxTrivia>();
+                    if (tokenPair.PreviousToken == method.Body.OpenBraceToken &&
+                        tokenPair.NextToken == method.Body.CloseBraceToken)
+                    {
+                        return (location == TriviaLocation.AfterBeginningOfSpan)
+                            ? SpecializedCollections.SingletonEnumerable(SyntaxFactory.ElasticMarker)
+                            : SpecializedCollections.EmptyEnumerable<SyntaxTrivia>();
+                    }
+                }
+                else
+                {
+                    if (tokenPair.PreviousToken == method.ExpressionBody.ArrowToken &&
+                        tokenPair.NextToken.GetPreviousToken() == method.SemicolonToken)
+                    {
+                        return (location == TriviaLocation.AfterBeginningOfSpan)
+                            ? SpecializedCollections.SingletonEnumerable(SyntaxFactory.ElasticMarker)
+                            : SpecializedCollections.EmptyEnumerable<SyntaxTrivia>();
+                    }
                 }
 
-                var previousTriviaPair = triviaMap.ContainsKey(tokenPair.PreviousToken) ? triviaMap[tokenPair.PreviousToken] : default(LeadingTrailingTriviaPair);
-                var nextTriviaPair = triviaMap.ContainsKey(tokenPair.NextToken) ? triviaMap[tokenPair.NextToken] : default(LeadingTrailingTriviaPair);
+                var previousTriviaPair = triviaMap.ContainsKey(tokenPair.PreviousToken) ? triviaMap[tokenPair.PreviousToken] : default;
+                var nextTriviaPair = triviaMap.ContainsKey(tokenPair.NextToken) ? triviaMap[tokenPair.NextToken] : default;
 
                 var trailingTrivia = previousTriviaPair.TrailingTrivia ?? SpecializedCollections.EmptyEnumerable<SyntaxTrivia>();
                 var leadingTrivia = nextTriviaPair.LeadingTrivia ?? SpecializedCollections.EmptyEnumerable<SyntaxTrivia>();
 
                 var list = trailingTrivia.Concat(leadingTrivia);
 
-                switch (location)
+                return location switch
                 {
-                    case TriviaLocation.BeforeBeginningOfSpan:
-                        return FilterBeforeBeginningOfSpan(tokenPair, list);
-                    case TriviaLocation.AfterEndOfSpan:
-                        return FilterTriviaList(list.Concat(tokenPair.NextToken.LeadingTrivia));
-                    case TriviaLocation.AfterBeginningOfSpan:
-                        return FilterTriviaList(AppendTrailingTrivia(tokenPair).Concat(list).Concat(tokenPair.NextToken.LeadingTrivia));
-                    case TriviaLocation.BeforeEndOfSpan:
-                        return FilterTriviaList(tokenPair.PreviousToken.TrailingTrivia.Concat(list).Concat(tokenPair.NextToken.LeadingTrivia));
-                }
-
-                return Contract.FailWithReturn<IEnumerable<SyntaxTrivia>>("Shouldn't reach here");
+                    TriviaLocation.BeforeBeginningOfSpan => FilterBeforeBeginningOfSpan(tokenPair, list),
+                    TriviaLocation.AfterEndOfSpan => FilterTriviaList(list.Concat(tokenPair.NextToken.LeadingTrivia)),
+                    TriviaLocation.AfterBeginningOfSpan => FilterTriviaList(AppendTrailingTrivia(tokenPair).Concat(list).Concat(tokenPair.NextToken.LeadingTrivia)),
+                    TriviaLocation.BeforeEndOfSpan => FilterTriviaList(tokenPair.PreviousToken.TrailingTrivia.Concat(list).Concat(tokenPair.NextToken.LeadingTrivia)),
+                    _ => Contract.FailWithReturn<IEnumerable<SyntaxTrivia>>("Shouldn't reach here"),
+                };
             }
 
             private IEnumerable<SyntaxTrivia> FilterBeforeBeginningOfSpan(PreviousNextTokenPair tokenPair, IEnumerable<SyntaxTrivia> list)

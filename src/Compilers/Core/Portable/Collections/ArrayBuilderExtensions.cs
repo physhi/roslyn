@@ -2,8 +2,7 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
-using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -21,11 +20,35 @@ namespace Microsoft.CodeAnalysis
             return false;
         }
 
+        public static bool Any<T, A>(this ArrayBuilder<T> builder, Func<T, A, bool> predicate, A arg)
+        {
+            foreach (var item in builder)
+            {
+                if (predicate(item, arg))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static bool All<T>(this ArrayBuilder<T> builder, Func<T, bool> predicate)
         {
             foreach (var item in builder)
             {
                 if (!predicate(item))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static bool All<T, A>(this ArrayBuilder<T> builder, Func<T, A, bool> predicate, A arg)
+        {
+            foreach (var item in builder)
+            {
+                if (!predicate(item, arg))
                 {
                     return false;
                 }
@@ -143,6 +166,33 @@ namespace Microsoft.CodeAnalysis
         public static ImmutableArray<T> ToImmutableOrEmptyAndFree<T>(this ArrayBuilder<T> builderOpt)
         {
             return builderOpt?.ToImmutableAndFree() ?? ImmutableArray<T>.Empty;
+        }
+
+        public static void AddIfNotNull<T>(this ArrayBuilder<T> builder, T? value)
+            where T : struct
+        {
+            if (value != null)
+            {
+                builder.Add(value.Value);
+            }
+        }
+
+        public static void AddIfNotNull<T>(this ArrayBuilder<T> builder, T value)
+            where T : class
+        {
+            if (value != null)
+            {
+                builder.Add(value);
+            }
+        }
+
+        public static void FreeAll<T>(this ArrayBuilder<T> builder, Func<T, ArrayBuilder<T>> getNested)
+        {
+            foreach (var item in builder)
+            {
+                getNested(item)?.FreeAll(getNested);
+            }
+            builder.Free();
         }
     }
 }

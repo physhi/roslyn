@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Linq;
@@ -25,59 +25,50 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
                 </Workspace>";
 
         protected override string GetLanguage()
-        {
-            return LanguageNames.CSharp;
-        }
+            => LanguageNames.CSharp;
 
-        protected override object CreateCodeRefactoringProvider(Workspace workspace)
-        {
-            return new CodeRefactoringProvider();
-        }
+        protected override CodeRefactoringProvider CreateCodeRefactoringProvider(Workspace workspace, TestParameters parameters)
+            => new TestCodeRefactoringProvider();
 
         [WpfFact]
         public async Task TestCodeActionPreviewAndApply()
         {
-            using (var workspace = await TestWorkspaceFactory.CreateWorkspaceAsync(WorkspaceXml))
-            {
-                var codeIssueOrRefactoring = await GetCodeRefactoringAsync(workspace);
+            using var workspace = TestWorkspace.Create(WorkspaceXml);
+            var codeIssueOrRefactoring = await GetCodeRefactoringAsync(workspace, new TestParameters());
 
-                var expectedCode = "private class D { }";
+            var expectedCode = "private class D { }";
 
-                await TestActionsOnLinkedFiles(
-                    workspace,
-                    expectedText: expectedCode,
-                    index: 0,
-                    actions: codeIssueOrRefactoring.Actions.ToList(),
-                    expectedPreviewContents: expectedCode);
-            }
+            await TestActionOnLinkedFiles(
+                workspace,
+                expectedText: expectedCode,
+                action: codeIssueOrRefactoring.CodeActions[0].action,
+                expectedPreviewContents: expectedCode);
         }
 
         [Fact]
         public async Task TestWorkspaceTryApplyChangesDirectCall()
         {
-            using (var workspace = await TestWorkspaceFactory.CreateWorkspaceAsync(WorkspaceXml))
-            {
-                var solution = workspace.CurrentSolution;
+            using var workspace = TestWorkspace.Create(WorkspaceXml);
+            var solution = workspace.CurrentSolution;
 
-                var documentId = workspace.Documents.Single(d => !d.IsLinkFile).Id;
-                var text = workspace.CurrentSolution.GetDocument(documentId).GetTextAsync().Result;
+            var documentId = workspace.Documents.Single(d => !d.IsLinkFile).Id;
+            var text = await workspace.CurrentSolution.GetDocument(documentId).GetTextAsync();
 
-                var linkedDocumentId = workspace.Documents.Single(d => d.IsLinkFile).Id;
-                var linkedText = workspace.CurrentSolution.GetDocument(linkedDocumentId).GetTextAsync().Result;
+            var linkedDocumentId = workspace.Documents.Single(d => d.IsLinkFile).Id;
+            var linkedText = await workspace.CurrentSolution.GetDocument(linkedDocumentId).GetTextAsync();
 
-                var newSolution = solution
-                    .WithDocumentText(documentId, text.Replace(13, 1, "D"))
-                    .WithDocumentText(linkedDocumentId, linkedText.Replace(0, 6, "private"));
+            var newSolution = solution
+                .WithDocumentText(documentId, text.Replace(13, 1, "D"))
+                .WithDocumentText(linkedDocumentId, linkedText.Replace(0, 6, "private"));
 
-                workspace.TryApplyChanges(newSolution);
+            workspace.TryApplyChanges(newSolution);
 
-                var expectedMergedText = "private class D { }";
-                Assert.Equal(expectedMergedText, workspace.CurrentSolution.GetDocument(documentId).GetTextAsync().Result.ToString());
-                Assert.Equal(expectedMergedText, workspace.CurrentSolution.GetDocument(linkedDocumentId).GetTextAsync().Result.ToString());
-            }
+            var expectedMergedText = "private class D { }";
+            Assert.Equal(expectedMergedText, (await workspace.CurrentSolution.GetDocument(documentId).GetTextAsync()).ToString());
+            Assert.Equal(expectedMergedText, (await workspace.CurrentSolution.GetDocument(linkedDocumentId).GetTextAsync()).ToString());
         }
 
-        protected override Task<TestWorkspace> CreateWorkspaceFromFileAsync(string definition, ParseOptions parseOptions, CompilationOptions compilationOptions)
+        protected override TestWorkspace CreateWorkspaceFromFile(string initialMarkup, TestParameters parameters)
         {
             throw new NotSupportedException();
         }
@@ -87,22 +78,20 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
             throw new NotSupportedException();
         }
 
-        private class CodeRefactoringProvider : CodeRefactorings.CodeRefactoringProvider
+        private class TestCodeRefactoringProvider : CodeRefactorings.CodeRefactoringProvider
         {
-            public sealed override Task ComputeRefactoringsAsync(CodeRefactoringContext context)
+            public sealed override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
             {
                 var document = context.Document;
                 var linkedDocument = document.Project.Solution.Projects.Single(p => p != document.Project).Documents.Single();
 
                 var newSolution = document.Project.Solution
-                    .WithDocumentText(document.Id, document.GetTextAsync().Result.Replace(13, 1, "D"))
-                    .WithDocumentText(linkedDocument.Id, linkedDocument.GetTextAsync().Result.Replace(0, 6, "private"));
+                    .WithDocumentText(document.Id, (await document.GetTextAsync()).Replace(13, 1, "D"))
+                    .WithDocumentText(linkedDocument.Id, (await linkedDocument.GetTextAsync()).Replace(0, 6, "private"));
 
 #pragma warning disable RS0005
-                context.RegisterRefactoring(CodeAction.Create("Description", (ct) => Task.FromResult(newSolution)));
+                context.RegisterRefactoring(CodeAction.Create("Description", (ct) => Task.FromResult(newSolution)), context.Span);
 #pragma warning restore RS0005
-
-                return SpecializedTasks.EmptyTask;
             }
         }
     }

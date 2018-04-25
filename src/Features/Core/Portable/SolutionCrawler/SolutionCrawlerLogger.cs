@@ -1,55 +1,54 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Diagnostics.EngineV2;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.SolutionCrawler
 {
-    internal class SolutionCrawlerLogger
+    internal static class SolutionCrawlerLogger
     {
-        private const string Id = "Id";
-        private const string Kind = "Kind";
-        private const string Analyzer = "Analyzer";
-        private const string DocumentCount = "DocumentCount";
-        private const string HighPriority = "HighPriority";
-        private const string Enabled = "Enabled";
-        private const string AnalyzerCount = "AnalyzerCount";
-        private const string PersistentStorage = "PersistentStorage";
-        private const string GlobalOperation = "GlobalOperation";
-        private const string HigherPriority = "HigherPriority";
-        private const string LowerPriority = "LowerPriority";
-        private const string TopLevel = "TopLevel";
-        private const string MemberLevel = "MemberLevel";
-        private const string NewWorkItem = "NewWorkItem";
-        private const string UpdateWorkItem = "UpdateWorkItem";
-        private const string ProjectEnqueue = "ProjectEnqueue";
-        private const string ResetStates = "ResetStates";
-        private const string ProjectNotExist = "ProjectNotExist";
-        private const string DocumentNotExist = "DocumentNotExist";
-        private const string ProcessProject = "ProcessProject";
-        private const string OpenDocument = "OpenDocument";
-        private const string CloseDocument = "CloseDocument";
-        private const string SolutionHash = "SolutionHash";
-        private const string ProcessDocument = "ProcessDocument";
-        private const string ProcessDocumentCancellation = "ProcessDocumentCancellation";
-        private const string ProcessProjectCancellation = "ProcessProjectCancellation";
-        private const string ActiveFileEnqueue = "ActiveFileEnqueue";
-        private const string ActiveFileProcessDocument = "ActiveFileProcessDocument";
-        private const string ActiveFileProcessDocumentCancellation = "ActiveFileProcessDocumentCancellation";
+        private const string Id = nameof(Id);
+        private const string Kind = nameof(Kind);
+        private const string Analyzer = nameof(Analyzer);
+        private const string DocumentCount = nameof(DocumentCount);
+        private const string Languages = nameof(Languages);
+        private const string HighPriority = nameof(HighPriority);
+        private const string Enabled = nameof(Enabled);
+        private const string AnalyzerCount = nameof(AnalyzerCount);
+        private const string PersistentStorage = nameof(PersistentStorage);
+        private const string GlobalOperation = nameof(GlobalOperation);
+        private const string HigherPriority = nameof(HigherPriority);
+        private const string LowerPriority = nameof(LowerPriority);
+        private const string TopLevel = nameof(TopLevel);
+        private const string MemberLevel = nameof(MemberLevel);
+        private const string NewWorkItem = nameof(NewWorkItem);
+        private const string UpdateWorkItem = nameof(UpdateWorkItem);
+        private const string ProjectEnqueue = nameof(ProjectEnqueue);
+        private const string ResetStates = nameof(ResetStates);
+        private const string ProjectNotExist = nameof(ProjectNotExist);
+        private const string DocumentNotExist = nameof(DocumentNotExist);
+        private const string ProcessProject = nameof(ProcessProject);
+        private const string OpenDocument = nameof(OpenDocument);
+        private const string CloseDocument = nameof(CloseDocument);
+        private const string SolutionHash = nameof(SolutionHash);
+        private const string ProcessDocument = nameof(ProcessDocument);
+        private const string ProcessDocumentCancellation = nameof(ProcessDocumentCancellation);
+        private const string ProcessProjectCancellation = nameof(ProcessProjectCancellation);
+        private const string ActiveFileEnqueue = nameof(ActiveFileEnqueue);
+        private const string ActiveFileProcessDocument = nameof(ActiveFileProcessDocument);
+        private const string ActiveFileProcessDocumentCancellation = nameof(ActiveFileProcessDocumentCancellation);
 
         private const string Max = "Maximum";
         private const string Min = "Minimum";
-        private const string Median = "Median";
-        private const string Mean = "Mean";
-        private const string Mode = "Mode";
-        private const string Range = "Range";
-        private const string Count = "Count";
+        private const string Median = nameof(Median);
+        private const string Mean = nameof(Mean);
+        private const string Mode = nameof(Mode);
+        private const string Range = nameof(Range);
+        private const string Count = nameof(Count);
 
         public static void LogRegistration(int correlationId, Workspace workspace)
         {
@@ -68,14 +67,20 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
             }));
         }
 
-        public static void LogReanalyze(int correlationId, IIncrementalAnalyzer analyzer, IEnumerable<DocumentId> documentIds, bool highPriority)
+        public static void LogReanalyze(
+            int correlationId,
+            IIncrementalAnalyzer analyzer,
+            int documentCount,
+            string languages,
+            bool highPriority)
         {
             Logger.Log(FunctionId.WorkCoordinatorRegistrationService_Reanalyze, KeyValueLogMessage.Create(m =>
             {
                 m[Id] = correlationId;
                 m[Analyzer] = analyzer.ToString();
-                m[DocumentCount] = documentIds == null ? 0 : documentIds.Count();
+                m[DocumentCount] = documentCount;
                 m[HighPriority] = highPriority;
+                m[Languages] = languages;
             }));
         }
 
@@ -88,18 +93,20 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
             }));
         }
 
-        public static void LogActiveFileAnalyzers(int correlationId, Workspace workspace, ImmutableArray<IIncrementalAnalyzer> reordered)
+        public static void LogAnalyzers(int correlationId, Workspace workspace, ImmutableArray<IIncrementalAnalyzer> reordered, bool onlyHighPriorityAnalyzer)
         {
-            LogAnalyzersWorker(
-                FunctionId.IncrementalAnalyzerProcessor_ActiveFileAnalyzers, FunctionId.IncrementalAnalyzerProcessor_ActiveFileAnalyzer,
-                correlationId, workspace, reordered);
-        }
-
-        public static void LogAnalyzers(int correlationId, Workspace workspace, ImmutableArray<IIncrementalAnalyzer> reordered)
-        {
-            LogAnalyzersWorker(
-                FunctionId.IncrementalAnalyzerProcessor_Analyzers, FunctionId.IncrementalAnalyzerProcessor_Analyzer,
-                correlationId, workspace, reordered);
+            if (onlyHighPriorityAnalyzer)
+            {
+                LogAnalyzersWorker(
+                    FunctionId.IncrementalAnalyzerProcessor_ActiveFileAnalyzers, FunctionId.IncrementalAnalyzerProcessor_ActiveFileAnalyzer,
+                    correlationId, workspace, reordered);
+            }
+            else
+            {
+                LogAnalyzersWorker(
+                    FunctionId.IncrementalAnalyzerProcessor_Analyzers, FunctionId.IncrementalAnalyzerProcessor_Analyzer,
+                    correlationId, workspace, reordered);
+            }
         }
 
         private static void LogAnalyzersWorker(
@@ -221,9 +228,8 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         continue;
                     }
 
-                    if (kv.Key is ValueTuple<string, Guid>)
+                    if (kv.Key is ValueTuple<string, Guid> tuple)
                     {
-                        var tuple = (ValueTuple<string, Guid>)kv.Key;
                         var list = statMap.GetOrAdd(tuple.Item1, _ => new List<int>());
                         list.Add(kv.Value.GetCount());
                         continue;
@@ -239,9 +245,9 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 
                     m[CreateProperty(key, Max)] = result.Maximum;
                     m[CreateProperty(key, Min)] = result.Minimum;
-                    m[CreateProperty(key, Median)] = result.Median;
+                    m[CreateProperty(key, Median)] = result.Median.Value;
                     m[CreateProperty(key, Mean)] = result.Mean;
-                    m[CreateProperty(key, Mode)] = result.Mode;
+                    m[CreateProperty(key, Mode)] = result.Mode.Value;
                     m[CreateProperty(key, Range)] = result.Range;
                     m[CreateProperty(key, Count)] = result.Count;
                 }
@@ -249,8 +255,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 
             foreach (var analyzer in analyzers)
             {
-                var diagIncrementalAnalyzer = analyzer as BaseDiagnosticIncrementalAnalyzer;
-                if (diagIncrementalAnalyzer != null)
+                if (analyzer is DiagnosticIncrementalAnalyzer diagIncrementalAnalyzer)
                 {
                     diagIncrementalAnalyzer.LogAnalyzerCountSummary();
                     break;

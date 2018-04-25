@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Threading;
@@ -39,20 +39,21 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
                 IsMemberReturnTypeContext(position, context, cancellationToken) ||
                 context.IsGlobalStatementContext ||
                 context.IsTypeOfExpressionContext ||
-                syntaxTree.IsSizeOfExpressionContext(position, context.LeftToken, cancellationToken) ||
+                syntaxTree.IsSizeOfExpressionContext(position, context.LeftToken) ||
                 context.IsDelegateReturnTypeContext ||
                 IsUnsafeLocalVariableDeclarationContext(context) ||
                 IsUnsafeParameterTypeContext(context) ||
                 IsUnsafeCastTypeContext(context) ||
-                IsUnsafeDefaultExpressionContext(context, cancellationToken) ||
-                context.IsFixedVariableDeclarationContext;
+                IsUnsafeDefaultExpressionContext(context) ||
+                context.IsFixedVariableDeclarationContext ||
+                context.SyntaxTree.IsLocalFunctionDeclarationContext(position, cancellationToken);
         }
 
-        private bool IsUnsafeDefaultExpressionContext(CSharpSyntaxContext context, CancellationToken cancellationToken)
+        private bool IsUnsafeDefaultExpressionContext(CSharpSyntaxContext context)
         {
             return
                 context.TargetToken.IsUnsafeContext() &&
-                context.SyntaxTree.IsDefaultExpressionContext(context.Position, context.LeftToken, cancellationToken);
+                context.SyntaxTree.IsDefaultExpressionContext(context.Position, context.LeftToken);
         }
 
         private bool IsUnsafeCastTypeContext(CSharpSyntaxContext context)

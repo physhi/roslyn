@@ -254,6 +254,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private ReadOnly Property ILocalSymbol_IsFixed As Boolean Implements ILocalSymbol.IsFixed
+            Get
+                Return False
+            End Get
+        End Property
+
         Friend Overridable ReadOnly Property CanScheduleToStack As Boolean
             Get
                 ' cannot schedule constants and catch variables
@@ -277,6 +283,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public ReadOnly Property IsForEach As Boolean
             Get
                 Return Me.DeclarationKind = LocalDeclarationKind.ForEach
+            End Get
+        End Property
+
+        Public ReadOnly Property IsRef As Boolean Implements ILocalSymbol.IsRef
+            Get
+                Return False
+            End Get
+        End Property
+
+        Public ReadOnly Property RefKind As RefKind Implements ILocalSymbol.RefKind
+            Get
+                Return RefKind.None
             End Get
         End Property
 
@@ -368,6 +386,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private ReadOnly Property ILocalSymbol_Type As ITypeSymbol Implements ILocalSymbol.Type
             Get
                 Return Me.Type
+            End Get
+        End Property
+
+        Private ReadOnly Property ILocalSymbol_NullableAnnotation As NullableAnnotation Implements ILocalSymbol.NullableAnnotation
+            Get
+                Return NullableAnnotation.None
             End Get
         End Property
 
@@ -646,31 +670,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Friend Overrides Function ComputeTypeInternal(localBinder As Binder) As TypeSymbol
 
                 Dim diagBag = DiagnosticBag.GetInstance()
-
-                Dim collectionExpression As BoundExpression = Nothing
-                Dim elementType As TypeSymbol = Nothing
-                Dim isEnumerable = False
-                Dim boundGetEnumeratorCall As BoundExpression = Nothing
-                Dim boundEnumeratorPlaceholder As BoundLValuePlaceholder = Nothing
-                Dim boundMoveNextCall As BoundExpression = Nothing
-                Dim boundCurrentCall As BoundExpression = Nothing
-                Dim collectionPlaceholder As BoundRValuePlaceholder = Nothing
-                Dim needToDispose = False
-                Dim isOrInheritsFromOrImplementsIDisposable = False
                 Dim type As TypeSymbol = Nothing
 
                 type = localBinder.InferForEachVariableType(Me,
                                                        _collectionExpressionSyntax,
-                                                       collectionExpression,
-                                                       elementType,
-                                                       isEnumerable,
-                                                       boundGetEnumeratorCall,
-                                                       boundEnumeratorPlaceholder,
-                                                       boundMoveNextCall,
-                                                       boundCurrentCall,
-                                                       collectionPlaceholder,
-                                                       needToDispose,
-                                                       isOrInheritsFromOrImplementsIDisposable,
+                                                       collectionExpression:=Nothing,
+                                                       currentType:=Nothing,
+                                                       elementType:=Nothing,
+                                                       isEnumerable:=Nothing,
+                                                       boundGetEnumeratorCall:=Nothing,
+                                                       boundEnumeratorPlaceholder:=Nothing,
+                                                       boundMoveNextCall:=Nothing,
+                                                       boundCurrentAccess:=Nothing,
+                                                       collectionPlaceholder:=Nothing,
+                                                       needToDispose:=Nothing,
+                                                       isOrInheritsFromOrImplementsIDisposable:=Nothing,
                                                        diagBag)
                 diagBag.Free()
                 Return type

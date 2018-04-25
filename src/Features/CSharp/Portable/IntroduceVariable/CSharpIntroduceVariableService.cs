@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Composition;
@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.IntroduceVariable;
@@ -16,8 +15,13 @@ namespace Microsoft.CodeAnalysis.CSharp.IntroduceVariable
 {
     [ExportLanguageService(typeof(IIntroduceVariableService), LanguageNames.CSharp), Shared]
     internal partial class CSharpIntroduceVariableService :
-        AbstractIntroduceVariableService<CSharpIntroduceVariableService, ExpressionSyntax, TypeSyntax, TypeDeclarationSyntax, QueryExpressionSyntax>
+        AbstractIntroduceVariableService<CSharpIntroduceVariableService, ExpressionSyntax, TypeSyntax, TypeDeclarationSyntax, QueryExpressionSyntax, NameSyntax>
     {
+        [ImportingConstructor]
+        public CSharpIntroduceVariableService()
+        {
+        }
+
         protected override bool IsInNonFirstQueryClause(ExpressionSyntax expression)
         {
             var query = expression.GetAncestor<QueryExpressionSyntax>();
@@ -58,7 +62,7 @@ namespace Microsoft.CodeAnalysis.CSharp.IntroduceVariable
         protected override bool IsInExpressionBodiedMember(ExpressionSyntax expression)
         {
             // walk up until we find a nearest enclosing block or arrow expression.
-            for (SyntaxNode node = expression; node != null; node = node.GetParent())
+            for (SyntaxNode node = expression; node != null; node = node.Parent)
             {
                 // If we are in an expression bodied member and if the expression has a block body, then,
                 // act as if we're in a block context and not in an expression body context at all.
@@ -78,7 +82,7 @@ namespace Microsoft.CodeAnalysis.CSharp.IntroduceVariable
         protected override bool IsInAttributeArgumentInitializer(ExpressionSyntax expression)
         {
             // Don't call the base here.  We want to let the user extract a constant if they've
-            // said "Foo(a = 10)"
+            // said "Goo(a = 10)"
             var attributeArgument = expression.GetAncestorOrThis<AttributeArgumentSyntax>();
             if (attributeArgument != null)
             {
@@ -114,6 +118,12 @@ namespace Microsoft.CodeAnalysis.CSharp.IntroduceVariable
 
             // (b) For Null Literals, as AllOccurrences could introduce semantic errors.
             if (expression.IsKind(SyntaxKind.NullLiteralExpression))
+            {
+                return false;
+            }
+
+            // (c) For throw expressions.
+            if (expression.IsKind(SyntaxKind.ThrowExpression))
             {
                 return false;
             }

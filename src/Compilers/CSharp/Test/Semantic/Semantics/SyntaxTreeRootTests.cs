@@ -9,13 +9,12 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
-using Microsoft.CodeAnalysis.UnitTests;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
 {
-    public class SyntaxTreeRootTests : SpeculativeSemanticModelTestsBase
+    public class SyntaxTreeRootTests
     {
         [Fact]
         public void SyntaxTreeCreateAcceptsAnySyntaxNode()
@@ -37,7 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
         public void SyntaxTreeHasCompilationUnitRootReturnsTrueForFullDocument()
         {
             var tree = SyntaxFactory.ParseSyntaxTree(@"class Program { static void Main() { System.Console.WriteLine(""Wah""); } }");
-            Assert.Equal(true, tree.HasCompilationUnitRoot);
+            Assert.True(tree.HasCompilationUnitRoot);
             Assert.Equal(typeof(CompilationUnitSyntax), tree.GetRoot().GetType());
         }
 
@@ -46,8 +45,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
         {
             var tree = SyntaxFactory.SyntaxTree(SyntaxFactory.FromClause("Nay", SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(823))));
             SyntaxNode root;
-            Assert.Equal(true, tree.TryGetRoot(out root));
-            Assert.Equal(false, tree.HasCompilationUnitRoot);
+            Assert.True(tree.TryGetRoot(out root));
+            Assert.False(tree.HasCompilationUnitRoot);
             Assert.NotEqual(typeof(CompilationUnitSyntax), root.GetType());
         }
 
@@ -76,7 +75,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
         {
             var node = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(3));
             var syntaxTreeField = typeof(CSharpSyntaxNode).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Single(f => f.FieldType == typeof(SyntaxTree));
-            Assert.Equal(null, syntaxTreeField.GetValue(node));
+            Assert.Null(syntaxTreeField.GetValue(node));
         }
 
         [Fact]
@@ -107,28 +106,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
 
         private void CheckTree(SyntaxTree tree)
         {
-#if false // https://github.com/dotnet/roslyn/issues/4453
-            CheckAllMembers(
-                tree,
-                new Dictionary<Type, Func<object>> 
-                { 
-                    { typeof(CSharpSyntaxTree), () => tree },
-                    { typeof(TextSpan), () => TextSpan.FromBounds(0, 0) },
-                    { typeof(SourceText), () => new StringText("class { }") },
-                    { typeof(SyntaxNodeOrToken), () => new SyntaxNodeOrToken(tree.GetRoot()) },
-                    { typeof(SyntaxNodeOrToken), () => new SyntaxNodeOrToken(tree.GetRoot()) },
-                },
-                new Dictionary<MemberInfo, Type>
-                {
-                    { typeof(CSharpSyntaxTree).GetMethod("GetCompilationUnitRoot"), typeof(InvalidCastException) },
-                    { typeof(CSharpSyntaxTree).GetMethod("GetDiagnostics", new[] { typeof(CSharpSyntaxNode) }), typeof(ArgumentNullException) },
-                    { typeof(CSharpSyntaxTree).GetMethod("GetDiagnostics", new[] { typeof(SyntaxToken) }), typeof(InvalidOperationException) },
-                    { typeof(CSharpSyntaxTree).GetMethod("GetDiagnostics", new[] { typeof(SyntaxTrivia) }), typeof(InvalidOperationException) },
-                    { typeof(CSharpSyntaxTree).GetMethod("GetDiagnostics", new[] { typeof(SyntaxNode) }), typeof(ArgumentNullException) },
-                    { typeof(CSharpSyntaxTree).GetMethod("GetDiagnostics", new[] { typeof(SyntaxToken) }), typeof(InvalidOperationException) },
-                    { typeof(CSharpSyntaxTree).GetMethod("GetDiagnostics", new[] { typeof(SyntaxTrivia) }), typeof(InvalidOperationException) },
-                });
-#endif
+            Assert.Throws<InvalidCastException>(() => { var _ = (CSharpSyntaxTree)(Object)tree.GetCompilationUnitRoot(); });
+            Assert.Throws<ArgumentNullException>(() => { tree.GetDiagnostics((CSharpSyntaxNode)null); });
+            Assert.Throws<InvalidOperationException>(() => { tree.GetDiagnostics(default(SyntaxToken)); });
+            Assert.Throws<ArgumentNullException>(() => { tree.GetDiagnostics((SyntaxNode)null); });
+            Assert.Throws<InvalidOperationException>(() => { tree.GetDiagnostics(default(SyntaxTrivia)); });
         }
     }
 }

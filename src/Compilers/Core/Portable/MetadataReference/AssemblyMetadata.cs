@@ -70,10 +70,14 @@ namespace Microsoft.CodeAnalysis
         internal readonly WeakList<IAssemblySymbol> CachedSymbols = new WeakList<IAssemblySymbol>();
 
         // creates a copy
-        private AssemblyMetadata(AssemblyMetadata other)
-            : base(isImageOwner: false)
+        private AssemblyMetadata(AssemblyMetadata other, bool shareCachedSymbols)
+            : base(isImageOwner: false, id: other.Id)
         {
-            this.CachedSymbols = other.CachedSymbols;
+            if (shareCachedSymbols)
+            {
+                this.CachedSymbols = other.CachedSymbols;
+            }
+
             _lazyData = other._lazyData;
             _moduleFactoryOpt = other._moduleFactoryOpt;
             _initialModules = other._initialModules;
@@ -81,14 +85,14 @@ namespace Microsoft.CodeAnalysis
         }
 
         internal AssemblyMetadata(ImmutableArray<ModuleMetadata> modules)
-            : base(isImageOwner: true)
+            : base(isImageOwner: true, id: MetadataId.CreateNewId())
         {
             Debug.Assert(!modules.IsDefaultOrEmpty);
             _initialModules = modules;
         }
 
         internal AssemblyMetadata(ModuleMetadata manifestModule, Func<string, ModuleMetadata> moduleFactory)
-            : base(isImageOwner: true)
+            : base(isImageOwner: true, id: MetadataId.CreateNewId())
         {
             Debug.Assert(manifestModule != null);
             Debug.Assert(moduleFactory != null);
@@ -190,12 +194,7 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentException"><paramref name="modules"/> is empty or contains a module that doesn't own its image (was created via <see cref="Metadata.Copy"/>).</exception>
         public static AssemblyMetadata Create(ImmutableArray<ModuleMetadata> modules)
         {
-            if (modules.IsDefault)
-            {
-                throw new ArgumentException(nameof(modules));
-            }
-
-            if (modules.Length == 0)
+            if (modules.IsDefaultOrEmpty)
             {
                 throw new ArgumentException(CodeAnalysisResources.AssemblyMustHaveAtLeastOneModule, nameof(modules));
             }
@@ -255,7 +254,12 @@ namespace Microsoft.CodeAnalysis
         /// </remarks>
         internal new AssemblyMetadata Copy()
         {
-            return new AssemblyMetadata(this);
+            return new AssemblyMetadata(this, shareCachedSymbols: true);
+        }
+
+        internal AssemblyMetadata CopyWithoutSharingCachedSymbols()
+        {
+            return new AssemblyMetadata(this, shareCachedSymbols: false);
         }
 
         protected override Metadata CommonCopy()

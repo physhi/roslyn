@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         public TypeDocumentationCommentTests()
         {
-            _compilation = CreateCompilationWithMscorlibAndDocumentationComments(@"enum Color { Red, Blue, Green }
+            _compilation = CreateCompilationWithMscorlib40AndDocumentationComments(@"enum Color { Red, Blue, Green }
 namespace Acme
 {
 	interface IProcess {...}
@@ -118,7 +118,7 @@ namespace Acme
             Assert.Null(DynamicTypeSymbol.Instance.GetDocumentationCommentId());
         }
 
-        [WorkItem(536957, "DevDiv")]
+        [WorkItem(536957, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/536957")]
         [Fact]
         public void TestCommentsWithQuestionMarks()
         {
@@ -132,7 +132,7 @@ class A
 {
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             Assert.Equal(0, comp.GetDiagnostics().Count());
         }
     }

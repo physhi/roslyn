@@ -68,7 +68,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.VsNavIn
             if (_referenceOwnerName != null)
             {
                 builder.Add(_referenceOwnerName, _LIB_LISTTYPE.LLT_PACKAGE);
-                builder.Add(ServicesVSResources.Library_ProjectReferences, _LIB_LISTTYPE.LLT_HIERARCHY);
+                builder.Add(ServicesVSResources.Project_References, _LIB_LISTTYPE.LLT_HIERARCHY);
             }
 
             builder.Add(_libraryName, _LIB_LISTTYPE.LLT_PACKAGE);
@@ -94,7 +94,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.VsNavIn
                     startIndex = 2;
                 }
 
-                for (int i = startIndex; i < baseNodes.Length; i++)
+                for (var i = startIndex; i < baseNodes.Length; i++)
                 {
                     if (isCanonical && baseNodes[i].ListType == _LIB_LISTTYPE.LLT_HIERARCHY)
                     {

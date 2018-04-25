@@ -1,11 +1,11 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading.Tasks
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
     Partial Public Class FindReferencesTests
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespace1() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespace1(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -14,7 +14,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         {
             class C
             {
-                void Foo()
+                void Goo()
                 {
                     [|N|].C x;
                 }
@@ -23,11 +23,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespace2() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespace2(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" AssemblyName="CSharpAssembly1" CommonReferences="true">
@@ -36,7 +36,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         {
             class C
             {
-                void Foo()
+                void Goo()
                 {
                     [|N|].C x;
                 }
@@ -49,7 +49,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         <Document>
             class D
             {
-                void Foo()
+                void Goo()
                 {
                     [|N|].C x;
                 }
@@ -57,11 +57,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespace3() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespace3(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" AssemblyName="CSharpAssembly1" CommonReferences="true">
@@ -70,7 +70,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         {
             class C
             {
-                void Foo()
+                void Goo()
                 {
                     [|N|].C x;
                 }
@@ -83,7 +83,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         <Document>
             class D
             {
-                void Foo()
+                void Goo()
                 {
                     [|$$N|].C x;
                 }
@@ -91,10 +91,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespace5() As Task
+
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespace5(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -105,17 +106,17 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
             {
             }
         }
-        namespace {|Definition:[|N|]|}.Inner
+        namespace [|N|].Inner
         {
         }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceCaseSensitivity1() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceCaseSensitivity1(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -124,7 +125,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         {
             class C
             {
-                void Foo()
+                void Goo()
                 {
                     [|N|].C x;
                     n.C x;
@@ -135,11 +136,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
     </Project>
 </Workspace>
 
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceCaseSensitivity2() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceCaseSensitivity2(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" AssemblyName="CSharpAssembly" CommonReferences="true">
@@ -156,18 +157,18 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         <ProjectReference>CSharpAssembly</ProjectReference>
         <Document>
         class D
-            sub Foo()
+            sub Goo()
                 dim c as [|n|].C = nothing
             end sub()
         end class
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceThroughAlias1() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceThroughAlias1(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -188,11 +189,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceThroughAlias2() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceThroughAlias2(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -213,11 +214,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceThroughAlias3() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceThroughAlias3(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -242,12 +243,12 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.FindReferences
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <WorkItem(541162)>
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceCalledVar1() As Task
+        <WorkItem(541162, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541162")>
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceCalledVar1(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -266,12 +267,12 @@ namespace {|Definition:$$[|var|]|} { }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <WorkItem(541162)>
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceCalledVar2() As Task
+        <WorkItem(541162, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541162")>
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceCalledVar2(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -290,11 +291,11 @@ namespace var { }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPIAndFeature(input, kind, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceWithUnicodeCharacter() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceWithUnicodeCharacter(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -311,11 +312,11 @@ namespace var { }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceWithComment() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceWithComment(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -330,11 +331,11 @@ namespace var { }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestNamespaceWithVerbatimIdentifier() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestNamespaceWithVerbatimIdentifier(host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
@@ -349,11 +350,11 @@ namespace var { }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPI(input, host)
         End Function
 
-        <Fact, Trait(Traits.Feature, Traits.Features.FindReferences)>
-        Public Async Function TestGlobalNamespace() As Task
+        <WpfTheory, CombinatorialData, Trait(Traits.Feature, Traits.Features.FindReferences)>
+        Public Async Function TestGlobalNamespace(kind As TestKind, host As TestHost) As Task
             Dim input =
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
@@ -367,7 +368,7 @@ namespace var { }
         </Document>
     </Project>
 </Workspace>
-            Await TestAsync(input)
+            Await TestAPIAndFeature(input, kind, host)
         End Function
     End Class
 End Namespace

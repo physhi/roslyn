@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -23,6 +23,11 @@ namespace Microsoft.CodeAnalysis.CSharp.EncapsulateField
     [ExportLanguageService(typeof(AbstractEncapsulateFieldService), LanguageNames.CSharp), Shared]
     internal class CSharpEncapsulateFieldService : AbstractEncapsulateFieldService
     {
+        [ImportingConstructor]
+        public CSharpEncapsulateFieldService()
+        {
+        }
+
         protected async override Task<SyntaxNode> RewriteFieldNameAndAccessibility(string originalFieldName, bool makePrivate, Document document, SyntaxAnnotation declarationAnnotation, CancellationToken cancellationToken)
         {
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
@@ -37,9 +42,15 @@ namespace Microsoft.CodeAnalysis.CSharp.EncapsulateField
             }
 
             var tempAnnotation = new SyntaxAnnotation();
-            var newIdentifier = SyntaxFactory.Identifier(originalFieldName)
-                                             .WithTrailingTrivia(declarator.Identifier.TrailingTrivia)
-                                             .WithLeadingTrivia(declarator.Identifier.LeadingTrivia);
+            var escapedName = originalFieldName.EscapeIdentifier();
+            var newIdentifier = SyntaxFactory.Identifier(
+                    leading: SyntaxTriviaList.Create(SyntaxFactory.ElasticMarker),
+                    contextualKind: SyntaxKind.IdentifierName,
+                    text: escapedName,
+                    valueText: originalFieldName,
+                    trailing: SyntaxTriviaList.Create(SyntaxFactory.ElasticMarker))
+                .WithTrailingTrivia(declarator.Identifier.TrailingTrivia)
+                .WithLeadingTrivia(declarator.Identifier.LeadingTrivia);
 
             var updatedDeclarator = declarator.WithIdentifier(newIdentifier).WithAdditionalAnnotations(tempAnnotation);
 

@@ -5,7 +5,6 @@ using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Editor.Options;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.VisualStudio.LanguageServices.Implementation.NavigationBar;
-using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Roslyn.Utilities;
 
@@ -17,7 +16,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         {
             private readonly TLanguageService _languageService;
             private readonly IVsCodeWindow _codeWindow;
-            private readonly IComEventSink _sink;
+            private readonly ComEventSink _sink;
             private readonly IOptionService _optionService;
 
             private INavigationBarController _navigationBarController;
@@ -58,9 +57,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
 
             private void AddOrRemoveDropdown(bool enabled)
             {
-                var dropdownManager = _codeWindow as IVsDropdownBarManager;
-
-                if (dropdownManager == null)
+                if (!(_codeWindow is IVsDropdownBarManager dropdownManager))
                 {
                     return;
                 }
@@ -96,22 +93,19 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
 
             private static IVsDropdownBar GetDropdownBar(IVsDropdownBarManager dropdownManager)
             {
-                IVsDropdownBar existingDropdownBar = null;
-                ErrorHandler.ThrowOnFailure(dropdownManager.GetDropdownBar(out existingDropdownBar));
+                ErrorHandler.ThrowOnFailure(dropdownManager.GetDropdownBar(out var existingDropdownBar));
                 return existingDropdownBar;
             }
 
             private static IVsDropdownBarClient GetDropdownBarClient(IVsDropdownBar dropdownBar)
             {
-                IVsDropdownBarClient dropdownBarClient = null;
-                ErrorHandler.ThrowOnFailure(dropdownBar.GetClient(out dropdownBarClient));
+                ErrorHandler.ThrowOnFailure(dropdownBar.GetClient(out var dropdownBarClient));
                 return dropdownBarClient;
             }
 
             private void AdddropdownBar(IVsDropdownBarManager dropdownManager)
             {
-                IVsTextLines buffer;
-                if (ErrorHandler.Failed(_codeWindow.GetBuffer(out buffer)))
+                if (ErrorHandler.Failed(_codeWindow.GetBuffer(out var buffer)))
                 {
                     return;
                 }
@@ -149,18 +143,15 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
 
             public int AddAdornments()
             {
-                IVsTextView primaryView;
                 int hr;
-                if (ErrorHandler.Failed(hr = _codeWindow.GetPrimaryView(out primaryView)))
+                if (ErrorHandler.Failed(hr = _codeWindow.GetPrimaryView(out var primaryView)))
                 {
                     Debug.Fail("GetPrimaryView failed in IVsCodeWindowManager.AddAdornments");
                     return hr;
                 }
 
                 SetupView(primaryView);
-
-                IVsTextView secondaryView;
-                if (ErrorHandler.Succeeded(_codeWindow.GetSecondaryView(out secondaryView)))
+                if (ErrorHandler.Succeeded(_codeWindow.GetSecondaryView(out var secondaryView)))
                 {
                     SetupView(secondaryView);
                 }

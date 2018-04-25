@@ -25,14 +25,12 @@ namespace Roslyn.Utilities
 
             var map = Volatile.Read(ref location);
             Contract.ThrowIfNull(map);
-
-            TValue existingValue;
-            if (map.TryGetValue(key, out existingValue))
+            if (map.TryGetValue(key, out var existingValue))
             {
                 return existingValue;
             }
 
-            TValue newValue = valueFactory(key, factoryArgument);
+            var newValue = valueFactory(key, factoryArgument);
 
             do
             {

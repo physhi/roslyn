@@ -15,7 +15,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
         Private ReadOnly _widgetClass As NamedTypeSymbol
 
         Public Sub New()
-            _compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            _compilation = CompilationUtils.CreateCompilationWithMscorlib40(
                 <compilation name="MethodDocumentationCommentTests">
                     <file name="a.vb">
                     Namespace Acme
@@ -52,6 +52,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                             End Sub
 
                             Public Sub M5(ParamArray args() As Object)
+                            End Sub
+
+                            Public Sub M7(z As (x1 As Integer, x2 As Integer, x3 As Integer, x4 As Integer, x5 As Integer, x6 As Integer, x7 As Short))
+                            End Sub
+
+                            Public Sub M10(y As (x1 As Integer, x2 As Short), z As System.Tuple(Of Integer, Short))
                             End Sub
                         End Class
 
@@ -133,13 +139,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
         End Sub
 
         <Fact>
+        Public Sub TestMethod7()
+            Assert.Equal("M:Acme.Widget.M7(System.ValueTuple{System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int16})",
+                         _widgetClass.GetMembers("M7").Single().GetDocumentationCommentId())
+        End Sub
+
+        <Fact>
+        Public Sub TestMethod10()
+            Assert.Equal("M:Acme.Widget.M10(System.ValueTuple{System.Int32,System.Int16},System.Tuple{System.Int32,System.Int16})",
+                         _widgetClass.GetMembers("M10").Single().GetDocumentationCommentId())
+        End Sub
+
+        <Fact>
         Public Sub TestMethodInGenericClass()
             Assert.Equal("M:Acme.MyList`1.Test(`0)",
                          _acmeNamespace.GetTypeMembers("MyList", 1).Single() _
                             .GetMembers("Test").Single().GetDocumentationCommentId())
         End Sub
 
-        <WorkItem(766313, "DevDiv")>
+        <WorkItem(766313, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/766313")>
         <Fact>
         Public Sub TestMethodWithGenericDeclaringTypeAsParameter()
             Assert.Equal("M:Acme.MyList`1.Zip(Acme.MyList{`0})",
@@ -147,7 +165,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                             .GetMembers("Zip").Single().GetDocumentationCommentId())
         End Sub
 
-        <WorkItem(766313, "DevDiv")>
+        <WorkItem(766313, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/766313")>
         <Fact>
         Public Sub TestMethodWithGenericDeclaringTypeAsTypeParameter()
             Assert.Equal("M:Acme.MyList`1.ReallyZip(Acme.MyList{Acme.MyList{`0}})",
@@ -173,7 +191,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
         Public Sub TestMethodWithMissingType()
             Dim csharpAssemblyReference = TestReferences.SymbolsTests.UseSiteErrors.CSharp
             Dim ilAssemblyReference = TestReferences.SymbolsTests.UseSiteErrors.IL
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndReferences(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndReferences(
 <compilation>
     <file name="a.vb">
 Class C
@@ -192,7 +210,7 @@ End Class
             Next
         End Sub
 
-        <Fact, WorkItem(530924, "DevDiv")>
+        <Fact, WorkItem(530924, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530924")>
         Public Sub TestConversionOperator()
             Assert.Equal("M:Acme.ValueType.op_Implicit(System.Byte)~Acme.ValueType",
                          _acmeNamespace.GetTypeMembers("ValueType").Single() _
@@ -215,7 +233,7 @@ End Class
     ]]></file>
 </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(DocumentationMode.Diagnose))
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(DocumentationMode.Diagnose))
             Dim main = compilation.GetTypeByMetadataName("Test").GetMember(Of MethodSymbol)("Main")
 
             Assert.Equal(
@@ -226,7 +244,7 @@ End Class
  </summary
 </member>", main.GetDocumentationCommentXml().Trim())
 
-            compilation = CompilationUtils.CreateCompilationWithMscorlib(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(DocumentationMode.Parse))
+            compilation = CompilationUtils.CreateCompilationWithMscorlib40(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(DocumentationMode.Parse))
             main = compilation.GetTypeByMetadataName("Test").GetMember(Of MethodSymbol)("Main")
 
             Assert.Equal(
@@ -237,7 +255,7 @@ End Class
  </summary
 </member>", main.GetDocumentationCommentXml().Trim())
 
-            compilation = CompilationUtils.CreateCompilationWithMscorlib(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(DocumentationMode.None))
+            compilation = CompilationUtils.CreateCompilationWithMscorlib40(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(DocumentationMode.None))
             main = compilation.GetTypeByMetadataName("Test").GetMember(Of MethodSymbol)("Main")
 
             Assert.Equal("", main.GetDocumentationCommentXml().Trim())

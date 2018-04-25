@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Threading.Tasks;
 using Roslyn.Utilities;
@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.SignatureHel
         internal partial class Session : Session<Controller, Model, ISignatureHelpPresenterSession>
         {
             public Session(Controller controller, ISignatureHelpPresenterSession presenterSession)
-                : base(controller, new ModelComputation<Model>(controller, TaskScheduler.Default), presenterSession)
+                : base(controller, new ModelComputation<Model>(controller.ThreadingContext, controller, TaskScheduler.Default), presenterSession)
             {
                 this.PresenterSession.ItemSelected += OnPresenterSessionItemSelected;
             }

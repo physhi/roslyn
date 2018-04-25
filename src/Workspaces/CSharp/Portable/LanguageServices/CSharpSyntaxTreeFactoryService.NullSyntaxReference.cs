@@ -8,7 +8,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 {
     internal partial class CSharpSyntaxTreeFactoryServiceFactory
     {
-        internal partial class CSharpSyntaxTreeFactoryService
+        private partial class CSharpSyntaxTreeFactoryService
         {
             /// <summary>
             /// Represents a syntax reference that was passed a null
@@ -42,7 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     get
                     {
-                        throw new NotSupportedException(CSharpWorkspaceResources.CannotRetrieveTheSpanOfA);
+                        throw new NotSupportedException(CSharpWorkspaceResources.Cannot_retrieve_the_Span_of_a_null_syntax_reference);
                     }
                 }
             }

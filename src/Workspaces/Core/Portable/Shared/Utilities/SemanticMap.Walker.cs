@@ -2,7 +2,6 @@
 
 using System.Threading;
 using Microsoft.CodeAnalysis.Shared.Extensions;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Shared.Utilities
 {
@@ -14,8 +13,8 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
             private readonly SemanticMap _map;
             private readonly CancellationToken _cancellationToken;
 
-            public Walker(SemanticModel semanticModel, SemanticMap map, CancellationToken cancellationToken) :
-                base(SyntaxWalkerDepth.Token)
+            public Walker(SemanticModel semanticModel, SemanticMap map, CancellationToken cancellationToken)
+                : base(SyntaxWalkerDepth.Token)
             {
                 _semanticModel = semanticModel;
                 _map = map;

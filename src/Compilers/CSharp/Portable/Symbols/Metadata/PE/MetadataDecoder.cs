@@ -125,9 +125,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             int referencedAssemblyIndex,
             ref MetadataTypeName emittedName)
         {
+            var assembly = moduleSymbol.GetReferencedAssemblySymbol(referencedAssemblyIndex);
+            if ((object)assembly == null)
+            {
+                return new UnsupportedMetadataTypeSymbol();
+            }
+
             try
             {
-                AssemblySymbol assembly = moduleSymbol.GetReferencedAssemblySymbols()[referencedAssemblyIndex];
                 return assembly.LookupTopLevelMetadataType(ref emittedName, digThroughForwardedTypes: true);
             }
             catch (Exception e) when (FatalError.Report(e)) // Trying to get more useful Watson dumps.
@@ -212,7 +217,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 case SymbolKind.ErrorType:
                     goto case SymbolKind.NamedType;
                 case SymbolKind.NamedType:
-
                     var namedType = (NamedTypeSymbol)symbol;
                     AssemblySymbol containingAssembly = symbol.OriginalDefinition.ContainingAssembly;
                     int i;
@@ -230,12 +234,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
                     do
                     {
-                        var arguments = namedType.TypeArgumentsNoUseSiteDiagnostics;
+                        if (namedType.IsTupleType)
+                        {
+                            return IsOrClosedOverATypeFromAssemblies(namedType.TupleUnderlyingType, assemblies);
+                        }
+
+                        var arguments = namedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics;
                         int count = arguments.Length;
 
                         for (i = 0; i < count; i++)
                         {
-                            if (IsOrClosedOverATypeFromAssemblies(arguments[i], assemblies))
+                            if (IsOrClosedOverATypeFromAssemblies(arguments[i].Type, assemblies))
                             {
                                 return true;
                             }
@@ -398,7 +407,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
                         // Let's use a trick. To make sure the kind is the same, make sure
                         // base type is the same.
-                        if (!ReferenceEquals(baseType, candidate.BaseTypeNoUseSiteDiagnostics))
+                        SpecialType baseSpecialType = (candidate.BaseTypeNoUseSiteDiagnostics?.SpecialType).GetValueOrDefault();
+                        if (baseSpecialType == SpecialType.None || baseSpecialType != (baseType?.SpecialType).GetValueOrDefault())
                         {
                             continue;
                         }
@@ -497,19 +507,31 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         {
             TypeSymbol targetTypeSymbol = GetMemberRefTypeSymbol(memberRef);
 
+            if (targetTypeSymbol is null)
+            {
+                return null;
+            }
+
+            Debug.Assert(!targetTypeSymbol.IsTupleType);
+
             if ((object)scope != null)
             {
                 Debug.Assert(scope.Kind == SymbolKind.NamedType || scope.Kind == SymbolKind.ErrorType);
 
                 // We only want to consider members that are at or above "scope" in the type hierarchy.
                 HashSet<DiagnosticInfo> useSiteDiagnostics = null;
-                if (scope != targetTypeSymbol &&
+                if (!TypeSymbol.Equals(scope, targetTypeSymbol, TypeCompareKind.ConsiderEverything2) &&
                     !(targetTypeSymbol.IsInterfaceType()
-                        ? scope.AllInterfacesNoUseSiteDiagnostics.Contains((NamedTypeSymbol)targetTypeSymbol)
-                        : scope.IsDerivedFrom(targetTypeSymbol, ignoreDynamic: false, useSiteDiagnostics: ref useSiteDiagnostics)))
+                        ? scope.AllInterfacesNoUseSiteDiagnostics.IndexOf((NamedTypeSymbol)targetTypeSymbol, 0, TypeSymbol.EqualsCLRSignatureComparer) != -1
+                        : scope.IsDerivedFrom(targetTypeSymbol, TypeCompareKind.CLRSignatureCompareOptions, useSiteDiagnostics: ref useSiteDiagnostics)))
                 {
                     return null;
                 }
+            }
+
+            if (!targetTypeSymbol.IsTupleCompatible())
+            {
+                targetTypeSymbol = TupleTypeDecoder.DecodeTupleTypesIfApplicable(targetTypeSymbol, elementNames: default);
             }
 
             // We're going to use a special decoder that can generate usable symbols for type parameters without full context.

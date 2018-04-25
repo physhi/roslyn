@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -17,18 +17,18 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.ProjectSystemShim
 
         public void RemoveReferenceToCodeDirectory(string assemblyFileName, ICSharpProjectRoot project)
         {
-            CSharpProject projectSite = GetProjectSite(project);
+            var projectSite = GetProjectSite(project);
 
-            if (!this.CurrentProjectReferencesContains(projectSite.Id))
+            var projectReferencesToRemove = VisualStudioProject.GetProjectReferences().Where(p => p.ProjectId == projectSite.VisualStudioProject.Id).ToList();
+
+            if (projectReferencesToRemove.Count == 0)
             {
-                throw new ArgumentException("The finalProject reference is not currently referenced by this finalProject.", "finalProject");
+                throw new ArgumentException($"The project {nameof(project)} is not currently referenced by this project.");
             }
 
-            var projectReferences = GetCurrentProjectReferences().Where(r => r.ProjectId == projectSite.Id);
-
-            foreach (var projectReference in projectReferences)
+            foreach (var projectReferenceToRemove in projectReferencesToRemove)
             {
-                RemoveProjectReference(projectReference);
+                VisualStudioProject.RemoveProjectReference(new ProjectReference(projectSite.VisualStudioProject.Id));
             }
         }
 
@@ -39,34 +39,39 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.ProjectSystemShim
 
         public void OnCodeDirectoryAliasesChanged(ICSharpProjectRoot project, int previousAliasesCount, string[] previousAliases, int currentAliasesCount, string[] currentAliases)
         {
-            CSharpProject projectSite = GetProjectSite(project);
+            var projectSite = GetProjectSite(project);
 
-            UpdateProjectReferenceAliases(projectSite, ImmutableArray.Create(currentAliases));
+            using (VisualStudioProject.CreateBatchScope())
+            {
+                var existingProjectReference = VisualStudioProject.GetProjectReferences().Single(p => p.ProjectId == projectSite.VisualStudioProject.Id);
+
+                VisualStudioProject.RemoveProjectReference(existingProjectReference);
+                VisualStudioProject.AddProjectReference(new ProjectReference(existingProjectReference.ProjectId, ImmutableArray.Create(currentAliases), existingProjectReference.EmbedInteropTypes));
+            }
         }
 
-        public void AddReferenceToCodeDirectoryEx(string assemblyFileName, ICSharpProjectRoot project, CompilerOptions optionID)
+        public void AddReferenceToCodeDirectoryEx(string assemblyFileName, ICSharpProjectRoot projectRoot, CompilerOptions optionID)
         {
-            CSharpProject projectSite = GetProjectSite(project);
+            var projectSite = GetProjectSite(projectRoot);
 
-            AddProjectReference(new ProjectReference(projectSite.Id));
+            VisualStudioProject.AddProjectReference(new ProjectReference(projectSite.VisualStudioProject.Id, embedInteropTypes: optionID == CompilerOptions.OPTID_IMPORTSUSINGNOPIA));
         }
 
         /// <summary>
         /// Given a ICSharpProjectRoot instance, it returns the ProjectSite instance, throwing if it
         /// could not be obtained.
         /// </summary>
-        private static CSharpProject GetProjectSite(ICSharpProjectRoot project)
+        private static CSharpProjectShim GetProjectSite(ICSharpProjectRoot project)
         {
             // Get the host back for the project
-            Guid projectSiteGuid = typeof(ICSharpProjectSite).GUID;
-            CSharpProject projectSite = project.GetProjectSite(ref projectSiteGuid) as CSharpProject;
+            var projectSiteGuid = typeof(ICSharpProjectSite).GUID;
 
             // We should have gotten a ProjectSite back. If we didn't, that means we're being given
             // a project site that we didn't get BindToProject called on first which is a no-no by
             // the project system.
-            if (projectSite == null)
+            if (!(project.GetProjectSite(ref projectSiteGuid) is CSharpProjectShim projectSite))
             {
-                throw new ArgumentException("finalProject was not properly sited with the languageServices service.", "finalProject");
+                throw new ArgumentException($"{project} was not properly sited with the language service.", nameof(project));
             }
 
             return projectSite;

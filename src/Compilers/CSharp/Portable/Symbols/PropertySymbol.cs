@@ -51,14 +51,34 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         }
 
         /// <summary>
-        /// The type of the property. 
+        /// Indicates whether or not the property returns by reference
         /// </summary>
-        public abstract TypeSymbol Type { get; }
+        public bool ReturnsByRef { get { return this.RefKind == RefKind.Ref; } }
 
         /// <summary>
-        /// The list of custom modifiers, if any, associated with the type of the property. 
+        /// Indicates whether or not the property returns a readonly reference
         /// </summary>
-        public abstract ImmutableArray<CustomModifier> TypeCustomModifiers { get; }
+        public bool ReturnsByRefReadonly { get { return this.RefKind == RefKind.RefReadOnly; } }
+
+        /// <summary>
+        /// Gets the ref kind of the property.
+        /// </summary>
+        public abstract RefKind RefKind { get; }
+
+        /// <summary>
+        /// The type of the property along with its annotations.
+        /// </summary>
+        public abstract TypeWithAnnotations TypeWithAnnotations { get; }
+
+        /// <summary>
+        /// The type of the property.
+        /// </summary>
+        public TypeSymbol Type => TypeWithAnnotations.Type;
+
+        /// <summary>
+        /// Custom modifiers associated with the ref modifier, or an empty array if there are none.
+        /// </summary>
+        public abstract ImmutableArray<CustomModifier> RefCustomModifiers { get; }
 
         /// <summary>
         /// The parameters of this property. If this property has no parameters, returns
@@ -79,12 +99,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal ImmutableArray<TypeSymbol> ParameterTypes
+        internal ImmutableArray<TypeWithAnnotations> ParameterTypesWithAnnotations
         {
             get
             {
                 ParameterSignature.PopulateParameterSignature(this.Parameters, ref _lazyParameterSignature);
-                return _lazyParameterSignature.parameterTypes;
+                return _lazyParameterSignature.parameterTypesWithAnnotations;
             }
         }
 
@@ -96,6 +116,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return _lazyParameterSignature.parameterRefKinds;
             }
         }
+
+        /// <summary>
+        /// Returns true if this symbol requires an instance reference as the implicit reciever. This is false if the symbol is static.
+        /// </summary>
+        public virtual bool RequiresInstanceReceiver => !IsStatic;
 
         /// <summary>
         /// Returns whether the property is really an indexer.
@@ -142,6 +167,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return (object)property.GetMethod == null;
             }
         }
+
+        /// <summary>
+        /// True if the property itself is excluded from code coverage instrumentation.
+        /// True for source properties marked with <see cref="AttributeDescription.ExcludeFromCodeCoverageAttribute"/>.
+        /// </summary>
+        internal virtual bool IsDirectlyExcludedFromCodeCoverage { get => false; }
 
         /// <summary>
         /// True if this symbol has a special name (metadata flag SpecialName is set).
@@ -298,11 +329,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return visitor.VisitProperty(this);
         }
 
-        internal virtual PropertySymbol AsMember(NamedTypeSymbol newOwner)
+        internal PropertySymbol AsMember(NamedTypeSymbol newOwner)
         {
             Debug.Assert(this.IsDefinition);
             Debug.Assert(ReferenceEquals(newOwner.OriginalDefinition, this.ContainingSymbol.OriginalDefinition));
-            return (newOwner == this.ContainingSymbol) ? this : new SubstitutedPropertySymbol(newOwner as SubstitutedNamedTypeSymbol, this);
+            return newOwner.IsDefinition ? this : new SubstitutedPropertySymbol(newOwner as SubstitutedNamedTypeSymbol, this);
         }
 
         #region Use-Site Diagnostics
@@ -322,8 +353,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Debug.Assert(this.IsDefinition);
 
             // Check return type, custom modifiers and parameters:
-            if (DeriveUseSiteDiagnosticFromType(ref result, this.Type) ||
-                DeriveUseSiteDiagnosticFromCustomModifiers(ref result, this.TypeCustomModifiers) ||
+            if (DeriveUseSiteDiagnosticFromType(ref result, this.TypeWithAnnotations) ||
+                DeriveUseSiteDiagnosticFromCustomModifiers(ref result, this.RefCustomModifiers) ||
                 DeriveUseSiteDiagnosticFromParameters(ref result, this.Parameters))
             {
                 return true;
@@ -334,8 +365,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             if (this.ContainingModule.HasUnifiedReferences)
             {
                 HashSet<TypeSymbol> unificationCheckedTypes = null;
-                if (this.Type.GetUnificationUseSiteDiagnosticRecursive(ref result, this, ref unificationCheckedTypes) ||
-                    GetUnificationUseSiteDiagnosticRecursive(ref result, this.TypeCustomModifiers, this, ref unificationCheckedTypes) ||
+                if (this.TypeWithAnnotations.GetUnificationUseSiteDiagnosticRecursive(ref result, this, ref unificationCheckedTypes) ||
+                    GetUnificationUseSiteDiagnosticRecursive(ref result, this.RefCustomModifiers, this, ref unificationCheckedTypes) ||
                     GetUnificationUseSiteDiagnosticRecursive(ref result, this.Parameters, this, ref unificationCheckedTypes))
                 {
                     return true;
@@ -367,6 +398,29 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         #endregion
 
+        /// <summary>
+        /// Is this a property of a tuple type?
+        /// </summary>
+        public virtual bool IsTupleProperty
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// If this is a property of a tuple type, return corresponding underlying property from the
+        /// tuple underlying type. Otherwise, null. 
+        /// </summary>
+        public virtual PropertySymbol TupleUnderlyingProperty
+        {
+            get
+            {
+                return null;
+            }
+        }
+
         #region IPropertySymbol Members
 
         bool IPropertySymbol.IsIndexer
@@ -378,6 +432,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get { return this.Type; }
         }
+
+        CodeAnalysis.NullableAnnotation IPropertySymbol.NullableAnnotation => TypeWithAnnotations.ToPublicAnnotation();
 
         ImmutableArray<IParameterSymbol> IPropertySymbol.Parameters
         {
@@ -426,7 +482,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         ImmutableArray<CustomModifier> IPropertySymbol.TypeCustomModifiers
         {
-            get { return this.TypeCustomModifiers; }
+            get { return this.TypeWithAnnotations.CustomModifiers; }
+        }
+
+        ImmutableArray<CustomModifier> IPropertySymbol.RefCustomModifiers
+        {
+            get { return this.RefCustomModifiers; }
         }
 
         #endregion
@@ -447,9 +508,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         #region Equality
 
-        public override bool Equals(object obj)
+        public override bool Equals(Symbol symbol, TypeCompareKind compareKind)
         {
-            PropertySymbol other = obj as PropertySymbol;
+            PropertySymbol other = symbol as PropertySymbol;
 
             if (ReferenceEquals(null, other))
             {
@@ -463,7 +524,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             // This checks if the property have the same definition and the type parameters on the containing types have been
             // substituted in the same way.
-            return this.ContainingType == other.ContainingType && ReferenceEquals(this.OriginalDefinition, other.OriginalDefinition);
+            return TypeSymbol.Equals(this.ContainingType, other.ContainingType, compareKind) && ReferenceEquals(this.OriginalDefinition, other.OriginalDefinition);
         }
 
         public override int GetHashCode()

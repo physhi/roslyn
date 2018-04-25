@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CSharp.UnitTests;
-using Microsoft.CodeAnalysis.Differencing;
 using Microsoft.CodeAnalysis.EditAndContinue;
 using Microsoft.CodeAnalysis.Emit;
 using Roslyn.Test.Utilities;
@@ -9,33 +8,33 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue.UnitTests
 {
-    public class ActiveStatementTests_Methods : RudeEditTestBase
+    public class ActiveStatementTests_Methods : EditingTestBase
     {
         #region Methods
 
-        [WorkItem(740443)]
+        [WorkItem(740443, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/740443")]
         [Fact]
         public void Method_Delete_Leaf1()
         {
-            string src1 = @"
+            var src1 = @"
 class C
 {
     static void Main(string[] args)
     {
-        <AS:1>Foo(1);</AS:1>
+        <AS:1>Goo(1);</AS:1>
     }
 
-    static void Foo(int a)
+    static void Goo(int a)
     {
         <AS:0>Console.WriteLine(a);</AS:0>
     }
 }";
-            string src2 = @"
+            var src2 = @"
 <AS:0>class C</AS:0>
 {
     static void Main(string[] args)
     {
-        <AS:1>Foo(1);</AS:1>
+        <AS:1>Goo(1);</AS:1>
     }
 }
 ";
@@ -45,7 +44,7 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.Delete, "class C", FeaturesResources.Method));
+                Diagnostic(RudeEditKind.Delete, "class C", FeaturesResources.method));
         }
 
         [Fact]
@@ -58,7 +57,7 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.MethodBodyDelete, "int M()", FeaturesResources.Method));
+                Diagnostic(RudeEditKind.MethodBodyDelete, "int M()", FeaturesResources.method));
         }
 
         [Fact]
@@ -71,7 +70,7 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.MethodBodyDelete, "int M()", FeaturesResources.Method));
+                Diagnostic(RudeEditKind.MethodBodyDelete, "int M()", FeaturesResources.method));
         }
 
         [Fact]
@@ -102,7 +101,7 @@ class C
         [Fact]
         public void Update_Inner_GenericMethod()
         {
-            string src1 = @"
+            var src1 = @"
 class C
 {
     static void Main(string[] args)
@@ -118,7 +117,7 @@ class C
         <AS:0>Console.WriteLine(""hello"");</AS:0>
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class C
 {
     static void Main(string[] args)
@@ -148,7 +147,7 @@ class C
         [Fact]
         public void Update_Inner_ParameterType_GenericMethod()
         {
-            string src1 = @"
+            var src1 = @"
 class C
 {
     static void Main(string[] args)
@@ -161,7 +160,7 @@ class C
         <AS:0>Console.WriteLine(""hello"");</AS:0>
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class C
 {
     static void Main(string[] args)
@@ -188,7 +187,7 @@ class C
         [Fact]
         public void Update_Leaf_GenericMethod()
         {
-            string src1 = @"
+            var src1 = @"
 class C
 {
     static void Main(string[] args)
@@ -201,7 +200,7 @@ class C
         <AS:0>Console.WriteLine(""hello"");</AS:0>
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class C
 {
     static void Main(string[] args)
@@ -222,15 +221,15 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.GenericMethodUpdate, "static void Swap<T>(T lhs, T rhs)", FeaturesResources.Method));
+                Diagnostic(RudeEditKind.GenericMethodUpdate, "static void Swap<T>(T lhs, T rhs)", FeaturesResources.method));
         }
 
         // Async
-        [WorkItem(749458)]
+        [WorkItem(749458, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/749458")]
         [Fact]
         public void Update_Leaf_AsyncMethod()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -245,7 +244,7 @@ class Test
         return ""Done"";
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -266,11 +265,11 @@ class Test
             edits.VerifyRudeDiagnostics(active);
         }
 
-        [WorkItem(749440)]
+        [WorkItem(749440, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/749440")]
         [Fact]
         public void Update_Inner_AsyncMethod()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -285,7 +284,7 @@ class Test
         return ""Done"";
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -307,11 +306,11 @@ class Test
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, "string result = f.WaitAsync(6).Result;"));
         }
 
-        [WorkItem(749440)]
+        [WorkItem(749440, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/749440")]
         [Fact]
         public void Update_Initializer_MultipleVariables1()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -329,7 +328,7 @@ class Test
         return 2;
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -354,11 +353,11 @@ class Test
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, "int a = G()"));
         }
 
-        [WorkItem(749440)]
+        [WorkItem(749440, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/749440")]
         [Fact]
         public void Update_Initializer_MultipleVariables2()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -376,7 +375,7 @@ class Test
         return 2;
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -404,7 +403,7 @@ class Test
         [Fact]
         public void MethodUpdateWithLocalVariables()
         {
-            string src1 = @"
+            var src1 = @"
 class C
 {
     static void Main(string[] args)
@@ -415,7 +414,7 @@ class C
     }
 }
 ";
-            string src2 = @"
+            var src2 = @"
 class C
 {
     static void Main(string[] args)
@@ -432,6 +431,58 @@ class C
             edits.VerifySemantics(
                 active,
                 new[] { SemanticEdit(SemanticEditKind.Update, c => c.GetMember("C.Main"), syntaxMap[0]) });
+        }
+
+        #endregion
+
+        #region Constuctors
+
+        [Fact]
+        public void Constructor_ExpressionBodyToBlockBody1()
+        {
+            var src1 = "class C { int x; C() => <AS:0>x = 1</AS:0>; }";
+            var src2 = "class C { int x; <AS:0>C()</AS:0> { x = 1; } }";
+
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifyRudeDiagnostics(active);
+        }
+
+        [Fact]
+        public void Constructor_BlockBodyToExpressionBody1()
+        {
+            var src1 = "class C { int x; C() <AS:0>{</AS:0> x = 1; } }";
+            var src2 = "class C { int x; C() => <AS:0>x = 1</AS:0>; }";
+
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifyRudeDiagnostics(active);
+        }
+
+        [Fact]
+        public void Constructor_BlockBodyToExpressionBody2()
+        {
+            var src1 = "class C { int x; <AS:0>C()</AS:0> { x = 1; } }";
+            var src2 = "class C { int x; C() => <AS:0>x = 1</AS:0>; }";
+
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifyRudeDiagnostics(active);
+        }
+
+        [Fact]
+        public void Constructor_BlockBodyToExpressionBody3()
+        {
+            var src1 = "class C { int x; C() : <AS:0>base()</AS:0> { x = 1; } }";
+            var src2 = "class C { int x; C() => <AS:0>x = 1</AS:0>; }";
+
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifyRudeDiagnostics(active);
         }
 
         #endregion
@@ -475,7 +526,7 @@ class C
         }
 
         [Fact]
-        public void Property_ExpressionBodyToBlockBody_Internal()
+        public void Property_ExpressionBodyToBlockBody_NonLeaf()
         {
             var src1 = @"
 class C 
@@ -520,11 +571,11 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.Delete, "int P", CSharpFeaturesResources.PropertySetter));
+                Diagnostic(RudeEditKind.Delete, "int P", CSharpFeaturesResources.property_setter));
         }
 
         [Fact]
-        public void Property_BlockBodyToExpressionBody_Internal()
+        public void Property_BlockBodyToExpressionBody_NonLeaf()
         {
             var src1 = @"
 class C 
@@ -544,8 +595,9 @@ class C
             var edits = GetTopEdits(src1, src2);
             var active = GetActiveStatements(src1, src2);
 
+            // Can be improved with https://github.com/dotnet/roslyn/issues/22696
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "=>       M()"));
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "int P"));
         }
 
         #endregion
@@ -598,13 +650,13 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.Delete, "int this[int a]", CSharpFeaturesResources.IndexerSetter));
+                Diagnostic(RudeEditKind.Delete, "int this[int a]", CSharpFeaturesResources.indexer_setter));
         }
 
         [Fact]
         public void Update_Leaf_Indexers1()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -624,7 +676,7 @@ class SampleCollection<T>
         set { <AS:0>arr[i] = value;</AS:0> }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -648,14 +700,14 @@ class SampleCollection<T>
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.IndexerSetter));
+                Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.indexer_setter));
         }
 
-        [WorkItem(750244)]
+        [WorkItem(750244, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/750244")]
         [Fact]
         public void Update_Inner_Indexers1()
         {
-            string src1 = @"
+            var src1 = @"
 using System;
 class Test
 {
@@ -676,7 +728,7 @@ class SampleCollection<T>
         set { <AS:0>arr[i] = value;</AS:0> }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 using System;
 class Test
 {
@@ -702,13 +754,13 @@ class SampleCollection<T>
 
             edits.VerifyRudeDiagnostics(active,
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, @"stringCollection[1] = ""hello"";"),
-                Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.IndexerSetter));
+                Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.indexer_setter));
         }
 
         [Fact]
         public void Update_Leaf_Indexers2()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -728,7 +780,7 @@ class SampleCollection<T>
         set { arr[i] = value; }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -752,14 +804,14 @@ class SampleCollection<T>
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.IndexerGetter));
+                Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.indexer_getter));
         }
 
-        [WorkItem(750244)]
+        [WorkItem(750244, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/750244")]
         [Fact]
         public void Update_Inner_Indexers2()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -779,7 +831,7 @@ class SampleCollection<T>
         set { arr[i] = value; }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -804,13 +856,13 @@ class SampleCollection<T>
 
             edits.VerifyRudeDiagnostics(active,
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, "Console.WriteLine(stringCollection[1]);"),
-                Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.IndexerGetter));
+                Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.indexer_getter));
         }
 
         [Fact]
         public void Deleted_Leaf_Indexers1()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -830,7 +882,7 @@ class SampleCollection<T>
         set { <AS:0>arr[i] = value;</AS:0> }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -854,13 +906,13 @@ class SampleCollection<T>
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.IndexerSetter));
+                Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.indexer_setter));
         }
 
         [Fact]
         public void Deleted_Inner_Indexers1()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -880,7 +932,7 @@ class SampleCollection<T>
         set { <AS:0>arr[i] = value;</AS:0> }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -909,7 +961,7 @@ class SampleCollection<T>
         [Fact]
         public void Deleted_Leaf_Indexers2()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -929,7 +981,7 @@ class SampleCollection<T>
         set { arr[i] = value; }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -953,13 +1005,13 @@ class SampleCollection<T>
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.IndexerGetter));
+                Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.indexer_getter));
         }
 
         [Fact]
         public void Deleted_Inner_Indexers2()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -979,7 +1031,7 @@ class SampleCollection<T>
         set { arr[i] = value; }
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -1057,11 +1109,11 @@ class SampleCollection<T>
             edits.VerifyRudeDiagnostics(active);
         }
 
-        [WorkItem(754274)]
+        [WorkItem(754274, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/754274")]
         [Fact]
         public void Update_Leaf_OverloadedOperator()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -1075,7 +1127,7 @@ class Test
         <AS:0>return new Test(t1.a + t2.a);</AS:0>
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)
@@ -1095,11 +1147,11 @@ class Test
             edits.VerifyRudeDiagnostics(active);
         }
 
-        [WorkItem(754274)]
+        [WorkItem(754274, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/754274")]
         [Fact]
         public void Update_Inner_OverloadedOperator()
         {
-            string src1 = @"
+            var src1 = @"
 class Test
 {
     static void Main(string[] args)
@@ -1117,7 +1169,7 @@ class Test
         return new Test(t1.a * t2.a);
     }
 }";
-            string src2 = @"
+            var src2 = @"
 class Test
 {
     static void Main(string[] args)

@@ -44,11 +44,10 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Recommendations
             var kind = (SyntaxKind)field.GetValue(null);
             this.keywordText = SyntaxFacts.GetText(kind);
 
-            AbstractSyntacticSingleKeywordRecommender recommender;
-            s_recommenderMap.TryGetValue(kind, out recommender);
+            s_recommenderMap.TryGetValue(kind, out var recommender);
             Assert.NotNull(recommender);
 
-            this.RecommendKeywords = recommender.RecommendKeywords_Test;
+            this.RecommendKeywordsAsync = recommender.RecommendKeywordsAsync_Test;
         }
     }
 }

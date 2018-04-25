@@ -54,7 +54,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Interop
                 // case.
                 if (handle != null && !Marshal.IsComObject(handle))
                 {
-                    throw new ArgumentException("must be null or a Com object", "handle");
+                    throw new ArgumentException("must be null or a Com object", nameof(handle));
                 }
 
                 _handle = handle;
@@ -97,16 +97,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Interop
             where TNewHandle : class
             where TNewObject : class, TNewHandle
         {
-            var newHandle = Handle as TNewHandle;
-
-            if (newHandle == null)
+            if (!(Handle is TNewHandle newHandle))
             {
                 throw new InvalidOperationException("Invalid cast.");
             }
 
-            var newObject = Object as TNewObject;
-
-            if (newObject == null)
+            if (!(Object is TNewObject newObject))
             {
                 throw new InvalidOperationException("Invalid cast.");
             }

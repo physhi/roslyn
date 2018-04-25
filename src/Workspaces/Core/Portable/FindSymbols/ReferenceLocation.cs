@@ -2,8 +2,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.FindSymbols.FindReferences;
 
 namespace Microsoft.CodeAnalysis.FindSymbols
 {
@@ -11,7 +13,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
     /// Information about a reference to a symbol.
     /// </summary>
     [DebuggerDisplay("{GetDebuggerDisplay(),nq}")]
-    public struct ReferenceLocation : IComparable<ReferenceLocation>, IEquatable<ReferenceLocation>
+    public readonly struct ReferenceLocation : IComparable<ReferenceLocation>, IEquatable<ReferenceLocation>
     {
         /// <summary>
         /// The document that the reference was found in.
@@ -39,34 +41,39 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         /// <summary>
         /// Indicates if this is a location where the reference is written to.
         /// </summary>
-        internal bool IsWrittenTo { get; }
+        internal bool IsWrittenTo => SymbolUsageInfo.IsWrittenTo();
+
+        /// <summary>
+        /// Symbol usage info for this reference.
+        /// </summary>
+        internal SymbolUsageInfo SymbolUsageInfo { get; }
+
+        /// <summary>
+        /// Additional properties for this reference
+        /// </summary>
+        internal ImmutableArray<FindUsageProperty> FindUsagesProperties { get; }
 
         public CandidateReason CandidateReason { get; }
 
-        internal ReferenceLocation(Document document, IAliasSymbol alias, Location location, bool isImplicit, bool isWrittenTo, CandidateReason candidateReason)
+        internal ReferenceLocation(Document document, IAliasSymbol alias, Location location, bool isImplicit, SymbolUsageInfo symbolUsageInfo, ImmutableArray<FindUsageProperty> additionalProperties, CandidateReason candidateReason)
             : this()
         {
             this.Document = document;
             this.Alias = alias;
             this.Location = location;
             this.IsImplicit = isImplicit;
-            this.IsWrittenTo = isWrittenTo;
+            this.SymbolUsageInfo = symbolUsageInfo;
+            this.FindUsagesProperties = additionalProperties.NullToEmpty();
             this.CandidateReason = candidateReason;
         }
 
         /// <summary>
         /// Indicates if this was not an exact reference to a location, but was instead a possible
         /// location that was found through error tolerance.  For example, a call to a method like
-        /// "Foo()" could show up as an error tolerance location to a method "Foo(int i)" if no
-        /// actual "Foo()" method existed.
+        /// "Goo()" could show up as an error tolerance location to a method "Goo(int i)" if no
+        /// actual "Goo()" method existed.
         /// </summary>
-        public bool IsCandidateLocation
-        {
-            get
-            {
-                return this.CandidateReason != CandidateReason.None;
-            }
-        }
+        public bool IsCandidateLocation => this.CandidateReason != CandidateReason.None;
 
         public static bool operator ==(ReferenceLocation left, ReferenceLocation right)
         {

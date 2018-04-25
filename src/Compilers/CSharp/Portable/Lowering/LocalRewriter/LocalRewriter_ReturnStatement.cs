@@ -17,12 +17,16 @@ namespace Microsoft.CodeAnalysis.CSharp
             // or if they are expression-bodied properties.
             // We do this to ensure that expression lambdas and expression-bodied
             // properties have sequence points.
-            if (this.GenerateDebugInfo &&
-                (!rewritten.WasCompilerGenerated ||
-                 (node.ExpressionOpt != null && IsLambdaOrExpressionBodiedMember)))
+            // We also add sequence points for the implicit "return" statement at the end of the method body
+            // (added by FlowAnalysisPass.AppendImplicitReturn). Implicitly added return for async method 
+            // does not need sequence points added here since it would be done later (presumably during Async rewrite).
+            if (this.Instrument &&
+                (!node.WasCompilerGenerated ||
+                 (node.ExpressionOpt != null ?
+                        IsLambdaOrExpressionBodiedMember :
+                        (node.Syntax.Kind() == SyntaxKind.Block && _factory.CurrentFunction?.IsAsync == false))))
             {
-                // We're not calling AddSequencePoint since it ignores compiler-generated nodes.
-                return new BoundSequencePoint(rewritten.Syntax, rewritten);
+                rewritten = _instrumenter.InstrumentReturnStatement(node, rewritten);
             }
 
             return rewritten;
@@ -32,14 +36,15 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             get
             {
-                var method = _factory.CurrentMethod;
+                var method = _factory.CurrentFunction;
                 if (method is LambdaSymbol)
                 {
                     return true;
                 }
-                var sourceMethod = method as SourceMethodSymbol;
-                return sourceMethod != null
-                    && sourceMethod.IsExpressionBodied;
+
+                return
+                    (method as SourceMemberMethodSymbol)?.IsExpressionBodied ??
+                    (method as LocalFunctionSymbol)?.IsExpressionBodied ?? false;
             }
         }
     }

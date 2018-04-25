@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Composition
 Imports System.Threading
@@ -8,7 +8,6 @@ Imports Microsoft.CodeAnalysis.CodeRefactorings
 Imports Microsoft.CodeAnalysis.FindSymbols
 Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.Simplification
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Microsoft.CodeAnalysis.VisualBasic.Utilities
@@ -18,9 +17,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
     Partial Friend Class InlineTemporaryCodeRefactoringProvider
         Inherits CodeRefactoringProvider
 
+        <ImportingConstructor>
+        Public Sub New()
+        End Sub
+
         Public Overloads Overrides Async Function ComputeRefactoringsAsync(context As CodeRefactoringContext) As Task
             Dim document = context.Document
-            Dim textSpan = context.Span
             Dim cancellationToken = context.CancellationToken
 
             Dim workspace = document.Project.Solution.Workspace
@@ -28,30 +30,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
                 Return
             End If
 
-            Dim root = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
+            Dim modifiedIdentifier = Await context.TryGetRelevantNodeAsync(Of ModifiedIdentifierSyntax)().ConfigureAwait(False)
 
-            Dim token = DirectCast(root, SyntaxNode).FindToken(textSpan.Start)
-
-            If Not token.Span.Contains(textSpan) Then
-                Return
-            End If
-
-            Dim node = token.Parent
-
-            If Not node.IsKind(SyntaxKind.ModifiedIdentifier) OrElse
-               Not node.IsParentKind(SyntaxKind.VariableDeclarator) OrElse
-               Not node.Parent.IsParentKind(SyntaxKind.LocalDeclarationStatement) Then
+            If Not modifiedIdentifier.IsParentKind(SyntaxKind.VariableDeclarator) OrElse
+               Not modifiedIdentifier.Parent.IsParentKind(SyntaxKind.LocalDeclarationStatement) Then
 
                 Return
             End If
 
-            Dim modifiedIdentifier = DirectCast(node, ModifiedIdentifierSyntax)
             Dim variableDeclarator = DirectCast(modifiedIdentifier.Parent, VariableDeclaratorSyntax)
             Dim localDeclarationStatement = DirectCast(variableDeclarator.Parent, LocalDeclarationStatementSyntax)
 
-            If modifiedIdentifier.Identifier <> token OrElse
-               Not variableDeclarator.HasInitializer() Then
-
+            If Not variableDeclarator.HasInitializer() Then
                 Return
             End If
 
@@ -65,7 +55,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             End If
 
             context.RegisterRefactoring(
-                New MyCodeAction(VBFeaturesResources.InlineTemporaryVariable, Function(c) InlineTemporaryAsync(document, modifiedIdentifier, c)))
+                New MyCodeAction(VBFeaturesResources.Inline_temporary_variable, Function(c) InlineTemporaryAsync(document, modifiedIdentifier, c)), variableDeclarator.Span)
         End Function
 
         Private Async Function GetReferencesAsync(
@@ -80,7 +70,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
                 Dim solution = document.Project.Solution
                 Dim findReferencesResult = Await SymbolFinder.FindReferencesAsync(local, solution, cancellationToken).ConfigureAwait(False)
 
-                Dim locations = findReferencesResult.Single(Function(r) r.Definition Is local).Locations
+                Dim locations = findReferencesResult.Single(Function(r) Equals(r.Definition, local)).Locations
                 If Not locations.Any(Function(loc) semanticModel.SyntaxTree.OverlapsHiddenPosition(loc.Location.SourceSpan, cancellationToken)) Then
                     Return locations
                 End If
@@ -154,7 +144,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             ' Collect the identifier names for each reference.
             Dim local = semanticModel.GetDeclaredSymbol(modifiedIdentifier, cancellationToken)
             Dim symbolRefs = Await SymbolFinder.FindReferencesAsync(local, updatedDocument.Project.Solution, cancellationToken).ConfigureAwait(False)
-            Dim references = symbolRefs.Single(Function(r) r.Definition Is local).Locations
+            Dim references = symbolRefs.Single(Function(r) Equals(r.Definition, local)).Locations
             Dim syntaxRoot = Await updatedDocument.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
 
             ' Collect the target statement for each reference.
@@ -181,11 +171,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             ' Next, get the top-most statement of the local declaration
             Dim variableDeclarator = DirectCast(modifiedIdentifier.Parent, VariableDeclaratorSyntax)
             Dim localDeclaration = DirectCast(variableDeclarator.Parent, LocalDeclarationStatementSyntax)
-            Dim originalInitializerSymbolInfo = DirectCast(semanticModel, SemanticModel).GetSymbolInfo(variableDeclarator.GetInitializer())
+            Dim originalInitializerSymbolInfo = semanticModel.GetSymbolInfo(variableDeclarator.GetInitializer())
 
             Dim topMostStatementOfLocalDeclaration = If(localDeclaration.HasAncestor(Of ExpressionSyntax),
-                                                       localDeclaration.Ancestors().OfType(Of ExpressionSyntax).Last().FirstAncestorOrSelf(Of StatementSyntax)(),
-                                                       localDeclaration)
+                                                        localDeclaration.Ancestors().OfType(Of ExpressionSyntax).Last().FirstAncestorOrSelf(Of StatementSyntax)(),
+                                                        localDeclaration)
 
             topMostStatements = topMostStatements.Concat(topMostStatementOfLocalDeclaration)
 
@@ -232,8 +222,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             If conflicts.Count() = declaratorConflicts.Count() Then
                 ' Certain semantic conflicts can be detected only after the reference rewriter has inlined the expression
                 Dim newDocument = Await DetectSemanticConflicts(updatedDocument,
-                                                                DirectCast(semanticModel, SemanticModel),
-                                                                DirectCast(semanticModelBeforeInline, SemanticModel),
+                                                                semanticModel,
+                                                                semanticModelBeforeInline,
                                                                 originalInitializerSymbolInfo,
                                                                 cancellationToken).ConfigureAwait(False)
                 If updatedDocument Is newDocument Then
@@ -260,14 +250,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
 
         Private Shared Async Function FindReferenceAnnotatedNodesAsync(document As Document, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of IdentifierNameSyntax))
             Dim root = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
-            Return FindReferenceAnnotatedNodesAsync(root)
+            Return FindReferenceAnnotatedNodes(root)
         End Function
 
-        Private Shared Iterator Function FindReferenceAnnotatedNodesAsync(root As SyntaxNode) As IEnumerable(Of IdentifierNameSyntax)
+        Private Shared Iterator Function FindReferenceAnnotatedNodes(root As SyntaxNode) As IEnumerable(Of IdentifierNameSyntax)
             Dim annotatedNodesAndTokens = root.GetAnnotatedNodesAndTokens(s_referenceAnnotation)
+
             For Each nodeOrToken In annotatedNodesAndTokens
-                If nodeOrToken.IsNode AndAlso nodeOrToken.AsNode.IsKind(SyntaxKind.IdentifierName) Then
-                    Yield DirectCast(nodeOrToken.AsNode, IdentifierNameSyntax)
+                If nodeOrToken.IsKind(SyntaxKind.IdentifierName) Then
+                    Yield DirectCast(nodeOrToken.AsNode(), IdentifierNameSyntax)
                 End If
             Next
         End Function
@@ -408,7 +399,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             Dim explicitInitializer = Await Simplifier.ExpandAsync(initializer, updatedDocument, cancellationToken:=cancellationToken).ConfigureAwait(False)
 
             Dim lastToken = explicitInitializer.GetLastToken()
-            explicitInitializer = explicitInitializer.ReplaceToken(lastToken, lastToken.WithTrailingTrivia(CType(Nothing, SyntaxTriviaList)))
+            explicitInitializer = explicitInitializer.ReplaceToken(lastToken, lastToken.WithTrailingTrivia(SyntaxTriviaList.Empty))
 
             updatedDocument = Await updatedDocument.ReplaceNodeAsync(initializer, explicitInitializer, cancellationToken).ConfigureAwait(False)
             semanticModel = Await updatedDocument.GetSemanticModelAsync(cancellationToken).ConfigureAwait(False)
@@ -420,7 +411,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             Dim wasCastAdded As Boolean = False
             explicitInitializer = explicitInitializer.CastIfPossible(local.Type,
                                                                      modifiedIdentifier.SpanStart,
-                                                                     DirectCast(semanticModel, SemanticModel),
+                                                                     semanticModel,
                                                                      wasCastAdded)
 
             Return explicitInitializer.WithAdditionalAnnotations(s_expressionToInlineAnnotation)
@@ -446,7 +437,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
 
             Dim syntaxRootBeforeInline = Await semanticModelBeforeInline.SyntaxTree.GetRootAsync(cancellationToken).ConfigureAwait(False)
             ' Get all the identifier nodes which were replaced with inlined expression.
-            Dim originalIdentifierNodes = FindReferenceAnnotatedNodesAsync(syntaxRootBeforeInline)
+            Dim originalIdentifierNodes = FindReferenceAnnotatedNodes(syntaxRootBeforeInline).ToArray()
 
             If originalIdentifierNodes.IsEmpty Then
                 ' No conflicts
@@ -455,20 +446,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
 
             ' Get all the inlined expression nodes.
             Dim syntaxRootAfterInline = Await inlinedDocument.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
-            Dim inlinedExprNodes = syntaxRootAfterInline.GetAnnotatedNodesAndTokens(s_expressionToInlineAnnotation)
-            Debug.Assert(originalIdentifierNodes.Count() = inlinedExprNodes.Count())
+            Dim inlinedExprNodes = syntaxRootAfterInline.GetAnnotatedNodesAndTokens(s_expressionToInlineAnnotation).ToArray()
+            Debug.Assert(originalIdentifierNodes.Length = inlinedExprNodes.Length)
 
-            Dim originalNodesEnum = originalIdentifierNodes.GetEnumerator()
-            Dim inlinedNodesEnum = inlinedExprNodes.GetEnumerator()
             Dim replacementNodesWithChangedSemantics As Dictionary(Of SyntaxNode, SyntaxNode) = Nothing
 
-            While (originalNodesEnum.MoveNext())
-                Call inlinedNodesEnum.MoveNext()
-                Dim originalNode = originalNodesEnum.Current
-
-                ' expressionToInline is Parenthesized prior to replacement, so get the parenting parenthesized expression.
-                Dim inlinedNode = DirectCast(inlinedNodesEnum.Current.AsNode.Parent, ExpressionSyntax)
-                Debug.Assert(inlinedNode.IsKind(SyntaxKind.ParenthesizedExpression))
+            For i = 0 To originalIdentifierNodes.Length - 1
+                Dim originalNode = originalIdentifierNodes(i)
+                Dim inlinedNode = DirectCast(inlinedExprNodes(i).AsNode(), ExpressionSyntax)
 
                 ' inlinedNode is the expanded form of the actual initializer expression in the original document.
                 ' We have annotated the inner initializer with a special syntax annotation "_initializerAnnotation".
@@ -484,7 +469,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
 
                     replacementNodesWithChangedSemantics.Add(inlinedNode, originalNode)
                 End If
-            End While
+            Next
 
             If replacementNodesWithChangedSemantics Is Nothing Then
                 ' No conflicts.
@@ -494,7 +479,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeRefactorings.InlineTemporary
             ' Replace the conflicting inlined nodes with the original nodes annotated with conflict annotation.
             Dim conflictAnnotationAdder = Function(oldNode As SyntaxNode, newNode As SyntaxNode) As SyntaxNode
                                               Return newNode _
-                                                  .WithAdditionalAnnotations(ConflictAnnotation.Create(VBFeaturesResources.ConflictsDetected))
+                                                  .WithAdditionalAnnotations(ConflictAnnotation.Create(VBFeaturesResources.Conflict_s_detected))
                                           End Function
             Return Await inlinedDocument.ReplaceNodesAsync(replacementNodesWithChangedSemantics.Keys, conflictAnnotationAdder, cancellationToken).ConfigureAwait(False)
         End Function

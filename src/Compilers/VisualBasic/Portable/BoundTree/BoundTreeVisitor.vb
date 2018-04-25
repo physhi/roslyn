@@ -68,8 +68,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return VisitBlock(CType(node, BoundBlock), arg)
                 Case BoundKind.LocalDeclaration
                     Return VisitLocalDeclaration(CType(node, BoundLocalDeclaration), arg)
-                Case BoundKind.FieldOrPropertyInitializer
-                    Return VisitFieldOrPropertyInitializer(CType(node, BoundFieldOrPropertyInitializer), arg)
+                Case BoundKind.FieldInitializer
+                    Return VisitFieldInitializer(CType(node, BoundFieldInitializer), arg)
+                Case BoundKind.PropertyInitializer
+                    Return VisitPropertyInitializer(CType(node, BoundPropertyInitializer), arg)
                 Case BoundKind.Sequence
                     Return VisitSequence(CType(node, BoundSequence), arg)
                 Case BoundKind.ExpressionStatement
@@ -121,6 +123,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Protected Sub New()
         End Sub
 
+        <DebuggerHidden>
         Public Overridable Function Visit(node As BoundNode) As BoundNode
             If node IsNot Nothing Then
                 Return node.Accept(Me)
@@ -129,6 +132,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Nothing
         End Function
 
+        <DebuggerHidden>
         Public Overridable Function DefaultVisit(node As BoundNode) As BoundNode
             Return Nothing
         End Function
@@ -162,6 +166,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' Consumers must provide implementation for <see cref="VisitExpressionWithoutStackGuard"/>.
         ''' </summary>
+        <DebuggerStepThrough>
         Protected Function VisitExpressionWithStackGuard(ByRef recursionDepth As Integer, node As BoundExpression) As BoundExpression
             Dim result As BoundExpression
             recursionDepth += 1
@@ -188,10 +193,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return True
         End Function
 
+        <DebuggerStepThrough>
         Private Function VisitExpressionWithStackGuard(node As BoundExpression) As BoundExpression
             Try
                 Return VisitExpressionWithoutStackGuard(node)
-            Catch ex As Exception When StackGuard.IsInsufficientExecutionStackException(ex)
+            Catch ex As InsufficientExecutionStackException
                 Throw New CancelledByStackGuardException(ex, node)
             End Try
         End Function

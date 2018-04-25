@@ -217,12 +217,35 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             Assert.Throws<ArgumentNullException>(() => list.InsertRange(0, (IEnumerable<SyntaxNode>)null));
         }
 
-        [Fact, WorkItem(127)]
+        [Fact, WorkItem(127, "https://github.com/dotnet/roslyn/issues/127")]
         public void AddEmptySyntaxList()
         {
             var attributes = new AttributeListSyntax[0];
             var newMethodDeclaration = SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName("void"), "M");
             newMethodDeclaration.AddAttributeLists(attributes);
+        }
+
+        [Fact]
+        public void AddNamespaceAttributeListsAndModifiers()
+        {
+            var declaration = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("M"));
+
+            Assert.True(declaration.AttributeLists.Count == 0);
+            Assert.True(declaration.Modifiers.Count == 0);
+
+            declaration = declaration.AddAttributeLists(new[]
+            {
+                SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(
+                    SyntaxFactory.Attribute(SyntaxFactory.ParseName("Attr")))),
+            });
+
+            Assert.True(declaration.AttributeLists.Count == 1);
+            Assert.True(declaration.Modifiers.Count == 0);
+
+            declaration = declaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
+
+            Assert.True(declaration.AttributeLists.Count == 1);
+            Assert.True(declaration.Modifiers.Count == 1);
         }
 
         [Fact]

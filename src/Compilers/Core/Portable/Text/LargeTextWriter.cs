@@ -1,18 +1,13 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.Text
 {
-    internal class LargeTextWriter : SourceTextWriter
+    internal sealed class LargeTextWriter : SourceTextWriter
     {
         private readonly Encoding _encoding;
         private readonly SourceHashAlgorithm _checksumAlgorithm;
@@ -33,7 +28,7 @@ namespace Microsoft.CodeAnalysis.Text
         public override SourceText ToSourceText()
         {
             this.Flush();
-            return new LargeText(_chunks.ToImmutableAndFree(), _encoding, default(ImmutableArray<byte>), _checksumAlgorithm);
+            return new LargeText(_chunks.ToImmutableAndFree(), _encoding, default(ImmutableArray<byte>), _checksumAlgorithm, default(ImmutableArray<byte>));
         }
 
         public override Encoding Encoding

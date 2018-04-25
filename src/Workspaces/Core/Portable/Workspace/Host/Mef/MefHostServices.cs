@@ -4,18 +4,23 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
-using System.Composition.Convention;
 using System.Composition.Hosting;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.CodeAnalysis.Host.Mef
 {
     public class MefHostServices : HostServices, IMefHostExportProvider
     {
+        internal delegate MefHostServices CreationHook(IEnumerable<Assembly> assemblies, bool requestingDefaultHost);
+
+        /// <summary>
+        /// This delegate allows test code to override the behavior of <see cref="Create(IEnumerable{Assembly})"/>.
+        /// </summary>
+        /// <seealso cref="TestAccessor.HookServiceCreation"/>
+        private static CreationHook s_CreationHook;
+
         private readonly CompositionContext _compositionContext;
 
         public MefHostServices(CompositionContext compositionContext)
@@ -40,7 +45,15 @@ namespace Microsoft.CodeAnalysis.Host.Mef
                 throw new ArgumentNullException(nameof(assemblies));
             }
 
-            var compositionConfiguration = new ContainerConfiguration().WithAssemblies(assemblies);
+            if (s_CreationHook != null)
+            {
+                var requestingDefaultAssemblies =
+                    assemblies is ImmutableArray<Assembly> array
+                    && array == DefaultAssemblies;
+                return s_CreationHook(assemblies, requestingDefaultAssemblies);
+            }
+
+            var compositionConfiguration = new ContainerConfiguration().WithAssemblies(assemblies.Distinct());
             var container = compositionConfiguration.CreateContainer();
             return new MefHostServices(container);
         }
@@ -102,11 +115,15 @@ namespace Microsoft.CodeAnalysis.Host.Mef
         private static ImmutableArray<Assembly> LoadDefaultAssemblies()
         {
             // build a MEF composition using the main workspaces assemblies and the known VisualBasic/CSharp workspace assemblies.
+            // updated: includes feature assemblies since they now have public API's.
             var assemblyNames = new string[]
             {
                 "Microsoft.CodeAnalysis.Workspaces",
                 "Microsoft.CodeAnalysis.CSharp.Workspaces",
                 "Microsoft.CodeAnalysis.VisualBasic.Workspaces",
+                "Microsoft.CodeAnalysis.Features",
+                "Microsoft.CodeAnalysis.CSharp.Features",
+                "Microsoft.CodeAnalysis.VisualBasic.Features"
             };
 
             return LoadNearbyAssemblies(assemblyNames);
@@ -153,5 +170,19 @@ namespace Microsoft.CodeAnalysis.Host.Mef
         }
 
         #endregion
+
+        internal readonly struct TestAccessor
+        {
+            /// <summary>
+            /// Injects replacement behavior for the <see cref="Create(IEnumerable{Assembly})"/> method.
+            /// </summary>
+            internal static void HookServiceCreation(CreationHook hook)
+            {
+                s_CreationHook = hook;
+
+                // The existing host, if any, is not retained past this call.
+                s_defaultHost = null;
+            }
+        }
     }
 }

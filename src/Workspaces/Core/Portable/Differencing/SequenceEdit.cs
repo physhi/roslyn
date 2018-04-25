@@ -49,24 +49,12 @@ namespace Microsoft.CodeAnalysis.Differencing
         /// <summary>
         /// Index in the old sequence, or -1 if the edit is insert.
         /// </summary>
-        public int OldIndex
-        {
-            get
-            {
-                return _oldIndex;
-            }
-        }
+        public int OldIndex => _oldIndex;
 
         /// <summary>
         /// Index in the new sequence, or -1 if the edit is delete.
         /// </summary>
-        public int NewIndex
-        {
-            get
-            {
-                return _newIndex;
-            }
-        }
+        public int NewIndex => _newIndex;
 
         public bool Equals(SequenceEdit other)
         {
@@ -84,10 +72,9 @@ namespace Microsoft.CodeAnalysis.Differencing
             return Hash.Combine(_oldIndex, _newIndex);
         }
 
-        // internal for testing
-        internal string GetDebuggerDisplay()
+        private string GetDebuggerDisplay()
         {
-            string result = Kind.ToString();
+            var result = Kind.ToString();
             switch (Kind)
             {
                 case EditKind.Delete:
@@ -101,6 +88,22 @@ namespace Microsoft.CodeAnalysis.Differencing
             }
 
             return result;
+        }
+
+        internal TestAccessor GetTestAccessor()
+            => new TestAccessor(this);
+
+        internal readonly struct TestAccessor
+        {
+            private readonly SequenceEdit _sequenceEdit;
+
+            public TestAccessor(SequenceEdit sequenceEdit)
+            {
+                _sequenceEdit = sequenceEdit;
+            }
+
+            internal string GetDebuggerDisplay()
+                => _sequenceEdit.GetDebuggerDisplay();
         }
     }
 }

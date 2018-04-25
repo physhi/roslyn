@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests
@@ -87,9 +86,34 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             return text;
         }
 
+        // TODO: Remove this method and fix callsites to directly invoke Microsoft.CodeAnalysis.Test.Extensions.SymbolExtensions.ToTestDisplayString().
+        //       https://github.com/dotnet/roslyn/issues/11915
         public static string ToTestDisplayString(this ISymbol symbol)
         {
-            return symbol.ToDisplayString(SymbolDisplayFormat.TestFormat);
+            return CodeAnalysis.Test.Extensions.SymbolExtensions.ToTestDisplayString(symbol);
+        }
+
+        private static SymbolDisplayFormat GetDisplayFormat(bool includeNonNullable)
+        {
+            var format = SymbolDisplayFormat.TestFormat;
+            if (includeNonNullable)
+            {
+                format = format.WithCompilerInternalOptions(SymbolDisplayCompilerInternalOptions.IncludeNonNullableTypeModifier);
+            }
+
+            return format;
+        }
+
+        public static string ToTestDisplayString(this TypeWithAnnotations symbol, bool includeNonNullable = false)
+        {
+            SymbolDisplayFormat format = GetDisplayFormat(includeNonNullable);
+            return symbol.ToDisplayString(format);
+        }
+
+        public static string ToTestDisplayString(this ISymbol symbol, bool includeNonNullable)
+        {
+            SymbolDisplayFormat format = GetDisplayFormat(includeNonNullable);
+            return symbol.ToDisplayString(format);
         }
     }
 }

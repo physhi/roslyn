@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Notification;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Utilities;
+using Microsoft.VisualStudio.Text.Classification;
 using Roslyn.Utilities;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
@@ -18,30 +19,28 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
     internal class ChangeSignatureDialogViewModel : AbstractNotifyPropertyChanged
     {
         private readonly INotificationService _notificationService;
+        private readonly IClassificationFormatMap _classificationFormatMap;
         private readonly ClassificationTypeMap _classificationTypeMap;
         private readonly ParameterConfiguration _originalParameterConfiguration;
         private readonly ISymbol _symbol;
 
         private readonly ParameterViewModel _thisParameter;
-        private List<ParameterViewModel> _parameterGroup1;
-        private List<ParameterViewModel> _parameterGroup2;
+        private readonly List<ParameterViewModel> _parameterGroup1;
+        private readonly List<ParameterViewModel> _parameterGroup2;
         private readonly ParameterViewModel _paramsParameter;
-        private HashSet<IParameterSymbol> _disabledParameters = new HashSet<IParameterSymbol>();
+        private readonly HashSet<IParameterSymbol> _disabledParameters = new HashSet<IParameterSymbol>();
         private ImmutableArray<SymbolDisplayPart> _declarationParts;
         private bool _previewChanges;
 
-        internal ChangeSignatureDialogViewModel(INotificationService notificationService, ParameterConfiguration parameters, ISymbol symbol, ClassificationTypeMap classificationTypeMap)
+        internal ChangeSignatureDialogViewModel(INotificationService notificationService, ParameterConfiguration parameters, ISymbol symbol, IClassificationFormatMap classificationFormatMap, ClassificationTypeMap classificationTypeMap)
         {
             _originalParameterConfiguration = parameters;
             _notificationService = notificationService;
+            _classificationFormatMap = classificationFormatMap;
             _classificationTypeMap = classificationTypeMap;
-
-            int startingSelectedIndex = 0;
 
             if (parameters.ThisParameter != null)
             {
-                startingSelectedIndex++;
-
                 _thisParameter = new ParameterViewModel(this, parameters.ThisParameter);
                 _disabledParameters.Add(parameters.ThisParameter);
             }
@@ -56,7 +55,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
 
             _parameterGroup1 = parameters.ParametersWithoutDefaultValues.Select(p => new ParameterViewModel(this, p)).ToList();
             _parameterGroup2 = parameters.RemainingEditableParameters.Select(p => new ParameterViewModel(this, p)).ToList();
-            this.SelectedIndex = startingSelectedIndex;
+
+            var selectedIndex = parameters.SelectedIndex;
+            this.SelectedIndex = (parameters.ThisParameter != null && selectedIndex == 0) ? 1 : selectedIndex;
         }
 
         public int GetStartingSelectionIndex()
@@ -124,21 +125,27 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
         internal void Remove()
         {
             AllParameters[_selectedIndex.Value].IsRemoved = true;
-            NotifyPropertyChanged("AllParameters");
-            NotifyPropertyChanged("SignatureDisplay");
-            NotifyPropertyChanged("IsOkButtonEnabled");
-            NotifyPropertyChanged("CanRemove");
-            NotifyPropertyChanged("CanRestore");
+            NotifyPropertyChanged(nameof(AllParameters));
+            NotifyPropertyChanged(nameof(SignatureDisplay));
+            NotifyPropertyChanged(nameof(SignaturePreviewAutomationText));
+            NotifyPropertyChanged(nameof(IsOkButtonEnabled));
+            NotifyPropertyChanged(nameof(CanRemove));
+            NotifyPropertyChanged(nameof(RemoveAutomationText));
+            NotifyPropertyChanged(nameof(CanRestore));
+            NotifyPropertyChanged(nameof(RestoreAutomationText));
         }
 
         internal void Restore()
         {
             AllParameters[_selectedIndex.Value].IsRemoved = false;
-            NotifyPropertyChanged("AllParameters");
-            NotifyPropertyChanged("SignatureDisplay");
-            NotifyPropertyChanged("IsOkButtonEnabled");
-            NotifyPropertyChanged("CanRemove");
-            NotifyPropertyChanged("CanRestore");
+            NotifyPropertyChanged(nameof(AllParameters));
+            NotifyPropertyChanged(nameof(SignatureDisplay));
+            NotifyPropertyChanged(nameof(SignaturePreviewAutomationText));
+            NotifyPropertyChanged(nameof(IsOkButtonEnabled));
+            NotifyPropertyChanged(nameof(CanRemove));
+            NotifyPropertyChanged(nameof(RemoveAutomationText));
+            NotifyPropertyChanged(nameof(CanRestore));
+            NotifyPropertyChanged(nameof(RestoreAutomationText));
         }
 
         internal ParameterConfiguration GetParameterConfiguration()
@@ -147,10 +154,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
                 _originalParameterConfiguration.ThisParameter,
                 _parameterGroup1.Where(p => !p.IsRemoved).Select(p => p.ParameterSymbol).ToList(),
                 _parameterGroup2.Where(p => !p.IsRemoved).Select(p => p.ParameterSymbol).ToList(),
-                (_paramsParameter == null || _paramsParameter.IsRemoved) ? null : _paramsParameter.ParameterSymbol);
+                (_paramsParameter == null || _paramsParameter.IsRemoved) ? null : _paramsParameter.ParameterSymbol,
+                selectedIndex: -1);
         }
 
-        private static SymbolDisplayFormat s_symbolDeclarationDisplayFormat = new SymbolDisplayFormat(
+        private static readonly SymbolDisplayFormat s_symbolDeclarationDisplayFormat = new SymbolDisplayFormat(
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers | SymbolDisplayMiscellaneousOptions.UseSpecialTypes,
             extensionMethodStyle: SymbolDisplayExtensionMethodStyle.StaticMethod,
@@ -158,9 +166,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
                 SymbolDisplayMemberOptions.IncludeType |
                 SymbolDisplayMemberOptions.IncludeExplicitInterface |
                 SymbolDisplayMemberOptions.IncludeAccessibility |
-                SymbolDisplayMemberOptions.IncludeModifiers);
+                SymbolDisplayMemberOptions.IncludeModifiers |
+                SymbolDisplayMemberOptions.IncludeRef);
 
-        private static SymbolDisplayFormat s_parameterDisplayFormat = new SymbolDisplayFormat(
+        private static readonly SymbolDisplayFormat s_parameterDisplayFormat = new SymbolDisplayFormat(
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers | SymbolDisplayMiscellaneousOptions.UseSpecialTypes,
             parameterOptions:
@@ -175,9 +184,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
             get
             {
                 // TODO: Should probably use original syntax & formatting exactly instead of regenerating here
-                List<SymbolDisplayPart> displayParts = GetSignatureDisplayParts();
+                var displayParts = GetSignatureDisplayParts();
 
-                var textBlock = displayParts.ToTextBlock(_classificationTypeMap);
+                var textBlock = displayParts.ToTaggedText().ToTextBlock(_classificationFormatMap, _classificationTypeMap);
 
                 foreach (var inline in textBlock.Inlines)
                 {
@@ -186,6 +195,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
 
                 textBlock.IsEnabled = false;
                 return textBlock;
+            }
+        }
+
+        public string SignaturePreviewAutomationText
+        {
+            get
+            {
+                return GetSignatureDisplayParts().Select(sdp => sdp.ToString()).Join(" ");
             }
         }
 
@@ -201,7 +218,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
             displayParts.AddRange(_declarationParts);
             displayParts.Add(new SymbolDisplayPart(SymbolDisplayPartKind.Punctuation, null, "("));
 
-            bool first = true;
+            var first = true;
             foreach (var parameter in AllParameters.Where(p => !p.IsRemoved))
             {
                 if (!first)
@@ -306,9 +323,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
 
             SelectedIndex += delta;
 
-            NotifyPropertyChanged("AllParameters");
-            NotifyPropertyChanged("SignatureDisplay");
-            NotifyPropertyChanged("IsOkButtonEnabled");
+            NotifyPropertyChanged(nameof(AllParameters));
+            NotifyPropertyChanged(nameof(SignatureDisplay));
+            NotifyPropertyChanged(nameof(SignaturePreviewAutomationText));
+            NotifyPropertyChanged(nameof(IsOkButtonEnabled));
         }
 
         internal bool TrySubmit()
@@ -356,91 +374,156 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
 
                 _selectedIndex = newSelectedIndex;
 
-                NotifyPropertyChanged("CanMoveUp");
-                NotifyPropertyChanged("CanMoveDown");
-                NotifyPropertyChanged("CanRemove");
-                NotifyPropertyChanged("CanRestore");
+                NotifyPropertyChanged(nameof(CanMoveUp));
+                NotifyPropertyChanged(nameof(MoveUpAutomationText));
+                NotifyPropertyChanged(nameof(CanMoveDown));
+                NotifyPropertyChanged(nameof(MoveDownAutomationText));
+                NotifyPropertyChanged(nameof(CanRemove));
+                NotifyPropertyChanged(nameof(RemoveAutomationText));
+                NotifyPropertyChanged(nameof(CanRestore));
+                NotifyPropertyChanged(nameof(RestoreAutomationText));
+            }
+        }
+
+        public string MoveUpAutomationText
+        {
+            get
+            {
+                if (!CanMoveUp)
+                {
+                    return string.Empty;
+                }
+
+                return string.Format(ServicesVSResources.Move_0_above_1, AllParameters[SelectedIndex.Value].ParameterAutomationText, AllParameters[SelectedIndex.Value - 1].ParameterAutomationText);
+            }
+        }
+
+        public string MoveDownAutomationText
+        {
+            get
+            {
+                if (!CanMoveDown)
+                {
+                    return string.Empty;
+                }
+
+                return string.Format(ServicesVSResources.Move_0_below_1, AllParameters[SelectedIndex.Value].ParameterAutomationText, AllParameters[SelectedIndex.Value + 1].ParameterAutomationText);
+            }
+        }
+
+        public string RemoveAutomationText
+        {
+            get
+            {
+                if (!CanRemove)
+                {
+                    return string.Empty;
+                }
+
+                return string.Format(ServicesVSResources.Remove_0, AllParameters[SelectedIndex.Value].ParameterAutomationText);
+            }
+        }
+
+        public string RestoreAutomationText
+        {
+            get
+            {
+                if (!CanRestore)
+                {
+                    return string.Empty;
+                }
+
+                return string.Format(ServicesVSResources.Restore_0, AllParameters[SelectedIndex.Value].ParameterAutomationText);
             }
         }
 
         public class ParameterViewModel
         {
-            private readonly IParameterSymbol _parameter;
-            private ChangeSignatureDialogViewModel _changeSignatureDialogViewModel;
+            private readonly ChangeSignatureDialogViewModel _changeSignatureDialogViewModel;
 
-            public IParameterSymbol ParameterSymbol
-            {
-                get { return _parameter; }
-            }
+            public IParameterSymbol ParameterSymbol { get; }
 
             public ParameterViewModel(ChangeSignatureDialogViewModel changeSignatureDialogViewModel, IParameterSymbol parameter)
             {
                 _changeSignatureDialogViewModel = changeSignatureDialogViewModel;
-                _parameter = parameter;
+                ParameterSymbol = parameter;
             }
+
+            public string ParameterAutomationText => $"{Type} {Parameter}";
 
             public string Modifier
             {
                 get
                 {
-                    // Todo: support VB
-                    switch (_parameter.RefKind)
+                    switch (ParameterSymbol.Language)
                     {
-                        case RefKind.Out:
-                            return "out";
-                        case RefKind.Ref:
-                            return "ref";
+                        case LanguageNames.CSharp:
+                            return ModifierText("out", "ref", "in", "params", "this");
+                        case LanguageNames.VisualBasic:
+                            return ModifierText(@ref: "ByRef", @params: "ParamArray", @this: "Me");
+                        default:
+                            return string.Empty;
                     }
 
-                    if (_parameter.IsParams)
+                    string ModifierText(string @out = default, string @ref = default, string @in = default, string @params = default, string @this = default)
                     {
-                        return "params";
-                    }
+                        switch (ParameterSymbol.RefKind)
+                        {
+                            case RefKind.Out:
+                                return @out ?? string.Empty;
+                            case RefKind.Ref:
+                                return @ref ?? string.Empty;
+                            case RefKind.In:
+                                return @in ?? string.Empty;
+                        }
 
-                    if (_changeSignatureDialogViewModel._thisParameter != null &&
-                        _parameter == _changeSignatureDialogViewModel._thisParameter._parameter)
-                    {
-                        return "this";
-                    }
+                        if (ParameterSymbol.IsParams)
+                        {
+                            return @params ?? string.Empty;
+                        }
 
-                    return string.Empty;
+                        if (_changeSignatureDialogViewModel._thisParameter != null &&
+                            Equals(ParameterSymbol, _changeSignatureDialogViewModel._thisParameter.ParameterSymbol))
+                        {
+                            return @this ?? string.Empty;
+                        }
+                        return string.Empty;
+                    }
                 }
             }
 
-            public string Type
-            {
-                get { return _parameter.Type.ToDisplayString(s_parameterDisplayFormat); }
-            }
+            public string Type => ParameterSymbol.Type.ToDisplayString(s_parameterDisplayFormat);
 
-            public string Parameter
-            {
-                get { return _parameter.Name; }
-            }
+            public string Parameter => ParameterSymbol.Name;
 
             public string Default
             {
                 get
                 {
-                    if (!_parameter.HasExplicitDefaultValue)
+                    if (!ParameterSymbol.HasExplicitDefaultValue)
                     {
                         return string.Empty;
                     }
+                    switch (ParameterSymbol.Language)
+                    {
+                        case LanguageNames.CSharp:
+                            return NullText("null");
+                        case LanguageNames.VisualBasic:
+                            return NullText("Nothing");
+                    }
+                    return string.Empty;
 
-                    return _parameter.ExplicitDefaultValue == null
-                        ? "null"
-                        : _parameter.ExplicitDefaultValue is string
-                            ? "\"" + _parameter.ExplicitDefaultValue.ToString() + "\""
-                            : _parameter.ExplicitDefaultValue.ToString();
+                    string NullText(string @null)
+                    {
+                        return ParameterSymbol.ExplicitDefaultValue == null ? @null :
+                               ParameterSymbol.ExplicitDefaultValue is string ? "\"" + ParameterSymbol.ExplicitDefaultValue.ToString() + "\"" :
+                               ParameterSymbol.ExplicitDefaultValue.ToString();
+                    }
+
                 }
             }
 
-            public bool IsDisabled
-            {
-                get
-                {
-                    return _changeSignatureDialogViewModel.IsDisabled(this);
-                }
-            }
+            public bool IsDisabled => _changeSignatureDialogViewModel.IsDisabled(this);
 
             public bool NeedsBottomBorder
             {
@@ -467,19 +550,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ChangeSignature
                 }
             }
 
-            private bool _isRemoved;
-            public bool IsRemoved
-            {
-                get
-                {
-                    return _isRemoved;
-                }
-
-                set
-                {
-                    _isRemoved = value;
-                }
-            }
+            public bool IsRemoved { get; set; }
         }
     }
 }

@@ -1,11 +1,8 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Collections.Generic
 Imports System.Collections.Immutable
-Imports System.Diagnostics.CodeAnalysis
 Imports System.Runtime.InteropServices
-Imports System.Threading
-Imports Microsoft.CodeAnalysis.Collections
+Imports Microsoft.CodeAnalysis.PooledObjects
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
@@ -15,8 +12,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
     Friend Structure AnonymousTypeDescriptor
         Implements IEquatable(Of AnonymousTypeDescriptor)
 
-        Public Shared ReadOnly SubReturnParameterName As String = "Sub"
-        Public Shared ReadOnly FunctionReturnParameterName As String = "Function"
+        Public Const SubReturnParameterName As String = "Sub"
+        Public Const FunctionReturnParameterName As String = "Function"
 
         Friend Shared Function GetReturnParameterName(isFunction As Boolean) As String
             Return If(isFunction, FunctionReturnParameterName, SubReturnParameterName)
@@ -47,10 +44,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Public Sub New(fields As ImmutableArray(Of AnonymousTypeField), _location As Location, _isImplicitlyDeclared As Boolean)
+        Public Sub New(fields As ImmutableArray(Of AnonymousTypeField), location As Location, isImplicitlyDeclared As Boolean)
             Me.Fields = fields
-            Me.Location = _location
-            Me.IsImplicitlyDeclared = _isImplicitlyDeclared
+            Me.Location = location
+            Me.IsImplicitlyDeclared = isImplicitlyDeclared
             Me.Key = ComputeKey(fields, Function(f) f.Name, Function(f) f.IsKey)
         End Sub
 
@@ -74,7 +71,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         <Conditional("DEBUG")>
         Friend Sub AssertGood()
             ' Fields exist
-            Debug.Assert(Not Fields.IsEmpty)
+            Debug.Assert(Not Fields.IsDefault)
 
             ' All fields are good
             For Each field In Fields

@@ -15,14 +15,14 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
             : base(loader)
         {
             _assemblyResolveHandlerOpt = loader.ResolveAssembly;
-            CorLightup.Desktop.AddAssemblyResolveHandler(_assemblyResolveHandlerOpt);
+            CoreLightup.Desktop.AddAssemblyResolveHandler(_assemblyResolveHandlerOpt);
         }
 
         public override void Dispose()
         {
             if (_assemblyResolveHandlerOpt != null)
             {
-                CorLightup.Desktop.RemoveAssemblyResolveHandler(_assemblyResolveHandlerOpt);
+                CoreLightup.Desktop.RemoveAssemblyResolveHandler(_assemblyResolveHandlerOpt);
             }
         }
 
@@ -30,7 +30,16 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
         {
             byte[] peImage = new byte[peStream.Length];
             peStream.TryReadAll(peImage, 0, peImage.Length);
-            return CorLightup.Desktop.LoadAssembly(peImage);
+
+            if (pdbStream != null)
+            {
+                byte[] pdbImage = new byte[pdbStream.Length];
+                pdbStream.TryReadAll(pdbImage, 0, pdbImage.Length);
+
+                return Assembly.Load(peImage, pdbImage);
+            }
+
+            return Assembly.Load(peImage);
         }
 
         public override AssemblyAndLocation LoadFromPath(string path)
@@ -38,9 +47,9 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
             // An assembly is loaded into CLR's Load Context if it is in the GAC, otherwise it's loaded into No Context via Assembly.LoadFile(string).
             // Assembly.LoadFile(string) automatically redirects to GAC if the assembly has a strong name and there is an equivalent assembly in GAC. 
 
-            var assembly = CorLightup.Desktop.LoadAssembly(path);
-            var location = CorLightup.Desktop.GetAssemblyLocation(assembly);
-            var fromGac = CorLightup.Desktop.IsAssemblyFromGlobalAssemblyCache(assembly);
+            var assembly = Assembly.LoadFile(path);
+            var location = assembly.Location;
+            var fromGac = CoreLightup.Desktop.IsAssemblyFromGlobalAssemblyCache(assembly);
             return new AssemblyAndLocation(assembly, location, fromGac);
         }
     }

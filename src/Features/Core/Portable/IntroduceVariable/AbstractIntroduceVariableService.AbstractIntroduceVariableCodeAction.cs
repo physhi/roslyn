@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.LanguageServices;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Simplification;
 
 namespace Microsoft.CodeAnalysis.IntroduceVariable
 {
-    internal partial class AbstractIntroduceVariableService<TService, TExpressionSyntax, TTypeSyntax, TTypeDeclarationSyntax, TQueryExpressionSyntax>
+    internal partial class AbstractIntroduceVariableService<TService, TExpressionSyntax, TTypeSyntax, TTypeDeclarationSyntax, TQueryExpressionSyntax, TNameSyntax>
     {
         internal abstract class AbstractIntroduceVariableCodeAction : CodeAction
         {
@@ -18,11 +18,8 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
             private readonly bool _isLocal;
             private readonly bool _isQueryLocal;
             private readonly TExpressionSyntax _expression;
-            private readonly SemanticDocument _document;
+            private readonly SemanticDocument _semanticDocument;
             private readonly TService _service;
-            private readonly string _title;
-
-            private static readonly Regex s_newlinePattern = new Regex(@"[\r\n]+");
 
             internal AbstractIntroduceVariableCodeAction(
                 TService service,
@@ -34,19 +31,16 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                 bool isQueryLocal)
             {
                 _service = service;
-                _document = document;
+                _semanticDocument = document;
                 _expression = expression;
                 _allOccurrences = allOccurrences;
                 _isConstant = isConstant;
                 _isLocal = isLocal;
                 _isQueryLocal = isQueryLocal;
-                _title = CreateDisplayText(expression);
+                Title = CreateDisplayText(expression);
             }
 
-            public override string Title
-            {
-                get { return _title; }
-            }
+            public override string Title { get; }
 
             protected override async Task<Document> GetChangedDocumentAsync(CancellationToken cancellationToken)
             {
@@ -58,11 +52,11 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
             {
                 if (_isQueryLocal)
                 {
-                    return await _service.IntroduceQueryLocalAsync(_document, _expression, _allOccurrences, cancellationToken).ConfigureAwait(false);
+                    return await _service.IntroduceQueryLocalAsync(_semanticDocument, _expression, _allOccurrences, cancellationToken).ConfigureAwait(false);
                 }
                 else if (_isLocal)
                 {
-                    return await _service.IntroduceLocalAsync(_document, _expression, _allOccurrences, _isConstant, cancellationToken).ConfigureAwait(false);
+                    return await _service.IntroduceLocalAsync(_semanticDocument, _expression, _allOccurrences, _isConstant, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -72,47 +66,37 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
 
             private async Task<Document> IntroduceFieldAsync(CancellationToken cancellationToken)
             {
-                var result = await _service.IntroduceFieldAsync(_document, _expression, _allOccurrences, _isConstant, cancellationToken).ConfigureAwait(false);
+                var result = await _service.IntroduceFieldAsync(_semanticDocument, _expression, _allOccurrences, _isConstant, cancellationToken).ConfigureAwait(false);
                 return result.Item1;
             }
 
             private string CreateDisplayText(TExpressionSyntax expression)
             {
-                var singleLineExpression = _document.Project.LanguageServices.GetService<ISyntaxFactsService>().ConvertToSingleLine(expression);
-                var nodeString = singleLineExpression.ToFullString().Trim();
-
-                // prevent the display string from spanning multiple lines
-                nodeString = s_newlinePattern.Replace(nodeString, " ");
-
-                // prevent the display string from being too long
-                const int MaxLength = 40;
-                if (nodeString.Length > MaxLength)
-                {
-                    nodeString = nodeString.Substring(0, MaxLength) + "...";
-                }
+                var singleLineExpression = _semanticDocument.Document.GetLanguageService<ISyntaxFactsService>().ConvertToSingleLine(expression);
+                var nodeString = singleLineExpression.ToString();
 
                 return CreateDisplayText(nodeString);
             }
 
-            private string CreateDisplayText(string nodeString)
-            {
-                // Indexed by: allOccurrences, isConstant, isLocal
-                var formatStrings = new string[2, 2, 2]
+            // Indexed by: allOccurrences, isConstant, isLocal
+            private static readonly string[,,] formatStrings = new string[2, 2, 2]
                 {
                   {
-                    { FeaturesResources.IntroduceFieldFor, FeaturesResources.IntroduceLocalFor },
-                    { FeaturesResources.IntroduceConstantFor, FeaturesResources.IntroduceLocalConstantFor }
+                    { FeaturesResources.Introduce_field_for_0, FeaturesResources.Introduce_local_for_0 },
+                    { FeaturesResources.Introduce_constant_for_0, FeaturesResources.Introduce_local_constant_for_0 }
                   },
                   {
-                    { FeaturesResources.IntroduceFieldForAllOccurrences,  FeaturesResources.IntroduceLocalForAllOccurrences },
-                    { FeaturesResources.IntroduceConstantForAllOccurrences, FeaturesResources.IntroduceLocalConstantForAll }
+                    { FeaturesResources.Introduce_field_for_all_occurrences_of_0,  FeaturesResources.Introduce_local_for_all_occurrences_of_0 },
+                    { FeaturesResources.Introduce_constant_for_all_occurrences_of_0, FeaturesResources.Introduce_local_constant_for_all_occurrences_of_0 }
                   }
                 };
 
+            private string CreateDisplayText(string nodeString)
+            {
                 var formatString = _isQueryLocal
                     ? _allOccurrences
-                        ? FeaturesResources.IntroduceQueryVariableForAll
-                        : FeaturesResources.IntroduceQueryVariableFor
+                        ? FeaturesResources.Introduce_query_variable_for_all_occurrences_of_0
+                        : FeaturesResources.Introduce_query_variable_for_0
                     : formatStrings[_allOccurrences ? 1 : 0, _isConstant ? 1 : 0, _isLocal ? 1 : 0];
                 return string.Format(formatString, nodeString);
             }
@@ -120,7 +104,7 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
             protected ITypeSymbol GetExpressionType(
                 CancellationToken cancellationToken)
             {
-                var semanticModel = _document.SemanticModel;
+                var semanticModel = _semanticDocument.SemanticModel;
                 var typeInfo = semanticModel.GetTypeInfo(_expression, cancellationToken);
 
                 return typeInfo.Type ?? typeInfo.ConvertedType ?? semanticModel.Compilation.GetSpecialType(SpecialType.System_Object);

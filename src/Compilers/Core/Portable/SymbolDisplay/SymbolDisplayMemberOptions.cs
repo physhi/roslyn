@@ -38,7 +38,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Includes the name of corresponding interface on members that explicitly implement
         /// interface members.
-        /// For example, "IFoo.Bar { get; }".
+        /// For example, "IGoo.Bar { get; }".
         /// </summary>
         /// <remarks>
         /// This option has no effect in Visual Basic.
@@ -65,5 +65,12 @@ namespace Microsoft.CodeAnalysis
         /// Includes the value of the member if is a constant.
         /// </summary>
         IncludeConstantValue = 1 << 6,
+
+        /// <summary>
+        /// Includes the <c>ref</c>, <c>ref readonly</c>, <c>ByRef</c> keywords for ref-returning methods and properties/indexers.
+        /// Also includes the <c>readonly</c> keyword on methods, properties/indexers, and events due to the keyword
+        /// changing the <c>this</c> parameter's ref kind from <c>ref</c> to <c>ref readonly</c>.
+        /// </summary>
+        IncludeRef = 1 << 7,
     }
 }

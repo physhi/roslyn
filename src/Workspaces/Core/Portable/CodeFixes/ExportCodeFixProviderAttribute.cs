@@ -32,11 +32,6 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             params string[] additionalLanguages)
             : base(typeof(CodeFixProvider))
         {
-            if (firstLanguage == null)
-            {
-                throw new ArgumentNullException(nameof(firstLanguage));
-            }
-
             if (additionalLanguages == null)
             {
                 throw new ArgumentNullException(nameof(additionalLanguages));
@@ -44,9 +39,9 @@ namespace Microsoft.CodeAnalysis.CodeFixes
 
             this.Name = null;
 
-            string[] languages = new string[additionalLanguages.Length + 1];
-            languages[0] = firstLanguage;
-            for (int index = 0; index < additionalLanguages.Length; index++)
+            var languages = new string[additionalLanguages.Length + 1];
+            languages[0] = firstLanguage ?? throw new ArgumentNullException(nameof(firstLanguage));
+            for (var index = 0; index < additionalLanguages.Length; index++)
             {
                 languages[index + 1] = additionalLanguages[index];
             }

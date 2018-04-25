@@ -16,7 +16,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Utilities
                 SyntaxKind.ProtectedKeyword,
                 SyntaxKind.SealedKeyword,
                 SyntaxKind.StaticKeyword,
-                SyntaxKind.UnsafeKeyword
+                SyntaxKind.UnsafeKeyword,
+                SyntaxKind.ReadOnlyKeyword,
+                SyntaxKind.RefKeyword
             };
 
         public static readonly ISet<SyntaxKind> AllMemberModifiers = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
@@ -52,6 +54,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Utilities
                 SyntaxKind.VolatileKeyword,
             };
 
+        public static readonly ISet<SyntaxKind> LocalFunctionModifiers = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
+        {
+            SyntaxKind.AsyncKeyword,
+            SyntaxKind.UnsafeKeyword
+        };
+
         public static readonly ISet<SyntaxKind> AllTypeDeclarations = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
         {
             SyntaxKind.InterfaceDeclaration,
@@ -67,15 +75,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Utilities
             SyntaxKind.StructDeclaration,
         };
 
+        public static readonly ISet<SyntaxKind> ClassInterfaceTypeDeclarations = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
+        {
+            SyntaxKind.InterfaceDeclaration,
+            SyntaxKind.ClassDeclaration,
+        };
+
         public static readonly ISet<SyntaxKind> ClassStructTypeDeclarations = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
         {
             SyntaxKind.ClassDeclaration,
             SyntaxKind.StructDeclaration,
-        };
-
-        public static readonly ISet<SyntaxKind> ClassOnlyTypeDeclarations = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)
-        {
-            SyntaxKind.ClassDeclaration,
         };
 
         public static readonly ISet<SyntaxKind> StructOnlyTypeDeclarations = new HashSet<SyntaxKind>(SyntaxFacts.EqualityComparer)

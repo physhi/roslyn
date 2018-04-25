@@ -20,9 +20,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             PEModuleBuilder moduleBeingBuilt = (PEModuleBuilder)context.Module;
 
-            var customModifiers = this.CustomModifiers;
-            var isFixed = this.IsFixed;
-            var implType = isFixed ? this.FixedImplementationType(moduleBeingBuilt) : this.Type;
+            TypeWithAnnotations fieldTypeWithAnnotations = this.TypeWithAnnotations;
+            var customModifiers = fieldTypeWithAnnotations.CustomModifiers;
+            var isFixed = this.IsFixedSizeBuffer;
+            var implType = isFixed ? this.FixedImplementationType(moduleBeingBuilt) : fieldTypeWithAnnotations.Type;
             var type = moduleBeingBuilt.Translate(implType,
                                                   syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
                                                   diagnostics: context.Diagnostics);
@@ -76,14 +77,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             Debug.Assert(this.IsDefinitionOrDistinct());
 
-            if (!this.IsDefinition)
-            {
-                return moduleBeingBuilt.Translate(this.ContainingType,
-                                                  syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
-                                                  diagnostics: context.Diagnostics);
-            }
-
-            return this.ContainingType;
+            return moduleBeingBuilt.Translate(this.ContainingType,
+                                              syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                                              diagnostics: context.Diagnostics,
+                                              needDeclaration: this.IsDefinition);
         }
 
         void Cci.IReference.Dispatch(Cci.MetadataVisitor visitor)
@@ -127,14 +124,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        Cci.IMetadataConstant Cci.IFieldDefinition.GetCompileTimeValue(EmitContext context)
+        MetadataConstant Cci.IFieldDefinition.GetCompileTimeValue(EmitContext context)
         {
             CheckDefinitionInvariant();
 
             return GetMetadataConstantValue(context);
         }
 
-        internal Cci.IMetadataConstant GetMetadataConstantValue(EmitContext context)
+        internal MetadataConstant GetMetadataConstantValue(EmitContext context)
         {
             // A constant field of type decimal is not treated as a compile time value in CLR,
             // so check if it is a metadata constant, not just a constant to exclude decimals.
@@ -263,13 +260,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        uint Cci.IFieldDefinition.Offset
+        int Cci.IFieldDefinition.Offset
         {
             get
             {
                 CheckDefinitionInvariant();
-                var offset = this.TypeLayoutOffset;
-                return (uint)(offset ?? 0);
+                return TypeLayoutOffset ?? 0;
             }
         }
 

@@ -1,8 +1,7 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Linq;
 using Microsoft.CodeAnalysis.Shared.Extensions;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.LanguageServices
 {
@@ -23,7 +22,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 
             private void InlineAllDelegateAnonymousTypes()
             {
-            restart:
+restart:
                 foreach (var kvp in _groupMap)
                 {
                     var parts = kvp.Value;
@@ -52,7 +51,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                     AddToGroup(SymbolDescriptionGroups.AnonymousTypes,
                         info.AnonymousTypesParts);
 
-                restart:
+restart:
                     foreach (var kvp in _groupMap)
                     {
                         var parts = _groupMap[kvp.Key];

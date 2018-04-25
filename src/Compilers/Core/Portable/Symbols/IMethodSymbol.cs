@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -71,9 +70,29 @@ namespace Microsoft.CodeAnalysis
         bool ReturnsVoid { get; }
 
         /// <summary>
+        /// Returns true if this method returns by reference.
+        /// </summary>
+        bool ReturnsByRef { get; }
+
+        /// <summary>
+        /// Returns true if this method returns by ref readonly.
+        /// </summary>
+        bool ReturnsByRefReadonly { get; }
+
+        /// <summary>
+        /// Returns the RefKind of the method.
+        /// </summary>
+        RefKind RefKind { get; }
+
+        /// <summary>
         /// Gets the return type of the method.
         /// </summary>
         ITypeSymbol ReturnType { get; }
+
+        /// <summary>
+        /// Gets the top-level nullability of the return type of the method.
+        /// </summary>
+        NullableAnnotation ReturnNullableAnnotation { get; }
 
         /// <summary>
         /// Returns the type arguments that have been substituted for the type parameters. 
@@ -81,6 +100,13 @@ namespace Microsoft.CodeAnalysis
         /// then the type parameter itself is consider the type argument.
         /// </summary>
         ImmutableArray<ITypeSymbol> TypeArguments { get; }
+
+        /// <summary>
+        /// Returns the top-level nullability of the type arguments that have been substituted
+        /// for the type parameters. If nothing has been substituted for a given type parameter,
+        /// then <see cref="NullableAnnotation.None"/> is returned.
+        /// </summary>
+        ImmutableArray<NullableAnnotation> TypeArgumentNullableAnnotations { get; }
 
         /// <summary>
         /// Get the type parameters on this method. If the method has not generic,
@@ -103,6 +129,14 @@ namespace Microsoft.CodeAnalysis
         IMethodSymbol ConstructedFrom { get; }
 
         /// <summary>
+        /// Indicates whether the method is readonly, i.e.
+        /// i.e. whether the 'this' receiver parameter is 'ref readonly'.
+        /// Returns true for readonly instance methods and accessors
+        /// and for reduced extension methods with a 'this in' parameter.
+        /// </summary>
+        bool IsReadOnly { get; }
+
+        /// <summary>
         /// Get the original definition of this symbol. If this symbol is derived from another
         /// symbol by (say) type substitution, this gets the original symbol, as it was defined in
         /// source or metadata.
@@ -119,6 +153,11 @@ namespace Microsoft.CodeAnalysis
         /// If this method can be applied to an object, returns the type of object it is applied to.
         /// </summary>
         ITypeSymbol ReceiverType { get; }
+
+        /// <summary>
+        /// If this method can be applied to an object, returns the top-level nullability of the object it is applied to.
+        /// </summary>
+        NullableAnnotation ReceiverNullableAnnotation { get; }
 
         /// <summary>
         /// If this method is a reduced extension method, returns the definition of extension
@@ -152,9 +191,14 @@ namespace Microsoft.CodeAnalysis
         ImmutableArray<IMethodSymbol> ExplicitInterfaceImplementations { get; }
 
         /// <summary>
-        /// Returns the list of custom modifiers, if any, associated with the returned value. 
+        /// Returns the list of custom modifiers, if any, associated with the return type. 
         /// </summary>
         ImmutableArray<CustomModifier> ReturnTypeCustomModifiers { get; }
+
+        /// <summary>
+        /// Custom modifiers associated with the ref modifier, or an empty array if there are none.
+        /// </summary>
+        ImmutableArray<CustomModifier> RefCustomModifiers { get; }
 
         /// <summary>
         /// Returns the list of custom attributes, if any, associated with the returned value. 
@@ -182,6 +226,11 @@ namespace Microsoft.CodeAnalysis
         IMethodSymbol Construct(params ITypeSymbol[] typeArguments);
 
         /// <summary>
+        /// Returns a constructed method given its type arguments and type argument nullable annotations.
+        /// </summary>
+        IMethodSymbol Construct(ImmutableArray<ITypeSymbol> typeArguments, ImmutableArray<NullableAnnotation> typeArgumentNullableAnnotations);
+
+        /// <summary>
         /// If this is a partial method implementation part, returns the corresponding
         /// definition part.  Otherwise null.
         /// </summary>
@@ -207,5 +256,10 @@ namespace Microsoft.CodeAnalysis
         /// anonymous delegate associated with it.
         /// </summary>
         INamedTypeSymbol AssociatedAnonymousDelegate { get; }
+
+        /// <summary>
+        /// Returns a flag indicating whether this symbol has at least one applied/inherited conditional attribute.
+        /// </summary>
+        bool IsConditional { get; }
     }
 }

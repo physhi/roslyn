@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Roslyn.Utilities;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.CodeGen;
 
 namespace Microsoft.Cci
 {
@@ -24,8 +25,6 @@ namespace Microsoft.Cci
         {
             this.Visit(arrayTypeReference.GetElementType(Context));
         }
-
-        public abstract void Visit(IAssembly assembly);
 
         public void Visit(IEnumerable<IAssemblyReference> assemblyReferences)
         {
@@ -49,8 +48,14 @@ namespace Microsoft.Cci
 
         public virtual void Visit(ICustomAttribute customAttribute)
         {
+            IMethodReference constructor = customAttribute.Constructor(Context, reportDiagnostics: false);
+            if (constructor is null)
+            {
+                return;
+            }
+
             this.Visit(customAttribute.GetArguments(Context));
-            this.Visit(customAttribute.Constructor(Context));
+            this.Visit(constructor);
             this.Visit(customAttribute.GetNamedArguments(Context));
         }
 
@@ -77,7 +82,7 @@ namespace Microsoft.Cci
 
         public virtual void Visit(IEventDefinition eventDefinition)
         {
-            this.Visit(eventDefinition.Accessors);
+            this.Visit(eventDefinition.GetAccessors(Context));
             this.Visit(eventDefinition.GetType(Context));
         }
 
@@ -200,20 +205,16 @@ namespace Microsoft.Cci
             this.Visit(localDefinition.Type);
         }
 
-        public virtual void Visit(IManagedPointerTypeReference managedPointerTypeReference)
-        {
-        }
-
         public virtual void Visit(IMarshallingInformation marshallingInformation)
         {
             throw ExceptionUtilities.Unreachable;
         }
 
-        public virtual void Visit(IMetadataConstant constant)
+        public virtual void Visit(MetadataConstant constant)
         {
         }
 
-        public virtual void Visit(IMetadataCreateArray createArray)
+        public virtual void Visit(MetadataCreateArray createArray)
         {
             this.Visit(createArray.ElementType);
             this.Visit(createArray.Elements);
@@ -246,7 +247,7 @@ namespace Microsoft.Cci
             this.Visit(namedArgument.ArgumentValue);
         }
 
-        public virtual void Visit(IMetadataTypeOf typeOf)
+        public virtual void Visit(MetadataTypeOf typeOf)
         {
             if (typeOf.TypeToGet != null)
             {
@@ -256,6 +257,11 @@ namespace Microsoft.Cci
 
         public virtual void Visit(IMethodBody methodBody)
         {
+            foreach (var scope in methodBody.LocalScopes)
+            {
+                this.Visit(scope.Constants);
+            }
+
             this.Visit(methodBody.LocalVariables);
             //this.Visit(methodBody.Operations);    //in Roslyn we don't break out each instruction as it's own operation.
             this.Visit(methodBody.ExceptionRegions);
@@ -271,7 +277,8 @@ namespace Microsoft.Cci
 
         public virtual void Visit(IMethodDefinition method)
         {
-            this.Visit(method.ReturnValueAttributes);
+            this.Visit(method.GetReturnValueAttributes(Context));
+            this.Visit(method.RefCustomModifiers);
             this.Visit(method.ReturnValueCustomModifiers);
 
             if (method.HasDeclarativeSecurity)
@@ -333,7 +340,7 @@ namespace Microsoft.Cci
             this.Visit(modifiedTypeReference.UnmodifiedType);
         }
 
-        public abstract void Visit(IModule module);
+        public abstract void Visit(CommonPEModuleBuilder module);
 
         public void Visit(IEnumerable<IModuleReference> moduleReferences)
         {
@@ -412,9 +419,10 @@ namespace Microsoft.Cci
             Debug.Assert((marshalling != null || !parameterDefinition.MarshallingDescriptor.IsDefaultOrEmpty) == parameterDefinition.IsMarshalledExplicitly);
 
             this.Visit(parameterDefinition.GetAttributes(Context));
+            this.Visit(parameterDefinition.RefCustomModifiers);
             this.Visit(parameterDefinition.CustomModifiers);
 
-            IMetadataConstant defaultValue = parameterDefinition.GetDefaultValue(Context);
+            MetadataConstant defaultValue = parameterDefinition.GetDefaultValue(Context);
             if (defaultValue != null)
             {
                 this.Visit((IMetadataExpression)defaultValue);
@@ -441,6 +449,7 @@ namespace Microsoft.Cci
 
         public virtual void Visit(IParameterTypeInformation parameterTypeInformation)
         {
+            this.Visit(parameterTypeInformation.RefCustomModifiers);
             this.Visit(parameterTypeInformation.CustomModifiers);
             this.Visit(parameterTypeInformation.GetType(Context));
         }
@@ -464,7 +473,7 @@ namespace Microsoft.Cci
 
         public virtual void Visit(IPropertyDefinition propertyDefinition)
         {
-            this.Visit(propertyDefinition.Accessors);
+            this.Visit(propertyDefinition.GetAccessors(Context));
             this.Visit(propertyDefinition.Parameters);
         }
 
@@ -539,6 +548,15 @@ namespace Microsoft.Cci
             foreach (ITypeReference typeReference in typeReferences)
             {
                 this.Visit(typeReference);
+            }
+        }
+
+        public void Visit(IEnumerable<TypeReferenceWithAttributes> typeRefsWithAttributes)
+        {
+            foreach (var typeRefWithAttributes in typeRefsWithAttributes)
+            {
+                this.Visit(typeRefWithAttributes.TypeRef);
+                this.Visit(typeRefWithAttributes.Attributes);
             }
         }
 

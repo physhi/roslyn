@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.VisualStudio.Text;
 using Roslyn.Utilities;
 
@@ -103,18 +104,17 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Utilities
 
         public void ApplyReplacementText(string replacementText)
         {
-            using (var edit = _subjectBuffer.CreateEdit(new EditOptions(), null, s_propagateSpansEditTag))
-            {
-                foreach (var span in _trackingSpans)
-                {
-                    if (span.GetText(_subjectBuffer.CurrentSnapshot) != replacementText)
-                    {
-                        edit.Replace(span.GetSpan(_subjectBuffer.CurrentSnapshot), replacementText);
-                    }
-                }
+            using var edit = _subjectBuffer.CreateEdit(new EditOptions(), null, s_propagateSpansEditTag);
 
-                edit.Apply();
+            foreach (var span in _trackingSpans)
+            {
+                if (span.GetText(_subjectBuffer.CurrentSnapshot) != replacementText)
+                {
+                    edit.Replace(span.GetSpan(_subjectBuffer.CurrentSnapshot), replacementText);
+                }
             }
+
+            edit.ApplyAndLogExceptions();
         }
     }
 }

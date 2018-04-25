@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
@@ -9,6 +9,8 @@ Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Microsoft.CodeAnalysis.Simplification
+Imports Microsoft.CodeAnalysis.Options
+Imports System.Collections.Immutable
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
     Partial Friend Class VisualBasicMethodExtractor
@@ -61,15 +63,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                 Dim statements = result.Data
 
                 Dim methodSymbol = CodeGenerationSymbolFactory.CreateMethodSymbol(
-                    attributes:=SpecializedCollections.EmptyList(Of AttributeData)(),
+                    attributes:=ImmutableArray(Of AttributeData).Empty,
                     accessibility:=Accessibility.Private,
                     modifiers:=CreateMethodModifiers(),
                     returnType:=Me.AnalyzerResult.ReturnType,
-                    explicitInterfaceSymbol:=Nothing,
+                    refKind:=RefKind.None,
+                    explicitInterfaceImplementations:=Nothing,
                     name:=_methodName.ToString(),
-                    typeParameters:=CreateMethodTypeParameters(cancellationToken),
+                    typeParameters:=CreateMethodTypeParameters(),
                     parameters:=CreateMethodParameters(),
-                    statements:=statements.Cast(Of SyntaxNode).ToList())
+                    statements:=statements.Cast(Of SyntaxNode).ToImmutableArray())
 
                 Return result.With(
                     Me.MethodDefinitionAnnotation.AddAnnotationToSymbol(
@@ -106,7 +109,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                 statements = postProcessor.MergeDeclarationStatements(statements)
                 statements = AddAssignmentStatementToCallSite(statements, cancellationToken)
                 statements = Await AddInvocationAtCallSiteAsync(statements, cancellationToken).ConfigureAwait(False)
-                statements = AddReturnIfUnreachable(statements, cancellationToken)
+                statements = AddReturnIfUnreachable(statements)
 
                 Return statements
             End Function
@@ -159,7 +162,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
             End Function
 
             Private Function CreateMethodBody(cancellationToken As CancellationToken) As OperationStatus(Of IEnumerable(Of StatementSyntax))
-
                 Dim statements = GetInitialStatementsForMethodDefinitions()
                 statements = SplitOrMoveDeclarationIntoMethodDefinition(statements, cancellationToken)
                 statements = MoveDeclarationOutFromMethodDefinition(statements, cancellationToken)
@@ -349,9 +351,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                 Return identifier.CreateAssignmentExpressionStatementWithValue(rvalue)
             End Function
 
-            Protected Overrides Function CreateDeclarationStatement(variable As VariableInfo,
-                                                                    cancellationToken As CancellationToken,
-                                                                    Optional givenInitializer As ExpressionSyntax = Nothing) As StatementSyntax
+            Protected Overrides Function CreateDeclarationStatement(
+                    variable As VariableInfo,
+                    givenInitializer As ExpressionSyntax,
+                    cancellationToken As CancellationToken) As StatementSyntax
 
                 Dim shouldInitializeWithNothing = (variable.GetDeclarationBehavior(cancellationToken) = DeclarationBehavior.MoveOut OrElse variable.GetDeclarationBehavior(cancellationToken) = DeclarationBehavior.SplitOut) AndAlso
                                                   (variable.ParameterModifier = ParameterBehavior.Out)
@@ -381,7 +384,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                     Dim newMethodDefinition =
                         methodDefinition.ReplaceToken(lastTokenOfBeginStatement,
                                                       lastTokenOfBeginStatement.WithAppendedTrailingTrivia(
-                                                            SpecializedCollections.SingletonEnumerable(SyntaxFactory.CarriageReturnLineFeed)))
+                                                            SpecializedCollections.SingletonEnumerable(SyntaxFactory.ElasticCarriageReturnLineFeed)))
 
                     newDocument = Await newDocument.WithSyntaxRootAsync(root.ReplaceNode(methodDefinition, newMethodDefinition), cancellationToken).ConfigureAwait(False)
                 End If

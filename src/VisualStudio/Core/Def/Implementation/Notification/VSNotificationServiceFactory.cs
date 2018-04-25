@@ -15,9 +15,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Notification
     [ExportWorkspaceServiceFactory(typeof(INotificationService), ServiceLayer.Host), Shared]
     internal class VSNotificationServiceFactory : IWorkspaceServiceFactory
     {
-        private IVsUIShell _uiShellService;
+        private readonly IVsUIShell _uiShellService;
 
-        private static object s_gate = new object();
+        private static readonly object s_gate = new object();
 
         private static VSDialogService s_singleton;
 
@@ -42,7 +42,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Notification
 
         private class VSDialogService : INotificationService, INotificationServiceCallback
         {
-            private IVsUIShell _uiShellService;
+            private readonly IVsUIShell _uiShellService;
 
             /// <summary>
             /// For testing purposes only.  If non-null, this callback will be invoked instead of showing a dialog.
@@ -70,7 +70,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Notification
                     try
                     {
                         var icon = SeverityToIcon(severity);
-                        int dialogResult;
                         _uiShellService.ShowMessageBox(
                             dwCompRole: 0, // unused, as per MSDN documentation
                             rclsidComp: Guid.Empty, // unused
@@ -82,7 +81,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Notification
                             msgdefbtn: OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST,
                             msgicon: icon,
                             fSysAlert: 0, // Not system modal
-                            pnResult: out dialogResult);
+                            pnResult: out var dialogResult);
                     }
                     finally
                     {
@@ -98,7 +97,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Notification
                 try
                 {
                     var icon = SeverityToIcon(severity);
-                    int dialogResult;
                     _uiShellService.ShowMessageBox(
                         dwCompRole: 0, // unused, as per MSDN documentation
                         rclsidComp: Guid.Empty, // unused
@@ -110,7 +108,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Notification
                         msgdefbtn: OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST,
                         msgicon: icon,
                         fSysAlert: 0, // Not system modal
-                        pnResult: out dialogResult);
+                        pnResult: out var dialogResult);
 
                     // The dialogResult is 6 when the Yes button is clicked.
                     return dialogResult == 6;

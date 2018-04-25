@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Reflection;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
@@ -7,9 +7,9 @@ using Microsoft.VisualStudio.Debugger.Evaluation;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.CSharp.UnitTests
+namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator.UnitTests
 {
-    internal class DebuggerBrowsableAttributeTests : CSharpResultProviderTestBase
+    public class DebuggerBrowsableAttributeTests : CSharpResultProviderTestBase
     {
         [Fact]
         public void Never()
@@ -112,6 +112,42 @@ class C
                 EvalResult("P1", "1", "object {int}", "((B)c.o).P1", DkmEvaluationResultFlags.ReadOnly),
                 EvalResult("P5", "5", "object {int}", "((B)c.o).P5", DkmEvaluationResultFlags.ReadOnly),
                 EvalResult("P6", "6", "object {int}", "((B)c.o).P6", DkmEvaluationResultFlags.ReadOnly));
+        }
+
+        [Fact]
+        public void DuplicateAttributes()
+        {
+            var source =
+@"using System.Diagnostics;
+abstract class A
+{
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public object P1;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public object P2;
+    internal object P3 => 0;
+}
+class B : A
+{
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    new public object P1 => base.P1;
+    new public object P2 => 1;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    internal new object P3 => 2;
+}";
+            var assembly = GetAssembly(source);
+            var type = assembly.GetType("B");
+            var value = CreateDkmClrValue(
+                value: type.Instantiate(),
+                type: type,
+                evalFlags: DkmEvaluationResultFlags.None,
+                valueFlags: DkmClrValueFlags.Synthetic);
+            var evalResult = FormatResult("this", value);
+            Verify(evalResult,
+                EvalResult("this", "{B}", "B", "this", DkmEvaluationResultFlags.Expandable));
+            var children = GetChildren(evalResult);
+            Verify(children,
+                EvalResult("P3 (A)", "0", "object {int}", "((A)this).P3", DkmEvaluationResultFlags.ReadOnly));
         }
 
         /// <summary>
@@ -230,10 +266,7 @@ class C
                 using (runtime.Load())
                 {
                     var type = runtime.GetType("C");
-                    var value = CreateDkmClrValue(
-                        value: type.Instantiate(),
-                        type: type,
-                        evalFlags: DkmEvaluationResultFlags.None);
+                    var value = type.Instantiate();
                     var evalResult = FormatResult("o", value);
                     Verify(evalResult,
                         EvalResult("o", "{C}", "C", "o", DkmEvaluationResultFlags.Expandable));
@@ -248,11 +281,11 @@ class C
         }
 
         /// <summary>
-        /// Value should not be expandable if all members are marked
+        /// Instance of type where all members are marked
         /// [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)].
         /// </summary>
-        [WorkItem(934800)]
-        [Fact(Skip = "934800")]
+        [WorkItem(934800, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/934800")]
+        [Fact]
         public void RootHidden_Empty()
         {
             var source =
@@ -282,7 +315,9 @@ class C
                 evalFlags: DkmEvaluationResultFlags.None);
             var evalResult = FormatResult("o", value);
             Verify(evalResult,
-                EvalResult("o", "{C}", "C", "o"));
+                EvalResult("o", "{C}", "C", "o", DkmEvaluationResultFlags.Expandable)); // Ideally, not expandable.
+            var children = GetChildren(evalResult);
+            Verify(children); // No children.
         }
 
         [Fact]
@@ -566,10 +601,11 @@ public class C
                 value: type.Instantiate(),
                 type: new DkmClrType(runtime.DefaultModule, runtime.DefaultAppDomain, (TypeImpl)type),
                 evalFlags: DkmEvaluationResultFlags.None);
-            var evalResult = FormatResult("o", value, inspectionContext: CreateDkmInspectionContext(DkmEvaluationFlags.HideNonPublicMembers));
+            var inspectionContext = CreateDkmInspectionContext(DkmEvaluationFlags.HideNonPublicMembers);
+            var evalResult = FormatResult("o", value, inspectionContext: inspectionContext);
             Verify(evalResult,
                 EvalResult("o", "{C}", "C", "o", DkmEvaluationResultFlags.Expandable));
-            var children = GetChildren(evalResult);
+            var children = GetChildren(evalResult, inspectionContext: inspectionContext);
             Verify(children,
                 EvalResult("Static members", null, "", "A", DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ReadOnly, DkmEvaluationResultCategory.Class),
                 EvalResult("Non-Public members", null, "", "o.FA, hidden", DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ReadOnly, DkmEvaluationResultCategory.Data),
@@ -616,6 +652,47 @@ public class C<T>
 
             Verify(GetChildren(evalResult),
                 EvalResult("X", "0", "int", "o.X"));
+        }
+
+        [WorkItem(18581, "https://github.com/dotnet/roslyn/issues/18581")]
+        [Fact]
+        public void AccessibilityNotTrumpedByAttribute()
+        {
+            var source =
+@"using System.Diagnostics;
+class C
+{
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int[] _someArray = { 10, 20 };
+
+    private object SomethingPrivate = 3;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+    internal object InternalCollapsed { get { return 1; } }
+    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+    private object PrivateCollapsed { get { return 3; } }
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    private int[] PrivateRootHidden { get { return _someArray; } }
+}";
+            var assembly = GetAssembly(source);
+            var type = assembly.GetType("C");
+            var value = CreateDkmClrValue(
+                value: type.Instantiate(),
+                type: type,
+                evalFlags: DkmEvaluationResultFlags.None);
+            var evalResult = FormatResult("new C()", value, inspectionContext: CreateDkmInspectionContext(DkmEvaluationFlags.HideNonPublicMembers));
+            Verify(evalResult,
+                EvalResult("new C()", "{C}", "C", "new C()", DkmEvaluationResultFlags.Expandable));
+            var children = GetChildren(evalResult);
+            Verify(children,
+                EvalResult("[0]", "10", "int", "(new C()).PrivateRootHidden[0]"),
+                EvalResult("[1]", "20", "int", "(new C()).PrivateRootHidden[1]"),
+                EvalResult("Non-Public members", null, "", "new C(), hidden", DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ReadOnly, DkmEvaluationResultCategory.Data));
+            var nonPublicChildren = GetChildren(children[2]);
+            Verify(nonPublicChildren,
+                EvalResult("InternalCollapsed", "1", "object {int}", "(new C()).InternalCollapsed", DkmEvaluationResultFlags.ReadOnly, DkmEvaluationResultCategory.Property, DkmEvaluationResultAccessType.Internal),
+                EvalResult("PrivateCollapsed", "3", "object {int}", "(new C()).PrivateCollapsed", DkmEvaluationResultFlags.ReadOnly, DkmEvaluationResultCategory.Property, DkmEvaluationResultAccessType.Private),
+                EvalResult("SomethingPrivate", "3", "object {int}", "(new C()).SomethingPrivate", DkmEvaluationResultFlags.None, DkmEvaluationResultCategory.Data, DkmEvaluationResultAccessType.Private));
         }
     }
 }

@@ -21,7 +21,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         /// When the output type is .winmdobj, delegate types shouldn't output Begin/End invoke 
         /// members.
         /// </summary>
-        [Fact(), WorkItem(1003193)]
+        [Fact(), WorkItem(1003193, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1003193")]
         public void SimpleDelegateMembersTest()
         {
             const string libSrc =
@@ -135,7 +135,7 @@ namespace WinRTDelegateLibrary
                 SystemCoreRef_v4_0_30319_17929
             };
 
-            var winRtDelegateLibrary = CreateCompilation(
+            var winRtDelegateLibrary = CreateEmptyCompilation(
                 winRtDelegateLibrarySrc,
                 references: coreRefs45,
                 options: TestOptions.ReleaseWinMD.WithAllowUnsafe(true),
@@ -143,7 +143,7 @@ namespace WinRTDelegateLibrary
 
             var nonWinRtLibrarySrc = winRtDelegateLibrarySrc.Replace("WinRTDelegateLibrary", "NonWinRTDelegateLibrary");
 
-            var nonWinRtDelegateLibrary = CreateCompilation(
+            var nonWinRtDelegateLibrary = CreateEmptyCompilation(
                 nonWinRtLibrarySrc,
                 references: coreRefs45,
                 options: TestOptions.UnsafeReleaseDll,
@@ -269,7 +269,7 @@ class Test
 
             var comp = CompileAndVerify(
                 allDelegates,
-                additionalRefs: new[] {
+                references: new[] {
                     winRtDelegateLibrary,
                     nonWinRtDelegateLibrary
                 },

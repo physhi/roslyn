@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 {
     internal static class AnalyzerConsistencyChecker
     {
-        private static readonly ImmutableArray<string> s_defaultIgnorableReferenceNames = ImmutableArray.Create("mscorlib", "System", "Microsoft.CodeAnalysis");
+        private static readonly ImmutableArray<string> s_defaultIgnorableReferenceNames = ImmutableArray.Create("mscorlib", "System", "Microsoft.CodeAnalysis", "netstandard");
 
         public static bool Check(string baseDirectory, IEnumerable<CommandLineAnalyzerReference> analyzerReferences, IAnalyzerAssemblyLoader loader, IEnumerable<string> ignorableReferenceNames = null)
         {
@@ -72,12 +72,14 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 }
             }
 
-            // Second, load all of the assemblies upfront.
+            // Register analyzers and their dependencies upfront, 
+            // so that assembly references can be resolved:
             foreach (var resolvedPath in resolvedPaths)
             {
                 loader.AddDependencyLocation(resolvedPath);
             }
 
+            // Load all analyzer assemblies:
             var loadedAssemblies = new List<Assembly>();
             foreach (var resolvedPath in resolvedPaths)
             {

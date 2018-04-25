@@ -1,5 +1,8 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -25,7 +28,8 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                 property.DeclaredAccessibility,
                 property.GetSymbolModifiers(),
                 property.Type,
-                property.ExplicitInterfaceImplementations.FirstOrDefault(),
+                property.RefKind,
+                property.ExplicitInterfaceImplementations,
                 property.Name,
                 parameters,
                 property.GetMethod,
@@ -33,16 +37,14 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                 property.IsIndexer);
         }
 
-        public static IPropertySymbol RemoveAttributeFromParameters(
-            this IPropertySymbol property, INamedTypeSymbol attributeType)
+        public static IPropertySymbol RemoveInaccessibleAttributesAndAttributesOfTypes(
+            this IPropertySymbol property, ISymbol accessibleWithin, params INamedTypeSymbol[] attributesToRemove)
         {
-            if (attributeType == null)
-            {
-                return property;
-            }
+            bool shouldRemoveAttribute(AttributeData a) =>
+                attributesToRemove.Any(attr => attr.Equals(a.AttributeClass)) || !a.AttributeClass.IsAccessibleWithin(accessibleWithin);
 
             var someParameterHasAttribute = property.Parameters
-                .Any(p => p.GetAttributes().Any(a => a.AttributeClass.Equals(attributeType)));
+                .Any(p => p.GetAttributes().Any(shouldRemoveAttribute));
             if (!someParameterHasAttribute)
             {
                 return property;
@@ -54,16 +56,28 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                 property.DeclaredAccessibility,
                 property.GetSymbolModifiers(),
                 property.Type,
-                property.ExplicitInterfaceImplementations.FirstOrDefault(),
+                property.RefKind,
+                property.ExplicitInterfaceImplementations,
                 property.Name,
-                property.Parameters.Select(p =>
+                property.Parameters.SelectAsArray(p =>
                     CodeGenerationSymbolFactory.CreateParameterSymbol(
-                        p.GetAttributes().Where(a => !a.AttributeClass.Equals(attributeType)).ToList(),
-                        p.RefKind, p.IsParams, p.Type, p.Name, p.IsOptional,
-                        p.HasExplicitDefaultValue, p.HasExplicitDefaultValue ? p.ExplicitDefaultValue : null)).ToList(),
+                        p.GetAttributes().WhereAsArray(a => !shouldRemoveAttribute(a)),
+                        p.RefKind, p.IsParams, p.GetTypeWithAnnotatedNullability(), p.Name, p.IsOptional,
+                        p.HasExplicitDefaultValue, p.HasExplicitDefaultValue ? p.ExplicitDefaultValue : null)),
                 property.GetMethod,
                 property.SetMethod,
                 property.IsIndexer);
         }
+
+        public static bool IsWritableInConstructor(this IPropertySymbol property)
+            => (property.SetMethod != null || ContainsBackingField(property));
+
+        public static IFieldSymbol? GetBackingFieldIfAny(this IPropertySymbol property)
+            => property.ContainingType.GetMembers()
+                .OfType<IFieldSymbol>()
+                .FirstOrDefault(f => property.Equals(f.AssociatedSymbol));
+
+        private static bool ContainsBackingField(IPropertySymbol property)
+            => property.GetBackingFieldIfAny() != null;
     }
 }

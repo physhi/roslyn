@@ -1,11 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.GenerateType;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -23,20 +21,20 @@ initial: @"class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }
 
-class Foo
+class Goo
 {
 }",
 isNewFile: false);
@@ -50,7 +48,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.Foo$$|] f;
+        [|A.Goo$$|] f;
     }
 }
 
@@ -58,18 +56,18 @@ namespace A
 {
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.Foo f;
+        A.Goo f;
     }
 }
 
 namespace A
 {
-    class Foo
+    class Goo
     {
     }
 }",
@@ -84,24 +82,24 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
 {
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.Foo f;
+        A.B.Goo f;
     }
 }
 namespace A.B
 {
-    class Foo
+    class Goo
     {
     }
 }",
@@ -116,7 +114,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.C.Foo$$|] f;
+        [|A.B.C.Goo$$|] f;
     }
 }
 namespace A.B
@@ -126,19 +124,19 @@ namespace A.B
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.C.Foo f;
+        A.B.C.Goo f;
     }
 }
 namespace A.B
 {
     namespace C
     {
-        class Foo
+        class Goo
         {
         }
     }
@@ -154,7 +152,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.C.Foo$$|] f;
+        [|A.B.C.Goo$$|] f;
     }
 }
 namespace A
@@ -164,19 +162,19 @@ namespace A
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.C.Foo f;
+        A.B.C.Goo f;
     }
 }
 namespace A
 {
     namespace B.C
     {
-        class Foo
+        class Goo
         {
         }
     }
@@ -192,25 +190,25 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        var f = new [|$$Foo|](bar: 1, baz: 2);
+        var f = new [|$$Goo|](bar: 1, baz: 2);
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     static void Main(string[] args)
     {
-        var f = new Foo(bar: 1, baz: 2);
+        var f = new Goo(bar: 1, baz: 2);
     }
 }
 
-class Foo
+class Goo
 {
     private int bar;
     private int baz;
 
-    public Foo(int bar, int baz)
+    public Goo(int bar, int baz)
     {
         this.bar = bar;
         this.baz = baz;
@@ -228,21 +226,21 @@ class Program
 {
     static void Main(string[] args)
     {
-        List<int> f = new [|$$Foo|]();
+        List<int> f = new [|$$Goo|]();
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"using System.Collections.Generic;
 class Program
 {
     static void Main(string[] args)
     {
-        List<int> f = new Foo();
+        List<int> f = new Goo();
     }
 }
 
-class Foo : List<int>
+class Goo : List<int>
 {
 }",
 isNewFile: false);
@@ -256,7 +254,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.C.Foo$$|] f;
+        [|A.B.C.Goo$$|] f;
     }
 }
 namespace A
@@ -266,19 +264,19 @@ namespace A
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.C.Foo f;
+        A.B.C.Goo f;
     }
 }
 namespace A
 {
     namespace B.C
     {
-        public interface Foo
+        public interface Goo
         {
         }
     }
@@ -296,7 +294,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.C.Foo$$|] f;
+        [|A.B.C.Goo$$|] f;
     }
 }
 namespace A
@@ -306,19 +304,19 @@ namespace A
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.C.Foo f;
+        A.B.C.Goo f;
     }
 }
 namespace A
 {
     namespace B.C
     {
-        internal struct Foo
+        internal struct Goo
         {
         }
     }
@@ -336,7 +334,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A
@@ -346,19 +344,19 @@ namespace A
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.Foo f;
+        A.B.Goo f;
     }
 }
 namespace A
 {
     namespace B
     {
-        enum Foo
+        enum Goo
         {
         }
     }
@@ -368,7 +366,7 @@ typeKind: TypeKind.Enum,
 isNewFile: false);
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithDefaultEnum_DefaultNamespace()
         {
@@ -377,24 +375,24 @@ initial: @"class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"using ConsoleApplication;
 
 class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }
 
 namespace ConsoleApplication
 {
-    enum Foo
+    enum Goo
     {
     }
 }",
@@ -404,7 +402,7 @@ typeKind: TypeKind.Enum,
 isNewFile: false);
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithDefaultEnum_DefaultNamespace_NotSimpleName()
         {
@@ -413,7 +411,7 @@ initial: @"class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A
@@ -423,19 +421,19 @@ namespace A
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     void Main()
     {
-        A.B.Foo f;
+        A.B.Goo f;
     }
 }
 namespace A
 {
     namespace B
     {
-        enum Foo
+        enum Goo
         {
         }
     }
@@ -460,7 +458,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -473,21 +471,20 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: false,
 existingFilename: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInExistingEmptyFile_Usings_Folders()
         {
@@ -499,7 +496,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                         <Document Folders= ""outer\inner"" FilePath=""Test2.cs"">
@@ -508,14 +505,13 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
 using outer.inner;
@@ -524,7 +520,7 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
@@ -533,7 +529,7 @@ isNewFile: false,
 existingFilename: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInExistingEmptyFile_Usings_DefaultNamespace()
         {
@@ -545,7 +541,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                         <Document FilePath=""Test2.cs"">
@@ -554,14 +550,13 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace ConsoleApplication
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 defaultNamespace: "ConsoleApplication",
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
@@ -571,7 +566,7 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
@@ -580,7 +575,7 @@ isNewFile: false,
 existingFilename: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInExistingEmptyFile_Usings_Folders_DefaultNamespace()
         {
@@ -592,7 +587,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                         <Document Folders= ""outer\inner"" FilePath=""Test2.cs"">
@@ -601,14 +596,13 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace ConsoleApplication.outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 defaultNamespace: "ConsoleApplication",
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
@@ -618,7 +612,7 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
@@ -627,7 +621,7 @@ isNewFile: false,
 existingFilename: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInExistingEmptyFile_NoUsings_Folders_NotSimpleName()
         {
@@ -639,7 +633,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -652,14 +646,13 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
@@ -680,7 +673,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -690,22 +683,21 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: Array.Empty<string>(),
+newFileFolderContainers: ImmutableArray<string>.Empty,
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_UsingsNotNeeded_InNewFile_InFolder()
         {
@@ -721,7 +713,7 @@ namespace outer
         {
             void Main()
             {
-                [|Foo$$|] f;
+                [|Goo$$|] f;
             }
         }
     }
@@ -730,23 +722,22 @@ namespace outer
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_UsingsNeeded_InNewFile_InFolder()
         {
@@ -758,16 +749,16 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
@@ -779,18 +770,17 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_UsingsNotNeeded_InNewFile_InFolder_NotSimpleName()
         {
@@ -802,7 +792,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -812,23 +802,22 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_UsingsNeeded_InNewFile_InFolder_DefaultNamespace()
         {
@@ -840,16 +829,16 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace ConsoleApplication.outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
@@ -862,18 +851,17 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_UsingsNotNeeded_InNewFile_InFolder_DefaultNamespace()
         {
@@ -887,17 +875,17 @@ namespace ConsoleApplication.outer
     {
         void Main()
         {
-            [|Foo$$|] f;
+            [|Goo$$|] f;
         }
     }
 }</Document>
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace ConsoleApplication.outer
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
@@ -910,19 +898,18 @@ namespace ConsoleApplication.outer
     {
         void Main()
         {
-            Foo f;
+            Goo f;
         }
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: new string[] { "outer" },
+newFileFolderContainers: ImmutableArray.Create("outer"),
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_UsingsNotNeeded_InNewFile_InFolder_DefaultNamespace_NotSimpleName()
         {
@@ -934,7 +921,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 
@@ -944,10 +931,10 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
@@ -958,22 +945,21 @@ class Program
 {
     void Main()
     {
-        A.B.Foo f;
+        A.B.Goo f;
     }
 }
 
 namespace A.B
 {
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
-newFileFolderContainers: new string[] { "outer" },
+newFileFolderContainers: ImmutableArray.Create("outer"),
 newFileName: "Test2.cs");
         }
 
-        [WorkItem(898452)]
+        [WorkItem(898452, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/898452")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_InValidFolderNameNotMadeNamespace()
         {
@@ -989,7 +975,7 @@ namespace outer
         {
             void Main()
             {
-                [|Foo$$|] f;
+                [|Goo$$|] f;
             }
         }
     }
@@ -997,15 +983,14 @@ namespace outer
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 defaultNamespace: "ConsoleApplication",
 expected: @"namespace ConsoleApplication
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
 using ConsoleApplication;
@@ -1018,7 +1003,7 @@ namespace outer
         {
             void Main()
             {
-                Foo f;
+                Goo f;
             }
         }
     }
@@ -1027,7 +1012,7 @@ accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
 areFoldersValidIdentifiers: false,
-newFileFolderContainers: new string[] { "123", "456" },
+newFileFolderContainers: ImmutableArray.Create("123", "456"),
 newFileName: "Test2.cs");
         }
 
@@ -1047,7 +1032,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1061,14 +1046,13 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: false,
@@ -1076,7 +1060,7 @@ existingFilename: "Test2.cs",
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoSameLanguageDifferentProjectExistingFile()
         {
@@ -1088,7 +1072,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1107,18 +1091,17 @@ namespace A
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"
 namespace A
 {
     namespace B
     {
-        public interface Foo
+        public interface Goo
         {
         }
     }
 }",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
@@ -1127,7 +1110,7 @@ existingFilename: "Test2.cs",
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoSameLanguageDifferentProjectExistingFile_Usings_Folders()
         {
@@ -1139,7 +1122,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
@@ -1154,7 +1137,7 @@ namespace A
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"
 namespace A
 {
@@ -1165,11 +1148,10 @@ namespace A
 
 namespace outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
 using outer.inner;
@@ -1178,7 +1160,7 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
@@ -1201,7 +1183,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1213,23 +1195,22 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
 newFileName: "Test2.cs",
-newFileFolderContainers: Array.Empty<string>(),
+newFileFolderContainers: ImmutableArray<string>.Empty,
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_Usings()
         {
@@ -1241,7 +1222,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
@@ -1249,10 +1230,10 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
@@ -1264,19 +1245,18 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
 newFileName: "Test2.cs",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_NoUsings_NotSimpleName()
         {
@@ -1288,7 +1268,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1300,24 +1280,23 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
 newFileName: "Test2.cs",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_Usings_DefaultNamespace()
         {
@@ -1329,7 +1308,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
@@ -1337,10 +1316,10 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace ConsoleApplication.outer.inner
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
@@ -1353,19 +1332,18 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
 newFileName: "Test2.cs",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_NoUsings_NotSimpleName_DefaultNamespace()
         {
@@ -1377,7 +1355,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1389,21 +1367,20 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"namespace A.B
 {
-    public interface Foo
+    public interface Goo
     {
     }
 }",
-isLine: false,
 defaultNamespace: "ConsoleApplication",
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Interface,
 isNewFile: true,
 newFileName: "Test2.cs",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
         #endregion
@@ -1420,7 +1397,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1432,22 +1409,21 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A.B
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: Array.Empty<string>(),
+newFileFolderContainers: ImmutableArray<string>.Empty,
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageNewFile_Folders_Usings()
         {
@@ -1459,7 +1435,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
@@ -1467,13 +1443,12 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace outer.inner
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
 using outer.inner;
@@ -1482,18 +1457,18 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageNewFile_Folders_NoUsings_NotSimpleName()
         {
@@ -1505,7 +1480,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1517,23 +1492,22 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A.B
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageNewFile_Folders_Usings_RootNamespace()
         {
@@ -1545,7 +1519,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
@@ -1554,13 +1528,12 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace outer.inner
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
 using BarBaz.outer.inner;
@@ -1569,18 +1542,18 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageNewFile_Folders_NoUsings_NotSimpleName_RootNamespace()
         {
@@ -1592,7 +1565,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1605,23 +1578,22 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A.B
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageNewFile_Folders_NoUsings_NotSimpleName_RootNamespace_ProjectReference()
         {
@@ -1631,7 +1603,7 @@ initial: @"<Workspace>
                         <CompilationOptions RootNamespace=""BarBaz""/>
                         <Document FilePath=""Test2.vb"">
                         Namespace A.B
-                            Public Class Foo
+                            Public Class Goo
                             End Class
                         End Namespace
                         </Document>
@@ -1657,18 +1629,17 @@ expected: @"Namespace A.B
     End Class
 End Namespace
 ",
-isLine: false,
 defaultNamespace: "ConsoleApplication",
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test3.vb",
-newFileFolderContainers: new string[] { "outer", "inner" },
+newFileFolderContainers: ImmutableArray.Create("outer", "inner"),
 projectName: "Assembly2");
         }
 
-        [WorkItem(858826)]
+        [WorkItem(858826, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/858826")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageNewFileAdjustFileExtension()
         {
@@ -1680,7 +1651,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1692,22 +1663,21 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A.B
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: Array.Empty<string>(),
+newFileFolderContainers: ImmutableArray<string>.Empty,
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageExistingEmptyFile()
         {
@@ -1719,7 +1689,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1733,13 +1703,12 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A.B
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 checkIfUsingsNotIncluded: true,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
@@ -1748,7 +1717,7 @@ existingFilename: "Test2.vb",
 projectName: "Assembly2");
         }
 
-        [WorkItem(850101)]
+        [WorkItem(850101, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/850101")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeIntoDifferentLanguageExistingEmptyFile_Usings_Folder()
         {
@@ -1760,7 +1729,7 @@ class Program
 {
     void Main()
     {
-        [|Foo$$|] f;
+        [|Goo$$|] f;
     }
 }</Document>
                     </Project>
@@ -1770,13 +1739,12 @@ class Program
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace outer.inner
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 checkIfUsingsIncluded: true,
 expectedTextWithUsings: @"
 using outer.inner;
@@ -1785,7 +1753,7 @@ class Program
 {
     void Main()
     {
-        Foo f;
+        Goo f;
     }
 }",
 accessibility: Accessibility.Public,
@@ -1806,7 +1774,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1822,17 +1790,16 @@ End Namespace
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"
 Namespace A
 End Namespace
 
 Namespace Global.A.B
-    Public Class Foo
+    Public Class Goo
     End Class
 End Namespace
 ",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: false,
@@ -1851,7 +1818,7 @@ class Program
 {
     void Main()
     {
-        [|A.B.Foo$$|] f;
+        [|A.B.Goo$$|] f;
     }
 }
 namespace A.B
@@ -1872,19 +1839,18 @@ End Namespace</Document>
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"
 Namespace Global
     Namespace A
         Namespace C
         End Namespace
         Namespace B
-            Public Class Foo
+            Public Class Goo
             End Class
         End Namespace
     End Namespace
 End Namespace",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Class,
 isNewFile: false,
@@ -1892,8 +1858,8 @@ existingFilename: "Test2.vb",
 projectName: "Assembly2");
         }
 
-        [WorkItem(861362)]
-        [WorkItem(869593)]
+        [WorkItem(861362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861362")]
+        [WorkItem(869593, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/869593")]
         [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateModuleFromCSharpToVisualBasicInTypeContext()
         {
@@ -1905,7 +1871,7 @@ class Program
 {
     void Main()
     {
-        [|A.Foo$$|].Bar f;
+        [|A.Goo$$|].Bar f;
     }
 }
 namespace A
@@ -1917,26 +1883,25 @@ namespace A
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A
-    Public Module Foo
+    Public Module Goo
     End Module
 End Namespace
 ",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Module,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: Array.Empty<string>(),
+newFileFolderContainers: ImmutableArray<string>.Empty,
 projectName: "Assembly2",
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.Class | TypeKindOptions.Structure | TypeKindOptions.Module));
         }
 
         #endregion
         #region Bugfix 
-        [WorkItem(861462)]
-        [WorkItem(873066)]
+        [WorkItem(861462, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861462")]
+        [WorkItem(873066, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/873066")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithProperAccessibilityAndTypeKind_1()
         {
@@ -1960,7 +1925,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(true, TypeKindOptions.BaseList, false));
         }
 
-        [WorkItem(861462)]
+        [WorkItem(861462, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861462")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithProperAccessibilityAndTypeKind_2()
         {
@@ -1983,7 +1948,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(true, TypeKindOptions.Interface, false));
         }
 
-        [WorkItem(861462)]
+        [WorkItem(861462, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861462")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithProperAccessibilityAndTypeKind_3()
         {
@@ -2006,7 +1971,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(true, TypeKindOptions.Interface, false));
         }
 
-        [WorkItem(861362)]
+        [WorkItem(861362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861362")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInMemberAccessExpression()
         {
@@ -2037,7 +2002,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.MemberAccessWithNamespace));
         }
 
-        [WorkItem(861362)]
+        [WorkItem(861362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861362")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInMemberAccessExpressionInNamespace()
         {
@@ -2075,7 +2040,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.MemberAccessWithNamespace));
         }
 
-        [WorkItem(861600)]
+        [WorkItem(861600, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861600")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithoutEnumForGenericsInMemberAccess()
         {
@@ -2084,7 +2049,7 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        var s = [|$$Foo<Bar>|].D;
+        var s = [|$$Goo<Bar>|].D;
     }
 }
 
@@ -2092,12 +2057,12 @@ class Bar
 {
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     static void Main(string[] args)
     {
-        var s = Foo<Bar>.D;
+        var s = Goo<Bar>.D;
     }
 }
 
@@ -2105,7 +2070,7 @@ class Bar
 {
 }
 
-public class Foo<T>
+public class Goo<T>
 {
 }",
 accessibility: Accessibility.Public,
@@ -2114,7 +2079,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.Class | TypeKindOptions.Structure));
         }
 
-        [WorkItem(861600)]
+        [WorkItem(861600, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861600")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeWithoutEnumForGenericsInNameContext()
         {
@@ -2123,7 +2088,7 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        [|$$Foo<Bar>|] baz;
+        [|$$Goo<Bar>|] baz;
     }
 }
 
@@ -2131,12 +2096,12 @@ internal class Bar
 {
 }",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"class Program
 {
     static void Main(string[] args)
     {
-        Foo<Bar> baz;
+        Goo<Bar> baz;
     }
 }
 
@@ -2144,7 +2109,7 @@ internal class Bar
 {
 }
 
-public class Foo<T>
+public class Goo<T>
 {
 }",
 accessibility: Accessibility.Public,
@@ -2153,7 +2118,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.Class | TypeKindOptions.Structure | TypeKindOptions.Interface | TypeKindOptions.Delegate));
         }
 
-        [WorkItem(861600)]
+        [WorkItem(861600, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861600")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInMemberAccessWithNSForModule()
         {
@@ -2162,11 +2127,11 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        var s = [|Foo.$$Bar|].Baz;
+        var s = [|Goo.$$Bar|].Baz;
     }
 }
 
-namespace Foo
+namespace Goo
 {
 }",
 languageName: LanguageNames.CSharp,
@@ -2175,11 +2140,11 @@ expected: @"class Program
 {
     static void Main(string[] args)
     {
-        var s = Foo.Bar.Baz;
+        var s = Goo.Bar.Baz;
     }
 }
 
-namespace Foo
+namespace Goo
 {
     public class Bar
     {
@@ -2191,7 +2156,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.MemberAccessWithNamespace));
         }
 
-        [WorkItem(861600)]
+        [WorkItem(861600, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861600")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInMemberAccessWithGlobalNSForModule()
         {
@@ -2222,7 +2187,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.MemberAccessWithNamespace));
         }
 
-        [WorkItem(861600)]
+        [WorkItem(861600, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/861600")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateTypeInMemberAccessWithoutNS()
         {
@@ -2243,8 +2208,8 @@ typeName: "Bar",
 isMissing: true);
         }
 
-        [WorkItem(876202)]
-        [WorkItem(883531)]
+        [WorkItem(876202, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/876202")]
+        [WorkItem(883531, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/883531")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateType_NoParameterLessConstructorForStruct()
         {
@@ -2284,9 +2249,9 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        var s2 = new [|$$MyD|](foo);
+        var s2 = new [|$$MyD|](goo);
     }
-    static void foo()
+    static void goo()
     {
     }
 }",
@@ -2296,9 +2261,9 @@ expected: @"class Program
 {
     static void Main(string[] args)
     {
-        var s2 = new MyD(foo);
+        var s2 = new MyD(goo);
     }
-    static void foo()
+    static void goo()
     {
     }
 }
@@ -2319,9 +2284,9 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        var s2 = new [|$$MyD|](foo);
+        var s2 = new [|$$MyD|](goo);
     }
-    static void foo<T>()
+    static void goo<T>()
     {
     }
 }",
@@ -2331,9 +2296,9 @@ expected: @"class Program
 {
     static void Main(string[] args)
     {
-        var s2 = new MyD(foo);
+        var s2 = new MyD(goo);
     }
-    static void foo<T>()
+    static void goo<T>()
     {
     }
 }
@@ -2503,7 +2468,7 @@ isNewFile: false,
 assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOptions.Class | TypeKindOptions.Structure | TypeKindOptions.Delegate));
         }
 
-        [WorkItem(872935)]
+        [WorkItem(872935, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/872935")]
         [Fact(Skip = "872935"), Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateDelegateType_ObjectCreationExpression_SimpleLambdaEmpty()
         {
@@ -2541,9 +2506,9 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        [|$$MyD|] z1 = foo;
+        [|$$MyD|] z1 = goo;
     }
-    static void foo()
+    static void goo()
     {
     }
 }",
@@ -2553,9 +2518,9 @@ expected: @"class Program
 {
     static void Main(string[] args)
     {
-        MyD z1 = foo;
+        MyD z1 = goo;
     }
-    static void foo()
+    static void goo()
     {
     }
 }
@@ -2736,9 +2701,9 @@ initial: @"class Program
 {
     static void Main(string[] args)
     {
-        var zz1 = ([|$$MyD|])foo;
+        var zz1 = ([|$$MyD|])goo;
     }
-    static void foo()
+    static void goo()
     {
     }
 }",
@@ -2748,9 +2713,9 @@ expected: @"class Program
 {
     static void Main(string[] args)
     {
-        var zz1 = (MyD)foo;
+        var zz1 = (MyD)goo;
     }
-    static void foo()
+    static void goo()
     {
     }
 }
@@ -2934,7 +2899,7 @@ class Program
 {
     void Main()
     {
-        var f = ([|A.B.Foo$$|])Main;
+        var f = ([|A.B.Goo$$|])Main;
     }
 }
 namespace A.B
@@ -2946,21 +2911,20 @@ namespace A.B
                     </Project>
                 </Workspace>",
 languageName: LanguageNames.CSharp,
-typeName: "Foo",
+typeName: "Goo",
 expected: @"Namespace Global.A.B
-    Public Delegate Sub Foo()
+    Public Delegate Sub Goo()
 End Namespace
 ",
-isLine: false,
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,
 isNewFile: true,
 newFileName: "Test2.vb",
-newFileFolderContainers: Array.Empty<string>(),
+newFileFolderContainers: ImmutableArray<string>.Empty,
 projectName: "Assembly2");
         }
 
-        [WorkItem(860210)]
+        [WorkItem(860210, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/860210")]
         [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)]
         public async Task GenerateDelegateType_NoInfo()
         {
@@ -3286,25 +3250,25 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 class A
 {
-    event [|$$foo|] name1
+    event [|$$goo|] name1
     {
         add { }
         remove { }
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 class A
 {
-    event foo name1
+    event goo name1
     {
         add { }
         remove { }
     }
 }
 
-public delegate void foo();
+public delegate void goo();
 ",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,
@@ -3319,17 +3283,17 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 class A
 {
-    public event [|$$foo|] name2;
+    public event [|$$goo|] name2;
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 class A
 {
-    public event foo name2;
+    public event goo name2;
 }
 
-public delegate void foo();
+public delegate void goo();
 ",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,
@@ -3344,18 +3308,18 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 class A
 {
-    event [|NS.foo$$|] name1
+    event [|NS.goo$$|] name1
     {
         add { }
         remove { }
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 class A
 {
-    event NS.foo name1
+    event NS.goo name1
     {
         add { }
         remove { }
@@ -3364,7 +3328,7 @@ class A
 
 namespace NS
 {
-    public delegate void foo();
+    public delegate void goo();
 }",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,
@@ -3379,19 +3343,19 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 class A
 {
-    public event [|NS.foo$$|] name2;
+    public event [|NS.goo$$|] name2;
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 class A
 {
-    public event NS.foo name2;
+    public event NS.goo name2;
 }
 
 namespace NS
 {
-    public delegate void foo();
+    public delegate void goo();
 }",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,
@@ -3406,7 +3370,7 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 class A
 {
-    event [|$$NS.foo.Mydel|] name1
+    event [|$$NS.goo.Mydel|] name1
     {
         add { }
         remove { }
@@ -3417,11 +3381,11 @@ namespace NS
 {
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 class A
 {
-    event NS.foo.Mydel name1
+    event NS.goo.Mydel name1
     {
         add { }
         remove { }
@@ -3430,7 +3394,7 @@ class A
 
 namespace NS
 {
-    public class foo
+    public class goo
     {
     }
 }",
@@ -3447,23 +3411,23 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 class A
 {
-    public event [|$$NS.foo.Mydel|] name2;
+    public event [|$$NS.goo.Mydel|] name2;
 }
 
 namespace NS
 {
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 class A
 {
-    public event NS.foo.Mydel name2;
+    public event NS.goo.Mydel name2;
 }
 
 namespace NS
 {
-    public class foo
+    public class goo
     {
     }
 }",
@@ -3480,25 +3444,25 @@ assertGenerateTypeDialogOptions: new GenerateTypeDialogOptions(false, TypeKindOp
 initial: @"
 public class A
 {
-    public event [|$$foo|] name1
+    public event [|$$goo|] name1
     {
         add { }
         remove { }
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 public class A
 {
-    public event foo name1
+    public event goo name1
     {
         add { }
         remove { }
     }
 }
 
-public delegate void foo();
+public delegate void goo();
 ",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,
@@ -3515,7 +3479,7 @@ public class outer
 {
     public class A
     {
-        public event [|$$foo|] name1
+        public event [|$$goo|] name1
         {
             add { }
             remove { }
@@ -3523,13 +3487,13 @@ public class outer
     }
 }",
 languageName: LanguageNames.CSharp,
-typeName: "foo",
+typeName: "goo",
 expected: @"
 public class outer
 {
     public class A
     {
-        public event foo name1
+        public event goo name1
         {
             add { }
             remove { }
@@ -3537,7 +3501,7 @@ public class outer
     }
 }
 
-public delegate void foo();
+public delegate void goo();
 ",
 accessibility: Accessibility.Public,
 typeKind: TypeKind.Delegate,

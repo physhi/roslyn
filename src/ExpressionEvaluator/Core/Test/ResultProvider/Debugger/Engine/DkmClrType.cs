@@ -1,14 +1,16 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 #region Assembly Microsoft.VisualStudio.Debugger.Engine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
 // References\Debugger\v2.0\Microsoft.VisualStudio.Debugger.Engine.dll
 
 #endregion
+
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
+using Microsoft.VisualStudio.Debugger.Evaluation;
 using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
 using Microsoft.VisualStudio.Debugger.Metadata;
 using Roslyn.Utilities;
@@ -18,6 +20,16 @@ namespace Microsoft.VisualStudio.Debugger.Clr
     [DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
     public class DkmClrType
     {
+        /// <summary>
+        /// We would accept inherited members for tests purposes comparing to <see cref="TypeHelpers.MemberBindingFlags"/> 
+        /// because an actual VS <see cref="GetEvalAttributes(Type)"/> may return attributes from base types.
+        /// Therefore, we do not check here for <see cref="BindingFlags.DeclaredOnly"/>.
+        /// </summary>
+        private const BindingFlags MemberBindingFlags = BindingFlags.Public |
+                                                         BindingFlags.NonPublic |
+                                                         BindingFlags.Instance |
+                                                         BindingFlags.Static;
+
         private readonly DkmClrModuleInstance _module;
         private readonly DkmClrAppDomain _appDomain;
         private readonly Type _lmrType;
@@ -56,6 +68,11 @@ namespace Microsoft.VisualStudio.Debugger.Clr
             }
         }
 
+        internal System.Type UnderlyingType
+        {
+            get { return ((TypeImpl)_lmrType).Type; }
+        }
+
         internal DkmClrType MakeGenericType(params DkmClrType[] genericArguments)
         {
             var type = new DkmClrType(
@@ -74,10 +91,25 @@ namespace Microsoft.VisualStudio.Debugger.Clr
                 _lmrType.MakeArrayType());
         }
 
-        internal object Instantiate(params object[] args)
+        internal DkmClrValue Instantiate(params object[] args)
         {
-            var t = ((TypeImpl)_lmrType).Type;
-            return t.Instantiate(args);
+            return Instantiate(args, null, DkmEvaluationResultFlags.None);
+        }
+
+        internal DkmClrValue Instantiate(
+            object[] args,
+            string alias,
+            DkmEvaluationResultFlags evalFlags)
+        {
+            object value = UnderlyingType.Instantiate(args);
+            return new DkmClrValue(
+                value,
+                DkmClrValue.GetHostObjectValue(_lmrType, value),
+                this,
+                alias: alias,
+                evalFlags: evalFlags,
+                valueFlags: DkmClrValueFlags.None,
+                nativeComPointer: 0);
         }
 
         private static readonly ReadOnlyCollection<DkmClrType> s_emptyTypes = new ReadOnlyCollection<DkmClrType>(new DkmClrType[0]);
@@ -98,7 +130,7 @@ namespace Microsoft.VisualStudio.Debugger.Clr
             }
         }
 
-        public Type GetLmrType()
+        public virtual Type GetLmrType()
         {
             return _lmrType;
         }
@@ -166,11 +198,10 @@ namespace Microsoft.VisualStudio.Debugger.Clr
                 attributes.Add(new DkmClrDebuggerTypeProxyAttribute(new DkmClrType((TypeImpl)proxyType)));
             }
 
-            var members = type.GetMembers(TypeHelpers.MemberBindingFlags).Where(TypeHelpers.IsVisibleMember);
+            var members = type.GetMembers(MemberBindingFlags).Where(TypeHelpers.IsVisibleMember);
             foreach (var member in members)
             {
-                var attribute = GetBrowsableAttribute(type, member);
-                if (attribute != null)
+                foreach (var attribute in GetBrowsableAttributes(type, member))
                 {
                     attributes.Add(attribute);
                 }
@@ -191,18 +222,20 @@ namespace Microsoft.VisualStudio.Debugger.Clr
             return attributes.ToImmutableAndFree();
         }
 
-        private static DkmClrDebuggerBrowsableAttribute GetBrowsableAttribute(Type type, MemberInfo member)
+        private static ReadOnlyCollection<DkmClrDebuggerBrowsableAttribute> GetBrowsableAttributes(Type type, MemberInfo member)
         {
+            var attributes = ArrayBuilder<DkmClrDebuggerBrowsableAttribute>.GetInstance();
             foreach (var attribute in member.GetCustomAttributesData())
             {
                 var data = ((CustomAttributeDataImpl)attribute).CustomAttributeData;
                 if (data.AttributeType == typeof(DebuggerBrowsableAttribute))
                 {
                     var state = (DebuggerBrowsableState)data.ConstructorArguments[0].Value;
-                    return new DkmClrDebuggerBrowsableAttribute(member.Name, ConvertBrowsableState(state));
+                    attributes.Add(new DkmClrDebuggerBrowsableAttribute(member.Name, ConvertBrowsableState(state)));
                 }
             }
-            return null;
+
+            return attributes.ToImmutableAndFree();
         }
 
         private static DkmClrDebuggerBrowsableAttributeState ConvertBrowsableState(DebuggerBrowsableState state)
@@ -298,7 +331,8 @@ namespace Microsoft.VisualStudio.Debugger.Clr
                 else
                 {
                     debuggeeSideVisualizerTypeName = "Microsoft.VisualStudio.DebuggerVisualizers.VisualizerObjectSource";
-                    debuggeeSideVisualizerAssemblyName = "Microsoft.VisualStudio.DebuggerVisualizers, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
+                    var vsVersion = System.Environment.GetEnvironmentVariable("VisualStudioVersion") ?? "14.0";
+                    debuggeeSideVisualizerAssemblyName = $"Microsoft.VisualStudio.DebuggerVisualizers, Version={vsVersion}.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
                 }
 
                 string visualizerDescription = uiSideVisualizerTypeName;

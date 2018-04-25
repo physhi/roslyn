@@ -4,8 +4,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 {
     internal static class PredefinedBuildTools
     {
-        public static readonly string Build = FeaturesResources.BuildToolBuild;
-        public static readonly string EnC = FeaturesResources.BuildToolEnC;
-        public static readonly string Live = FeaturesResources.BuildToolLive;
+        public static readonly string Build = FeaturesResources.Compiler2;
+        public static readonly string Live = FeaturesResources.Live;
     }
 }

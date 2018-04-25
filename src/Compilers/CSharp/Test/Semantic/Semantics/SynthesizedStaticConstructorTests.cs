@@ -33,7 +33,7 @@ class C
 {
     int i1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -50,7 +50,7 @@ class C
     int i1;
     static int s1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -67,7 +67,7 @@ class C
     int i1;
     static int s1 = 1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -84,7 +84,7 @@ class C
     int i1;
     const int s1 = 1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -118,7 +118,7 @@ class C
 
     int i1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -137,7 +137,7 @@ class C
     int i1;
     static int s1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -156,7 +156,7 @@ class C
     int i1;
     static int s1 = 1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -175,7 +175,7 @@ class C
     int i1;
     const int s1 = 1;
 
-    static void Foo() { }
+    static void Goo() { }
 }";
 
             var typeSymbol = CompileAndExtractTypeSymbol(source);
@@ -183,7 +183,7 @@ class C
             Assert.False(IsBeforeFieldInit(typeSymbol));
         }
 
-        [WorkItem(543606, "DevDiv")]
+        [WorkItem(543606, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543606")]
         [Fact]
         public void SourceStaticConstructorConstantInitializersDecimal01()
         {
@@ -198,7 +198,7 @@ class C
             Assert.True(IsBeforeFieldInit(typeSymbol));
         }
 
-        [WorkItem(543606, "DevDiv")]
+        [WorkItem(543606, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543606")]
         [Fact]
         public void SourceStaticConstructorConstantInitializersDecimal02()
         {
@@ -215,7 +215,7 @@ class C
             Assert.False(IsBeforeFieldInit(typeSymbol));
         }
 
-        [WorkItem(543606, "DevDiv")]
+        [WorkItem(543606, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543606")]
         [Fact]
         public void SourceStaticConstructorConstantInitializersDecimal03()
         {
@@ -230,7 +230,7 @@ class C
             Assert.True(IsBeforeFieldInit(typeSymbol));
         }
 
-        [WorkItem(543606, "DevDiv")]
+        [WorkItem(543606, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543606")]
         [Fact]
         public void SourceStaticConstructorConstantInitializersDecimal04()
         {
@@ -247,7 +247,7 @@ class C
             Assert.False(IsBeforeFieldInit(typeSymbol));
         }
 
-        [WorkItem(543606, "DevDiv")]
+        [WorkItem(543606, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543606")]
         [Fact]
         public void SourceStaticConstructorConstantInitializersDecimal05()
         {
@@ -265,7 +265,7 @@ class C
 
         private static SourceNamedTypeSymbol CompileAndExtractTypeSymbol(string source)
         {
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
             var typeSymbol = (SourceNamedTypeSymbol)compilation.GlobalNamespace.GetMembers("C").Single();
             return typeSymbol;
         }

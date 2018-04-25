@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                return ContainingModule.ContainingAssembly;
+                return _containingSymbol.ContainingAssembly;
             }
         }
 
@@ -64,20 +64,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                return new NamespaceExtent(ContainingModule);
-            }
-        }
-
-        internal override ModuleSymbol ContainingModule
-        {
-            get
-            {
                 if (_containingSymbol.Kind == SymbolKind.NetModule)
                 {
-                    return (ModuleSymbol)_containingSymbol;
+                    return new NamespaceExtent((ModuleSymbol)_containingSymbol);
                 }
 
-                return _containingSymbol.ContainingModule;
+                return ((NamespaceSymbol)_containingSymbol).Extent;
             }
         }
 
@@ -86,7 +78,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return Hash.Combine(_containingSymbol.GetHashCode(), _name.GetHashCode());
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(Symbol obj, TypeCompareKind compareKind)
         {
             if (ReferenceEquals(this, obj))
             {
@@ -95,7 +87,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             MissingNamespaceSymbol other = obj as MissingNamespaceSymbol;
 
-            return (object)other != null && _name.Equals(other._name) && _containingSymbol.Equals(other._containingSymbol);
+            return (object)other != null && _name.Equals(other._name) && _containingSymbol.Equals(other._containingSymbol, compareKind);
         }
 
         public override ImmutableArray<Location> Locations

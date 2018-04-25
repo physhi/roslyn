@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Shared.Utilities
 {
@@ -62,7 +61,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
             Func<string, bool> canUse,
             bool isCaseSensitive = true)
         {
-            canUse = canUse ?? (s => true);
+            canUse ??= (s => true);
 
             // Don't enumerate as we will be modifying the collection in place.
             for (var i = 0; i < names.Count; i++)

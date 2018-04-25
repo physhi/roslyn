@@ -15,6 +15,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         LambdaMethod = 'b',
         LambdaDisplayClass = 'c',
         StateMachineType = 'd',
+        LocalFunction = 'g', // note collision with Deprecated_InitializerLocal, however this one is only used for method names
 
         // Used by EnC:
         AwaiterField = 'u',
@@ -37,15 +38,24 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         AsyncBuilderField = 't',
         DynamicCallSiteContainerType = 'o',
         DynamicCallSiteField = 'p',
+        AsyncIteratorPromiseOfValueOrEndBackingField = 'v',
+        DisposeModeField = 'w',
+        CombinedTokensField = 'x', // last
 
         // Deprecated - emitted by Dev12, but not by Roslyn.
         // Don't reuse the values because the debugger might encounter them when consuming old binaries.
-        [Obsolete] Deprecated_OuterscopeLocals = '6',
-        [Obsolete] Deprecated_IteratorInstance = 'a',
-        [Obsolete] Deprecated_InitializerLocal = 'g',
-        [Obsolete] Deprecated_AnonymousTypeTypeParameter = 'j',
-        [Obsolete] Deprecated_DynamicDelegate = 'q',
-        [Obsolete] Deprecated_ComrefCallLocal = 'r',
+        [Obsolete]
+        Deprecated_OuterscopeLocals = '6',
+        [Obsolete]
+        Deprecated_IteratorInstance = 'a',
+        [Obsolete]
+        Deprecated_InitializerLocal = 'g',
+        [Obsolete]
+        Deprecated_AnonymousTypeTypeParameter = 'j',
+        [Obsolete]
+        Deprecated_DynamicDelegate = 'q',
+        [Obsolete]
+        Deprecated_ComrefCallLocal = 'r',
     }
 
     internal static class GeneratedNameKindExtensions

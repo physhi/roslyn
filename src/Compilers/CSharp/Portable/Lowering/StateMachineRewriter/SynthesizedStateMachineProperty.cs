@@ -33,14 +33,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _name; }
         }
 
-        public override TypeSymbol Type
+        public override RefKind RefKind
         {
-            get { return _getter.ReturnType; }
+            get { return RefKind.None; }
         }
 
-        public override ImmutableArray<CustomModifier> TypeCustomModifiers
+        public override TypeWithAnnotations TypeWithAnnotations
         {
-            get { return _getter.ReturnTypeCustomModifiers; }
+            get { return _getter.ReturnTypeWithAnnotations; }
+        }
+
+        public override ImmutableArray<CustomModifier> RefCustomModifiers
+        {
+            get { return _getter.RefCustomModifiers; }
         }
 
         public override ImmutableArray<ParameterSymbol> Parameters

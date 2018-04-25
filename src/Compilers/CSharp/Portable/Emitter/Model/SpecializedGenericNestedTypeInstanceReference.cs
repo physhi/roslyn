@@ -3,7 +3,9 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.PooledObjects;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Microsoft.CodeAnalysis.CSharp.Emit
 {
@@ -20,7 +22,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         {
             Debug.Assert(underlyingNamedType.IsDefinition);
             // Definition doesn't have custom modifiers on type arguments
-            Debug.Assert(!underlyingNamedType.HasTypeArgumentsCustomModifiers);
+            Debug.Assert(!underlyingNamedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics.Any(a => a.CustomModifiers.Any()));
         }
 
         public sealed override void Dispatch(Cci.MetadataVisitor visitor)
@@ -32,21 +34,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         {
             PEModuleBuilder moduleBeingBuilt = (PEModuleBuilder)context.Module;
             var builder = ArrayBuilder<Cci.ITypeReference>.GetInstance();
-            foreach (TypeSymbol type in UnderlyingNamedType.TypeArgumentsNoUseSiteDiagnostics)
+            foreach (TypeWithAnnotations type in UnderlyingNamedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics)
             {
-                builder.Add(moduleBeingBuilt.Translate(type, syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt, diagnostics: context.Diagnostics));
+                builder.Add(moduleBeingBuilt.Translate(type.Type, syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt, diagnostics: context.Diagnostics));
             }
 
             return builder.ToImmutableAndFree();
         }
 
-        Cci.INamedTypeReference Cci.IGenericTypeInstanceReference.GenericType
+        Cci.INamedTypeReference Cci.IGenericTypeInstanceReference.GetGenericType(EmitContext context)
         {
-            get
-            {
-                System.Diagnostics.Debug.Assert(UnderlyingNamedType.OriginalDefinition.IsDefinition);
-                return this.UnderlyingNamedType.OriginalDefinition;
-            }
+            System.Diagnostics.Debug.Assert(UnderlyingNamedType.OriginalDefinition.IsDefinition);
+            PEModuleBuilder moduleBeingBuilt = (PEModuleBuilder)context.Module;
+            return moduleBeingBuilt.Translate(this.UnderlyingNamedType.OriginalDefinition, syntaxNodeOpt: (CSharpSyntaxNode)context.SyntaxNodeOpt,
+                                              diagnostics: context.Diagnostics, needDeclaration: true);
         }
 
         public override Cci.IGenericTypeInstanceReference AsGenericTypeInstanceReference

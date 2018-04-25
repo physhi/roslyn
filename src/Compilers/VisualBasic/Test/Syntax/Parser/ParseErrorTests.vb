@@ -18,7 +18,7 @@ Public Class ParseErrorTests
     Public Sub BC30004ERR_IllegalCharConstant()
         ParseAndVerify(<![CDATA[
                 class c
-                    function foo()
+                    function goo()
                         System.console.writeline(""c)
                         return 1
                     End function
@@ -43,7 +43,7 @@ Public Class ParseErrorTests
             Diagnostic(ERRID.ERR_LbExpectedEndIf, "#If True"))
     End Sub
 
-    <WorkItem(527211, "DevDiv")>
+    <WorkItem(527211, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527211")>
     <Fact()>
     Public Sub BC30012ERR_LbExpectedEndIf_2()
         ParseAndVerify(<![CDATA[
@@ -57,7 +57,7 @@ End Class
             Diagnostic(ERRID.ERR_LbExpectedEndIf, "#If True Then"))
     End Sub
 
-    <WorkItem(527211, "DevDiv")>
+    <WorkItem(527211, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527211")>
     <Fact()>
     Public Sub BC30012ERR_LbExpectedEndIf_3()
         ParseAndVerify(<![CDATA[
@@ -75,7 +75,7 @@ End Class
             Diagnostic(ERRID.ERR_LbExpectedEndIf, "#If True Then"))
     End Sub
 
-    <WorkItem(527211, "DevDiv")>
+    <WorkItem(527211, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527211")>
     <Fact()>
     Public Sub BC30012ERR_LbExpectedEndIf_4()
         ParseAndVerify(<![CDATA[
@@ -93,7 +93,7 @@ End Class
             Diagnostic(ERRID.ERR_LbExpectedEndIf, "#If True Then"))
     End Sub
 
-    <WorkItem(527211, "DevDiv")>
+    <WorkItem(527211, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527211")>
     <Fact()>
     Public Sub BC30012ERR_LbExpectedEndIf_5()
         ParseAndVerify(<![CDATA[
@@ -137,25 +137,25 @@ End Class
                 Namespace NS1
                     Module M1
                         Interface i1
-                            Sub foo()
+                            Sub goo()
                         End Interface
                         Public Class Class1
-                            Sub foo()
+                            Sub goo()
                             End Sub
-                            'COMPILEERROR: BC30018, "i1.foo"
-                            Delegate Sub foo1() Implements i1.foo
+                            'COMPILEERROR: BC30018, "i1.goo"
+                            Delegate Sub goo1() Implements i1.goo
                         End Class
                         Public Class Class2(Of t)
-                            Sub foo()
+                            Sub goo()
                             End Sub
-                            'COMPILEERROR: BC30018, "i1.foo"
-                            Delegate Sub foo1(Of tt)() Implements i1.foo
+                            'COMPILEERROR: BC30018, "i1.goo"
+                            Delegate Sub goo1(Of tt)() Implements i1.goo
                         End Class
                         Public Structure s1(Of t)
-                            Public Sub foo()
+                            Public Sub goo()
                             End Sub
-                            'COMPILEERROR: BC30018, "i1.foo"
-                            Delegate Sub foo1(Of tt)() Implements i1.foo
+                            'COMPILEERROR: BC30018, "i1.goo"
+                            Delegate Sub goo1(Of tt)() Implements i1.goo
                         End Structure
                     End Module
                 End Namespace
@@ -172,7 +172,7 @@ End Class
     Public Sub BC30018ERR_DelegateCantImplement_1()
         Dim code = <![CDATA[
                 Public Class D
-                    delegate sub delegate1() implements I1.foo
+                    delegate sub delegate1() implements I1.goo
                 End Class
             ]]>.Value
 
@@ -292,7 +292,7 @@ End Class
                              </errors>)
     End Sub
 
-    <WorkItem(537989, "DevDiv")>
+    <WorkItem(537989, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537989")>
     <Fact()>
     Public Sub BC30033ERR_IdTooLong_1()
         ' Error now happens at emit time.
@@ -306,7 +306,7 @@ End Class
             ]]>)
     End Sub
 
-    <WorkItem(537989, "DevDiv")>
+    <WorkItem(537989, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537989")>
     <Fact()>
     Public Sub BC30033ERR_IdTooLong_2()
         ' Error now happens at emit time.
@@ -318,7 +318,7 @@ End Class
             ]]>)
     End Sub
 
-    <Fact, WorkItem(530884, "DevDiv")>
+    <Fact, WorkItem(530884, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530884")>
     Public Sub BC30033ERR_IdTooLong_3()
         ' Identifiers 1023 characters (no errors)
         ParseAndVerify(<![CDATA[
@@ -461,7 +461,7 @@ End Structure
     Public Sub BC30035ERR_Syntax_8()
         ParseAndVerify(<![CDATA[
 Structure S1
-    Dim r = Sub() AddressOf Foo
+    Dim r = Sub() AddressOf Goo
 End Structure
     ]]>,
             <errors>
@@ -518,7 +518,7 @@ End Structure
     Public Sub BC30035ERR_Syntax_12()
         ParseAndVerify(<![CDATA[
 Structure S1
-    Sub FOO
+    Sub GOO
 7IC:
         GoTo 7IC
     End Sub
@@ -644,7 +644,7 @@ End Module
             </errors>)
     End Sub
 
-    <WorkItem(529861, "DevDiv")>
+    <WorkItem(529861, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529861")>
     <Fact>
     Public Sub Bug14632()
         ParseAndVerify(<![CDATA[
@@ -734,7 +734,7 @@ End Structure
     Public Sub BC30037ERR_IllegalChar_4()
         ParseAndVerify(<![CDATA[
                                 Class class1
-                                    Sub foo
+                                    Sub goo
                                         System.Console.WriteLine("a";"b")
                                     End Sub
                                 End Class
@@ -749,7 +749,7 @@ End Structure
     Public Sub BC30037ERR_IllegalChar_5()
         ParseAndVerify(<![CDATA[
                                 Class class1
-                                    Sub foo
+                                    Sub goo
                                         l1( $= l2)
                                     End Sub
                                 End Class
@@ -822,7 +822,7 @@ End Structure
     Public Sub BC30040ERR_MethodBodyNotAtLineStart()
         ParseAndVerify(<![CDATA[
     Public Class C1
-        Sub Foo() : Console.Writeline()
+        Sub Goo() : Console.Writeline()
         End Sub
     End Class
     ]]>,
@@ -844,24 +844,24 @@ End Module
 
     <Fact()>
     Public Sub BC30059ERR_RequiredConstExpr_1()
-        CreateCompilationWithMscorlibAndVBRuntime(
+        CreateCompilationWithMscorlib40AndVBRuntime(
         <compilation name="ArrayInitializerForNonConstDim">
             <file name="a.vb">
             Option Infer On
             Module Module1
                 Sub Main(args As String())
                 End Sub
-                Sub foo(Optional ByVal i As Integer(,) = New Integer(1, 1) {{1, 2}, {2, 3}}) 'Invalid
+                Sub goo(Optional ByVal i As Integer(,) = New Integer(1, 1) {{1, 2}, {2, 3}}) 'Invalid
                 End Sub
-                Sub foo(Optional ByVal i As Integer(,) = Nothing) ' OK
+                Sub goo(Optional ByVal i As Integer(,) = Nothing) ' OK
                 End Sub
             End Module
                 </file>
         </compilation>).VerifyDiagnostics(Diagnostic(ERRID.ERR_RequiredConstExpr, "New Integer(1, 1) {{1, 2}, {2, 3}}"),
-            Diagnostic(ERRID.ERR_OverloadWithDefault2, "foo").WithArguments("Public Sub foo([i As Integer(*,*)])", "Public Sub foo([i As Integer(*,*) = Nothing])"))
+            Diagnostic(ERRID.ERR_OverloadWithDefault2, "goo").WithArguments("Public Sub goo([i As Integer(*,*)])", "Public Sub goo([i As Integer(*,*) = Nothing])"))
     End Sub
 
-    <WorkItem(540174, "DevDiv")>
+    <WorkItem(540174, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540174")>
     <Fact()>
     Public Sub BC30060ERR_RequiredConstConversion2_PreprocessorStringToBoolean()
         ParseAndVerify(<![CDATA[
@@ -963,7 +963,7 @@ End Module
     Public Sub BC30066ERR_ExitPropNot_1()
         Dim code = <![CDATA[
                 Public Class C1
-                    Function FOO()
+                    Function GOO()
                 lb1:        Exit Property
                         Return Nothing
                     End Function
@@ -1006,7 +1006,7 @@ End Module
     Public Sub BC30081ERR_ExpectedEndIf()
         Dim code = <![CDATA[
                 Public Class C1
-                    Sub FOO()
+                    Sub GOO()
                         Dim i As Short
                         For i = 1 To 10
                             If (i = 1) Then
@@ -1035,7 +1035,6 @@ End Module
 
         ParseAndVerify(code, <errors>
                                  <error id="30081"/>
-                                 <error id="30198"/>
                              </errors>)
     End Sub
 
@@ -1055,7 +1054,6 @@ End Module
 
         ParseAndVerify(code, <errors>
                                  <error id="30081"/>
-                                 <error id="30198"/>
                              </errors>)
     End Sub
 
@@ -1087,7 +1085,7 @@ End Module
     Public Sub BC30083ERR_ExpectedLoop()
         Dim code = <![CDATA[
                 Public Class C1
-                    Sub FOO()
+                    Sub GOO()
                         Dim d = Sub() do 
                     End Sub
                 End Class
@@ -1104,7 +1102,7 @@ End Module
         Dim code = <![CDATA[
                 Namespace NS1
                     Module M1
-                        Sub foo()
+                        Sub goo()
                             #If True Then
                                 End If
                             #End If
@@ -1125,7 +1123,7 @@ End Module
                              </errors>)
     End Sub
 
-    <WorkItem(539515, "DevDiv")>
+    <WorkItem(539515, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539515")>
     <Fact()>
     Public Sub BC30087ERR_EndIfNoMatchingIf2()
         Dim code = <![CDATA[
@@ -1167,7 +1165,7 @@ End Module
                         Sub main()
                             End With
                         End Sub
-                        Sub foo()
+                        Sub goo()
                             Dim x As aaa
                             With x
                             End With
@@ -1206,7 +1204,7 @@ End Module
         Dim code = <![CDATA[
                 Class C1
                     'COMPILEERROR: BC30176, "friend"
-                    public friend foo1 as integer
+                    public friend goo1 as integer
                 End Class
             ]]>.Value
 
@@ -1222,7 +1220,7 @@ imports system
 
 Class C1
     Public f1 as New With { .Name = "John Smith", .Age = 34 }
-    Public Property foo as New With { .Name2 = "John Smith", .Age2 = 34 }
+    Public Property goo as New With { .Name2 = "John Smith", .Age2 = 34 }
     
     Public shared Sub Main(args() as string)
     End Sub
@@ -1239,7 +1237,7 @@ End Class
 
             Class C1
                 Public f1 as New With { .Name = "John Smith", .Age = 34 }
-                Public Property foo as New With { .Name2 = "John Smith", .Age2 = 34 }
+                Public Property goo as New With { .Name2 = "John Smith", .Age2 = 34 }
                 
                 Public shared Sub Main(args() as string)
                 End Sub
@@ -1303,7 +1301,7 @@ End Class
     Public Sub BC30183ERR_InvalidUseOfKeyword()
         Dim code = <![CDATA[
                 Class C1
-                    Sub foo
+                    Sub goo
                         If (True)
                             Dim continue = 1
                         End If
@@ -1358,13 +1356,13 @@ End Class
     End Sub
 
     ' No error during parsing.  Param array errors are reported during binding.
-    <WorkItem(536245, "DevDiv")>
-    <WorkItem(543652, "DevDiv")>
+    <WorkItem(536245, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/536245")>
+    <WorkItem(543652, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543652")>
     <Fact()>
     Public Sub BC30192ERR_ParamArrayMustBeLast()
         ParseAndVerify(<![CDATA[
                         Class C1
-                          Sub foo(byval Paramarray pArr1() as Integer, byval paramarray pArr2 as integer)
+                          Sub goo(byval Paramarray pArr1() as Integer, byval paramarray pArr2 as integer)
                           End Sub
                         End Class
                 ]]>)
@@ -1421,7 +1419,7 @@ End Class
             </errors>)
     End Sub
 
-    <WorkItem(542237, "DevDiv")>
+    <WorkItem(542237, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542237")>
     <Fact()>
     Public Sub BC30198ERR_ExpectedRparen_1()
         ParseAndVerify(<![CDATA[
@@ -1471,7 +1469,7 @@ End Class
         ParseAndVerify(<![CDATA[
                        Class C
                             Dim c1 As New C()
-                            Sub foo
+                            Sub goo
                                 Do
                                 Loop While c1 IsNot
                             End Sub
@@ -1521,10 +1519,10 @@ End Class
             </errors>)
     End Sub
 
-    <WorkItem(542238, "DevDiv")>
+    <WorkItem(542238, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542238")>
     <Fact()>
     Public Sub BC30201ERR_ExpectedExpression_3()
-        Dim compilation1 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+        Dim compilation1 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
 <compilation name="ArrayInitializerForNonConstDim">
     <file name="a.vb">
                         Imports System
@@ -1601,7 +1599,7 @@ BC30306: Array subscript expression missing.
     End Sub
 
     ' The parser does not report expected optional error message.  This error is reported during the declared phase when binding the method symbol parameters.
-    <Fact(), WorkItem(543658, "DevDiv")>
+    <Fact(), WorkItem(543658, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543658")>
     Public Sub BC30202ERR_ExpectedOptional()
         Dim code = <![CDATA[
                 Class C1
@@ -1646,7 +1644,7 @@ BC30306: Array subscript expression missing.
                              </errors>)
     End Sub
 
-    <WorkItem(537442, "DevDiv")>
+    <WorkItem(537442, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537442")>
     <Fact()>
     Public Sub BC30207ERR_InvalidOptionCompareWithXml()
         Dim code = "Option Compare <![CDATA[qqqqqq]]>" & vbCrLf
@@ -1657,7 +1655,7 @@ BC30306: Array subscript expression missing.
                              </errors>)
     End Sub
 
-    <WorkItem(527327, "DevDiv")>
+    <WorkItem(527327, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527327")>
     <Fact()>
     Public Sub BC30217ERR_ExpectedStringLiteral()
         Dim code = <![CDATA[
@@ -1696,7 +1694,7 @@ BC30306: Array subscript expression missing.
     Public Sub BC30238ERR_LoopDoubleCondition()
         Dim code = <![CDATA[
                 Structure S1
-                    Function foo()
+                    Function goo()
                         do  while (true)
                         Loop unit (false)
                     End Function
@@ -1730,15 +1728,34 @@ BC30306: Array subscript expression missing.
 
     <Fact()>
     Public Sub BC30241ERR_ExpectedNamedArgument()
-        Dim code = <![CDATA[
-                	<Attr1(1, b:=2, 3, e:="Scen1")> Class Class1
+        Dim tree = Parse(<![CDATA[
+<Attr1(1, b:=2, 3, e:="Scen1")>
+Class Class1
 
-	                End Class
-            ]]>.Value
+End Class
+]]>, options:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.VisualBasic15_3))
 
-        ParseAndVerify(code, <errors>
-                                 <error id="30241"/>
-                             </errors>)
+        tree.AssertTheseDiagnostics(<errors><![CDATA[
+BC37303: Named argument expected.
+<Attr1(1, b:=2, 3, e:="Scen1")>
+                ~
+                                    ]]></errors>)
+    End Sub
+
+    <Fact()>
+    Public Sub BC30241ERR_ExpectedNamedArgument_VBLatest()
+        Dim tree = Parse(<![CDATA[
+<Attr1(1, b:=2, 3, e:="Scen1")>
+Class Class1
+
+End Class
+]]>, options:=TestOptions.Regular.WithLanguageVersion(LanguageVersion.Latest))
+
+        tree.AssertTheseDiagnostics(<errors><![CDATA[
+BC37303: Named argument expected.
+<Attr1(1, b:=2, 3, e:="Scen1")>
+                ~
+                                    ]]></errors>)
     End Sub
 
     ' old name - ParseInvalidDirective_ERR_ExpectedConditionalDirective
@@ -1768,7 +1785,7 @@ BC30306: Array subscript expression missing.
                              </errors>)
     End Sub
 
-    <WorkItem(527673, "DevDiv")>
+    <WorkItem(527673, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527673")>
     <Fact()>
     Public Sub BC30311ERR_InvalidArrayInitialize()
         'This is used to verify that only a parse error only is generated for this scenario - as per the bug investigation
@@ -1790,19 +1807,28 @@ End Module
     End Sub
 
 
-    <WorkItem(527673, "DevDiv")>
-    <Fact(Skip:="527673")>
+    <WorkItem(527673, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527673")>
+    <WorkItem(99258, "https://devdiv.visualstudio.com/defaultcollection/DevDiv/_workitems#_a=edit&id=99258")>
+    <Fact>
     Public Sub BC30357ERR_BadInterfaceOrderOnInherits()
         Dim code = <![CDATA[
                 	Interface I1
-                        sub foo()
+                        sub goo()
                          Inherits System.Enum
                     End Interface
             ]]>.Value
 
-        ParseAndVerify(code, <errors>
-                                 <error id="30357"/>
-                             </errors>)
+        Const bug99258IsFixed = False
+
+        If bug99258IsFixed Then
+            ParseAndVerify(code, <errors>
+                                     <error id="30357"/>
+                                 </errors>)
+        Else
+            ParseAndVerify(code, <errors>
+                                     <error id="30603"/>
+                                 </errors>)
+        End If
     End Sub
 
     <Fact()>
@@ -1905,7 +1931,7 @@ End Module
             </errors>)
     End Sub
 
-    <WorkItem(527315, "DevDiv")>
+    <WorkItem(527315, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527315")>
     <Fact()>
     Public Sub BC30383ERR_EndTryNoTry()
         Dim code = <![CDATA[
@@ -1991,7 +2017,7 @@ End Module
                              </errors>)
     End Sub
 
-    <WorkItem(542117, "DevDiv")>
+    <WorkItem(542117, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542117")>
     <Fact()>
     Public Sub BC30579ERR_ExpectedEndExternalSource()
         Dim code = <![CDATA[
@@ -2004,10 +2030,10 @@ End Module
     Public Sub BC30604ERR_InvInsideEndsInterface()
         ParseAndVerify(<![CDATA[
                 Interface I
-                    Declare Sub Foo Lib "My"
+                    Declare Sub Goo Lib "My"
                 End Interface
             ]]>,
-            Diagnostic(ERRID.ERR_InvInsideInterface, "Declare Sub Foo Lib ""My"""))
+            Diagnostic(ERRID.ERR_InvInsideInterface, "Declare Sub Goo Lib ""My"""))
     End Sub
 
     <Fact()>
@@ -2032,12 +2058,12 @@ End Module
         Dim code = <![CDATA[
                 Public Enum e
                     e1
-                Class Foo
+                Class Goo
                 End Class
             ]]>.Value
         ParseAndVerify(code,
                        Diagnostic(ERRID.ERR_MissingEndEnum, "Public Enum e"),
-                       Diagnostic(ERRID.ERR_InvInsideEndsEnum, "Class Foo"))
+                       Diagnostic(ERRID.ERR_InvInsideEndsEnum, "Class Goo"))
     End Sub
 
     <Fact()>
@@ -2181,7 +2207,7 @@ End Module
     Public Sub BC30641ERR_MultipleParameterSpecifiers()
         ParseAndVerify(<![CDATA[
                 Structure S1
-                    Function foo(byref byval t as Double) as Double
+                    Function goo(byref byval t as Double) as Double
                     End Function
                 End Structure
             ]]>,
@@ -2194,7 +2220,7 @@ End Module
     Public Sub BC30641ERR_MultipleParameterSpecifiers_1()
         ParseAndVerify(<![CDATA[
                 interface I1
-                    Function foo(byref byval t as Double) as Double
+                    Function goo(byref byval t as Double) as Double
                 End interface
             ]]>,
         <errors>
@@ -2285,7 +2311,7 @@ End Module
     Public Sub BC30667ERR_ParamArrayMustBeByVal()
         Dim code = <![CDATA[
                        Module Module1
-                            Public Sub foo(ByRef ParamArray x() as string)
+                            Public Sub goo(ByRef ParamArray x() as string)
                             End Sub
                         End Module
             ]]>.Value
@@ -2321,10 +2347,10 @@ End Module
     Public Sub BC30675ERR_ExpectedEndSyncLock()
         Dim code = <![CDATA[
                 Module M1
-                    Public Sub foo(ByVal p1 As Long, ByVal p2 As Decimal)
+                    Public Sub goo(ByVal p1 As Long, ByVal p2 As Decimal)
                     End Sub
                     Sub test()
-                            foo(8,
+                            goo(8,
                                 synclock)
                     End Sub
                 End Module
@@ -2340,7 +2366,7 @@ End Module
     Public Sub BC30675ERR_ExpectedEndSyncLock_1()
         Dim code = <![CDATA[
                 Module M1
-                    Function foo
+                    Function goo
                         SyncLock
                     End Function
                 End Module
@@ -2394,7 +2420,7 @@ End Module
     ' old name - ParseRegion_ERR_ExpectedEndRegion
     <WorkItem(2908, "DevDiv_Projects/Roslyn")>
     <WorkItem(904877, "DevDiv/Personal")>
-    <WorkItem(527211, "DevDiv")>
+    <WorkItem(527211, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527211")>
     <Fact()>
     Public Sub BC30681ERR_ExpectedEndRegion()
         ParseAndVerify(<![CDATA[
@@ -2440,7 +2466,7 @@ End Module
     Public Sub BC30785ERR_DuplicateParameterSpecifier()
         Dim code = <![CDATA[
                 Class C1
-                    Sub foo(ByVal ParamArray paramarray() As Double)
+                    Sub goo(ByVal ParamArray paramarray() As Double)
                     end sub
                 End Class
             ]]>.Value
@@ -2478,7 +2504,7 @@ End Module
     Public Sub BC30804ERR_ObsoleteObjectNotVariant()
         Dim code = <![CDATA[
                 Module M1
-                    function foo() as variant
+                    function goo() as variant
                         return 1
                     end function
                 End Module
@@ -2489,7 +2515,7 @@ End Module
     End Sub
 
     ' bc30198 is more sensitive here
-    <WorkItem(527353, "DevDiv")>
+    <WorkItem(527353, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527353")>
     <Fact()>
     Public Sub BC30805ERR_ObsoleteArrayBounds()
         Dim code = <![CDATA[
@@ -2642,7 +2668,7 @@ End Module
                     Public Some As Object
                 End Class
                 Module M1
-                    Sub foo()
+                    Sub goo()
                         Const b = New Customer With {}
                         Const b1 as Object= New Customer With {}
                     End Sub
@@ -2654,7 +2680,7 @@ End Module
                              </errors>)
     End Sub
 
-    <WorkItem(538001, "DevDiv")>
+    <WorkItem(538001, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538001")>
     <Fact()>
     Public Sub BC30999ERR_LineContWithCommentOrNoPrecSpace()
         Dim code = <![CDATA[
@@ -2790,7 +2816,7 @@ End Module
     Diagnostic(ERRID.ERR_ExpectedIdentifier, "＿"))
     End Sub
 
-    <WorkItem(630127, "DevDiv")>
+    <WorkItem(630127, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/630127")>
     <Fact()>
     Public Sub BC30999_AtLineStart()
         ParseAndVerify(<![CDATA[
@@ -2870,58 +2896,57 @@ End Module
                 End Enum
             ]]>.Value
         ParseAndVerify(code,
-            Diagnostic(ERRID.ERR_InvInsideEnum, "if(true"),
-            Diagnostic(ERRID.ERR_ExpectedRparen, ""))
+            Diagnostic(ERRID.ERR_InvInsideEnum, "if(true,3,4)").WithLocation(5, 21))
     End Sub
 
     <Fact()>
     Public Sub BC31002ERR_InvInsideBlock_If_Class()
         Dim source = <text>
 If True
-    Class Foo
+    Class Goo
     
     End Class
 End If
 </text>.Value
 
         ParseAndVerify(source, TestOptions.Script,
-            Diagnostic(ERRID.ERR_InvInsideBlock, "Class Foo").WithArguments("If"))
+            Diagnostic(ERRID.ERR_InvInsideBlock, "Class Goo").WithArguments("If"))
     End Sub
 
     <Fact()>
     Public Sub BC31002ERR_InvInsideBlock_Do_Function()
         Dim source = <text>
 Do
-    Function Foo
+    Function Goo
     End Function
 Loop
 </text>.Value
 
         ParseAndVerify(source, TestOptions.Script,
-            Diagnostic(ERRID.ERR_InvInsideBlock, "Function Foo").WithArguments("Do Loop"))
+            Diagnostic(ERRID.ERR_InvInsideBlock, "Function Goo").WithArguments("Do Loop"))
     End Sub
 
     <Fact()>
     Public Sub BC31002ERR_InvInsideBlock_While_Sub()
         Dim source = <text>
 While True
-    Sub Foo
+    Sub Goo
     End Sub
 End While
 </text>.Value
 
         ParseAndVerify(source, TestOptions.Script,
-            Diagnostic(ERRID.ERR_InvInsideBlock, "Sub Foo").WithArguments("While"))
+            Diagnostic(ERRID.ERR_InvInsideBlock, "Sub Goo").WithArguments("While"))
     End Sub
 
-    <WorkItem(527330, "DevDiv")>
+    <WorkItem(527330, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527330")>
     <Fact()>
     Public Sub BC31085ERR_InvalidDate()
         Dim code = <![CDATA[
                 Class C1
                     Dim d2 As Date
                     Dim someDateAndTime As Date = #8/13/2002 29:14:00 PM#
-                    Sub foo()
+                    Sub goo()
                         d2 = #23/04/2002#
                         Dim da As Date = #02/29/2009#
                     End Sub
@@ -2937,7 +2962,7 @@ End While
     End Sub
 
     ' Not report 31118 for this case in Roslyn
-    <WorkItem(527344, "DevDiv")>
+    <WorkItem(527344, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527344")>
     <Fact()>
     Public Sub BC31118ERR_EndAddHandlerNotAtLineStart()
         Dim code = <![CDATA[
@@ -2956,7 +2981,7 @@ End While
     End Sub
 
     ' Not report 31119 for this case in Roslyn
-    <WorkItem(527310, "DevDiv")>
+    <WorkItem(527310, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527310")>
     <Fact()>
     Public Sub BC31119ERR_EndRemoveHandlerNotAtLineStart()
         Dim code = <![CDATA[
@@ -2981,7 +3006,7 @@ End While
     End Sub
 
     ' Not report 31120 for this case in Roslyn
-    <WorkItem(527309, "DevDiv")>
+    <WorkItem(527309, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527309")>
     <Fact()>
     Public Sub BC31120ERR_EndRaiseEventNotAtLineStart()
         Dim code = <![CDATA[
@@ -3145,7 +3170,7 @@ BC31154: XML declaration does not allow attribute 'xmlns'.
         ]]></errors>)
     End Sub
 
-    <WorkItem(537222, "DevDiv")>
+    <WorkItem(537222, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537222")>
     <Fact()>
     Public Sub BC31156ERR_VersionMustBeFirstInXmlDecl()
         Dim code = <![CDATA[
@@ -3182,7 +3207,7 @@ BC31154: XML declaration does not allow attribute 'xmlns'.
                              </errors>)
     End Sub
 
-    <WorkItem(538964, "DevDiv")>
+    <WorkItem(538964, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538964")>
     <Fact()>
     Public Sub BC31157ERR_AttributeOrder_1()
         Dim code = <![CDATA[
@@ -3203,7 +3228,7 @@ BC31154: XML declaration does not allow attribute 'xmlns'.
     Public Sub BC31161ERR_ExpectedXmlEndComment()
         Dim code = <![CDATA[
                 Module M1
-                    Sub Foo
+                    Sub Goo
                         Dim x = <!--hello
                     End Sub
                 End Module
@@ -3220,7 +3245,7 @@ BC31154: XML declaration does not allow attribute 'xmlns'.
     Public Sub BC31162ERR_ExpectedXmlEndCData()
         Dim code = <![CDATA[
                 Module M1
-                    Sub Foo()
+                    Sub Goo()
                         'COMPILEERROR : L3, BC31162, "e" 
 	                         Dim x = <![CDATA[
                     End Sub
@@ -3262,7 +3287,7 @@ BC31164: Expected matching closing double quote for XML attribute value.
         ]]></errors>)
     End Sub
 
-    <WorkItem(537218, "DevDiv")>
+    <WorkItem(537218, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537218")>
     <Fact()>
     Public Sub BC31175ERR_DTDNotSupported()
         Dim code = <![CDATA[
@@ -3296,7 +3321,7 @@ BC31164: Expected matching closing double quote for XML attribute value.
                              </errors>)
     End Sub
 
-    <WorkItem(542975, "DevDiv")>
+    <WorkItem(542975, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542975")>
     <Fact()>
     Public Sub BC31207ERR_XmlEndElementNoMatchingStart()
         Dim tree = Parse(<![CDATA[
@@ -3351,8 +3376,8 @@ BC31207: XML end element must be preceded by a matching start element.
     Public Sub BC32009ERR_MethodMustBeFirstStatementOnLine()
         ParseAndVerify(<![CDATA[
                 Namespace NS1
-                    Interface IVariance(Of Out T) : Function Foo() As T : End Interface
-                    Public Class Variance(Of T As New) : Implements IVariance(Of T) : Public Function Foo() As T Implements IVariance(Of T).Foo
+                    Interface IVariance(Of Out T) : Function Goo() As T : End Interface
+                    Public Class Variance(Of T As New) : Implements IVariance(Of T) : Public Function Goo() As T Implements IVariance(Of T).Goo
                             Return New T
                         End Function
                     End Class
@@ -3438,7 +3463,7 @@ End Class
                             newPropertyValue = value
                         End Set
                     End Property
-                    Sub Foo(Dt As Date = Nothing) 
+                    Sub Goo(Dt As Date = Nothing) 
                     End Sub
                 End Class
             ]]>.Value
@@ -3451,7 +3476,7 @@ End Class
     End Sub
 
     ' changed in roslyn
-    <WorkItem(527338, "DevDiv")>
+    <WorkItem(527338, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527338")>
     <Fact()>
     Public Sub BC32025ERR_RegionWithinMethod()
         ParseAndVerify(<![CDATA[
@@ -3465,7 +3490,7 @@ End Class
                         End Module
                         Class A
                             Public Sub New(ByVal sum As Integer)
-                        #region "Foo"
+                        #region "Goo"
                         #end region
                             End Sub
                         End Class
@@ -3491,7 +3516,7 @@ End Class
             </errors>)
     End Sub
 
-    <WorkItem(527316, "DevDiv")>
+    <WorkItem(527316, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527316")>
     <Fact()>
     Public Sub BC32027ERR_ExpectedDotAfterMyBase()
         Dim code = <![CDATA[
@@ -3570,7 +3595,7 @@ End Class
     End Sub
 
     ' not repro 32031 in this case for Roslyn
-    <WorkItem(527312, "DevDiv")>
+    <WorkItem(527312, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527312")>
     <Fact()>
     Public Sub BC32031ERR_EndSubNotAtLineStart()
         Dim code = <![CDATA[
@@ -3589,7 +3614,7 @@ End Class
     End Sub
 
     ' not report 32032 in this case for Roslyn
-    <WorkItem(527341, "DevDiv")>
+    <WorkItem(527341, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527341")>
     <Fact()>
     Public Sub BC32032ERR_EndFunctionNotAtLineStart()
         Dim code = <![CDATA[
@@ -3606,7 +3631,7 @@ End Class
     End Sub
 
     ' not report 32033 in this case for Roslyn
-    <WorkItem(527342, "DevDiv")>
+    <WorkItem(527342, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527342")>
     <Fact()>
     Public Sub BC32033ERR_EndGetNotAtLineStart()
         Dim code = <![CDATA[
@@ -3632,7 +3657,7 @@ End Class
     End Sub
 
     ' not report 32034 in this case for Roslyn
-    <WorkItem(527311, "DevDiv")>
+    <WorkItem(527311, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527311")>
     <Fact()>
     Public Sub BC32034ERR_EndSetNotAtLineStart()
         Dim code = <![CDATA[
@@ -3675,7 +3700,7 @@ End Class
                              </errors>)
     End Sub
 
-    <WorkItem(527311, "DevDiv")>
+    <WorkItem(527311, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527311")>
     <Fact()>
     Public Sub BC32037ERR_ExtraNextVariable()
         Dim code = <![CDATA[
@@ -3692,7 +3717,7 @@ End Class
                              </errors>)
     End Sub
 
-    <WorkItem(537219, "DevDiv")>
+    <WorkItem(537219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537219")>
     <Fact()>
     Public Sub BC32059ERR_OnlyNullLowerBound()
         Dim code = <![CDATA[
@@ -3707,7 +3732,7 @@ End Class
         ParseAndVerify(code).VerifySpanOfChildWithinSpanOfParent()
     End Sub
 
-    <WorkItem(537223, "DevDiv")>
+    <WorkItem(537223, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537223")>
     <Fact()>
     Public Sub BC32065ERR_GenericParamsOnInvalidMember()
         Dim code = <![CDATA[
@@ -3725,7 +3750,7 @@ End Class
                              </errors>).VerifySpanOfChildWithinSpanOfParent()
     End Sub
 
-    <WorkItem(537988, "DevDiv")>
+    <WorkItem(537988, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537988")>
     <Fact()>
     Public Sub BC32066ERR_GenericArgsOnAttributeSpecifier()
         Dim code = <![CDATA[
@@ -3755,7 +3780,7 @@ End Class
                              </errors>)
     End Sub
 
-    <WorkItem(527337, "DevDiv")>
+    <WorkItem(527337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527337")>
     <Fact()>
     Public Sub BC32092ERR_BadConstraintSyntax()
         Dim code = <![CDATA[
@@ -3774,7 +3799,7 @@ End Class
                 Namespace NS1
                     Module M1
                         Class GenCls(of T as new with{})	
-                            Function GenFoo(of U as new with{})   
+                            Function GenGoo(of U as new with{})   
                             End Function
                         End Class
 
@@ -3864,7 +3889,7 @@ End Class
                              </errors>)
     End Sub
 
-    <WorkItem(527308, "DevDiv")>
+    <WorkItem(527308, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527308")>
     <Fact()>
     Public Sub BC33006ERR_EndOperatorNotAtLineStart()
         Dim code = <![CDATA[
@@ -4057,10 +4082,10 @@ End Class
         Dim code = <![CDATA[
                 Module M 
                     Sub Main()
-                        Dim x = New With {Foo(Of String)} 
+                        Dim x = New With {Goo(Of String)} 
                         Dim y = New With { new with { .id = 1 } } 
                     End Sub
-                    Function Foo(Of T)()
+                    Function Goo(Of T)()
                         Return 1
                     End Function
                 End Module
@@ -4085,7 +4110,7 @@ End Class
                              </errors>)
     End Sub
 
-    <WorkItem(537985, "DevDiv")>
+    <WorkItem(537985, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537985")>
     <Fact()>
     Public Sub BC36605ERR_ExpectedBy()
         Dim code = <![CDATA[
@@ -4143,12 +4168,12 @@ End Namespace
                              </errors>)
     End Sub
 
-    <WorkItem(538492, "DevDiv")>
+    <WorkItem(538492, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538492")>
     <Fact()>
     Public Sub BC36618ERR_ExpectedOn_1()
         Dim code = <![CDATA[
                  Module M
-                    Sub FOO()
+                    Sub GOO()
                         Dim col1l = New List(Of Int16) From {1, 2, 3}
                         Dim col1la = New List(Of Int16) From {1, 2, 3}
                         Dim col1r = New List(Of Int16) From {1, 2, 3}
@@ -4163,7 +4188,7 @@ End Namespace
         ParseAndVerify(code)
     End Sub
 
-    <WorkItem(527317, "DevDiv")>
+    <WorkItem(527317, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527317")>
     <Fact()>
     Public Sub BC36619ERR_ExpectedEquals()
         Dim code = <![CDATA[
@@ -4227,7 +4252,7 @@ End Namespace
     Public Sub BC36637ERR_NullableCharNotSupported()
         Dim code = <![CDATA[
                 Class C1
-                    Public Function foo() As Short
+                    Public Function goo() As Short
                         Dim local As Short
                         return local?
                     End Function
@@ -4350,7 +4375,7 @@ End Namespace
 #Region "Targeted Warning Tests - please arrange tests in the order of error code"
 
     ' old name - ParseXmlDoc_WRNID_XMLDocNotFirstOnLine()
-    <WorkItem(527096, "DevDiv")>
+    <WorkItem(527096, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527096")>
     <Fact()>
     Public Sub BC42302WRN_XMLDocNotFirstOnLine()
         ParseAndVerify(<![CDATA[
@@ -4385,7 +4410,7 @@ End Namespace
             ]]>)
     End Sub
 
-    <WorkItem(530052, "DevDiv")>
+    <WorkItem(530052, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530052")>
     <Fact()>
     Public Sub BC42303WRN_XMLDocInsideMethod_NoError()
         ' NOTE: this error is not reported by parser
@@ -4479,7 +4504,7 @@ End Namespace
             Public ss As Long
             Implements I1
             Inherits c2
-            Sub foo()
+            Sub goo()
         End Class
     End Class
                 ]]>,
@@ -4492,7 +4517,7 @@ End Namespace
             Diagnostic(ERRID.ERR_ExpectedDeclaration, "deflng"),
             Diagnostic(ERRID.ERR_ImplementsStmtWrongOrder, "Implements I1"),
             Diagnostic(ERRID.ERR_InheritsStmtWrongOrder, "Inherits c2"),
-            Diagnostic(ERRID.ERR_EndSubExpected, "Sub foo()"))
+            Diagnostic(ERRID.ERR_EndSubExpected, "Sub goo()"))
     End Sub
 
     <WorkItem(930036, "DevDiv/Personal")>
@@ -4517,11 +4542,11 @@ End Namespace
                              </errors>).VerifyErrorsOnChildrenAlsoPresentOnParent()
     End Sub
 
-    <Fact(Skip:="527553"), WorkItem(537131, "DevDiv"), WorkItem(527922, "DevDiv"), WorkItem(527553, "DevDiv")>
+    <Fact, WorkItem(537131, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537131"), WorkItem(527922, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527922"), WorkItem(527553, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527553")>
     Public Sub TestNoAdjacentTriviaWithSameKind()
         Dim code = <![CDATA[
     module m1
-    sub foo
+    sub goo
     Dim x43 = <?xml version="1.0"?>
                               <?xmlspec abcd?>
                               <!-- <%= %= -->
@@ -4542,7 +4567,7 @@ End Namespace
                              </errors>).VerifyNoAdjacentTriviaHaveSameKind()
     End Sub
 
-    <WorkItem(537131, "DevDiv")>
+    <WorkItem(537131, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537131")>
     <Fact()>
     Public Sub TestNoAdjacentTriviaWithSameKind2()
         Dim code = <![CDATA[class c1
@@ -4553,8 +4578,8 @@ end c#@1]]>.Value
             Diagnostic(ERRID.ERR_UnrecognizedEnd, "end")).VerifyNoAdjacentTriviaHaveSameKind()
     End Sub
 
-    <WorkItem(538861, "DevDiv")>
-    <WorkItem(539509, "DevDiv")>
+    <WorkItem(538861, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538861")>
+    <WorkItem(539509, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539509")>
     <Fact>
     Public Sub TestIllegalTypeParams()
         Dim code = <![CDATA[Module Program(Of T)
@@ -4641,13 +4666,13 @@ BC31042: 'Sub New' cannot implement interface members.
         End Class
 
     Public Interface I1
-        Sub foo(ByVal x As Integer)
+        Sub goo(ByVal x As Integer)
     End Interface
     Class C
         'COMPILEERROR: BC30149, "I1"   <- not a parser error
         Implements I1
         'COMPILEERROR: BC31042, "new"
-        Private Sub New(ByVal x As Integer) Implements I1.foo
+        Private Sub New(ByVal x As Integer) Implements I1.goo
         End Sub
 
     End Class
@@ -4660,7 +4685,7 @@ BC31042: 'Sub New' cannot implement interface members.
                              </errors>).VerifySpanOfChildWithinSpanOfParent()
     End Sub
 
-    <WorkItem(541266, "DevDiv")>
+    <WorkItem(541266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541266")>
     <Fact()>
     Public Sub BC30182_ERR_UnrecognizedType()
 
@@ -4673,7 +4698,7 @@ BC31042: 'Sub New' cannot implement interface members.
         VisualBasicSyntaxTree.ParseText(code, options:=opt, path:="")
     End Sub
 
-    <WorkItem(541284, "DevDiv")>
+    <WorkItem(541284, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541284")>
     <Fact()>
     Public Sub ParseWithChrw0()
 
@@ -4686,7 +4711,7 @@ I<
         VisualBasicSyntaxTree.ParseText(code)
     End Sub
 
-    <WorkItem(541286, "DevDiv")>
+    <WorkItem(541286, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541286")>
     <Fact()>
     Public Sub BC33002ERR_OperatorNotOverloadable_ParseNotOverloadableOperators1()
 
@@ -4700,7 +4725,7 @@ End Class
         VisualBasicSyntaxTree.ParseText(code)
     End Sub
 
-    <WorkItem(541291, "DevDiv")>
+    <WorkItem(541291, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541291")>
     <Fact()>
     Public Sub RoundTrip()
         Dim code = <![CDATA[Dim=<><%=">
@@ -4710,7 +4735,7 @@ End Class
         Assert.Equal(code, tree.GetRoot().ToString())
     End Sub
 
-    <WorkItem(541293, "DevDiv")>
+    <WorkItem(541293, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541293")>
     <Fact()>
     Public Sub RoundTrip_1()
         Dim code = <![CDATA[Property)As new t(Of Integer) FROM {1, 2, 3}]]>.Value
@@ -4718,7 +4743,7 @@ End Class
         Assert.Equal(code, tree.GetRoot().ToString())
     End Sub
 
-    <WorkItem(541291, "DevDiv")>
+    <WorkItem(541291, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541291")>
     <Fact()>
     Public Sub RoundTrip_2()
         Dim code = <![CDATA[Dim=<><%={%>
@@ -4728,7 +4753,7 @@ End Class
         Assert.Equal(code, tree.GetRoot().ToString())
     End Sub
 
-    <WorkItem(716245, "DevDiv")>
+    <WorkItem(716245, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/716245")>
     <Fact>
     Public Sub ManySkippedTokens()
         Const numTokens As Integer = 500000 ' Prohibitively slow without fix.

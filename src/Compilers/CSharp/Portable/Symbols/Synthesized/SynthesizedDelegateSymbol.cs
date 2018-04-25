@@ -8,13 +8,16 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
 {
+    /// <summary>
+    /// Dynamic call-site delegate, for call-sites that do not
+    /// match System.Action or System.Func signatures.
+    /// </summary>
     internal sealed class SynthesizedDelegateSymbol : SynthesizedContainer
     {
         private readonly NamespaceOrTypeSymbol _containingSymbol;
         private readonly MethodSymbol _constructor;
         private readonly MethodSymbol _invoke;
 
-        // constructor for dynamic call-site delegate:
         public SynthesizedDelegateSymbol(
             NamespaceOrTypeSymbol containingSymbol,
             string name,
@@ -74,9 +77,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         }
 
         internal override NamedTypeSymbol BaseTypeNoUseSiteDiagnostics
-        {
-            get { return ContainingAssembly.GetSpecialType(SpecialType.System_MulticastDelegate); }
-        }
+            => ContainingAssembly.GetSpecialType(SpecialType.System_MulticastDelegate);
 
         private sealed class DelegateConstructor : SynthesizedInstanceConstructor
         {
@@ -86,8 +87,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 : base(containingType)
             {
                 _parameters = ImmutableArray.Create<ParameterSymbol>(
-                   new SynthesizedParameterSymbol(this, objectType, 0, RefKind.None, "object"),
-                   new SynthesizedParameterSymbol(this, intPtrType, 1, RefKind.None, "method"));
+                   SynthesizedParameterSymbol.Create(this, TypeWithAnnotations.Create(objectType), 0, RefKind.None, "object"),
+                   SynthesizedParameterSymbol.Create(this, TypeWithAnnotations.Create(intPtrType), 1, RefKind.None, "method"));
             }
 
             public override ImmutableArray<ParameterSymbol> Parameters
@@ -117,7 +118,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     // we don't need to distinguish between out and ref since this is an internal synthesized symbol:
                     var refKind = !byRefParameters.IsNull && byRefParameters[i] ? RefKind.Ref : RefKind.None;
 
-                    parameters[i] = new SynthesizedParameterSymbol(this, typeParams[i], i, refKind);
+                    parameters[i] = SynthesizedParameterSymbol.Create(this, TypeWithAnnotations.Create(typeParams[i]), i, refKind);
                 }
 
                 _parameters = parameters.AsImmutableOrNull();
@@ -208,7 +209,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             public override bool ReturnsVoid
             {
-                get { return _returnType.SpecialType == SpecialType.System_Void; }
+                get { return _returnType.IsVoidType(); }
             }
 
             public override bool IsAsync
@@ -216,14 +217,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 get { return false; }
             }
 
-            public override TypeSymbol ReturnType
+            public override RefKind RefKind
             {
-                get { return _returnType; }
+                get { return RefKind.None; }
             }
 
-            public override ImmutableArray<TypeSymbol> TypeArguments
+            public override TypeWithAnnotations ReturnTypeWithAnnotations
             {
-                get { return ImmutableArray<TypeSymbol>.Empty; }
+                get { return TypeWithAnnotations.Create(_returnType); }
+            }
+
+            public override FlowAnalysisAnnotations ReturnTypeFlowAnalysisAnnotations => FlowAnalysisAnnotations.None;
+
+            public override ImmutableHashSet<string> ReturnNotNullIfParameterNotNull => ImmutableHashSet<string>.Empty;
+
+            public override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotations
+            {
+                get { return ImmutableArray<TypeWithAnnotations>.Empty; }
             }
 
             public override ImmutableArray<TypeParameterSymbol> TypeParameters
@@ -241,7 +251,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 get { return ImmutableArray<MethodSymbol>.Empty; }
             }
 
-            public override ImmutableArray<CustomModifier> ReturnTypeCustomModifiers
+            public override ImmutableArray<CustomModifier> RefCustomModifiers
             {
                 get { return ImmutableArray<CustomModifier>.Empty; }
             }

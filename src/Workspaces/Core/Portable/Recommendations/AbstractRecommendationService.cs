@@ -2,8 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.Extensions.ContextQuery;
@@ -11,31 +14,38 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Recommendations
 {
-    internal abstract class AbstractRecommendationService : IRecommendationService
+    internal abstract class AbstractRecommendationService<TSyntaxContext> : IRecommendationService
+        where TSyntaxContext : SyntaxContext
     {
-        protected abstract Tuple<IEnumerable<ISymbol>, AbstractSyntaxContext> GetRecommendedSymbolsAtPositionWorker(
-            Workspace workspace, SemanticModel semanticModel, int position, OptionSet options, CancellationToken cancellationToken);
+        protected abstract Task<TSyntaxContext> CreateContext(
+            Workspace workspace, SemanticModel semanticModel, int position, CancellationToken cancellationToken);
 
-        public IEnumerable<ISymbol> GetRecommendedSymbolsAtPosition(
+        protected abstract AbstractRecommendationServiceRunner<TSyntaxContext> CreateRunner(
+            TSyntaxContext context, bool filterOutOfScopeLocals, CancellationToken cancellationToken);
+
+        public async Task<ImmutableArray<ISymbol>> GetRecommendedSymbolsAtPositionAsync(
             Workspace workspace, SemanticModel semanticModel, int position, OptionSet options, CancellationToken cancellationToken)
         {
-            var result = GetRecommendedSymbolsAtPositionWorker(workspace, semanticModel, position, options, cancellationToken);
+            var context = await CreateContext(workspace, semanticModel, position, cancellationToken).ConfigureAwait(false);
+            var filterOutOfScopeLocals = options.GetOption(RecommendationOptions.FilterOutOfScopeLocals, semanticModel.Language);
+            var symbols = CreateRunner(context, filterOutOfScopeLocals, cancellationToken).GetSymbols();
 
-            var symbols = result.Item1;
-            var context = new ShouldIncludeSymbolContext(result.Item2, cancellationToken);
+            var hideAdvancedMembers = options.GetOption(RecommendationOptions.HideAdvancedMembers, semanticModel.Language);
+            symbols = symbols.FilterToVisibleAndBrowsableSymbols(hideAdvancedMembers, semanticModel.Compilation);
 
-            symbols = symbols.Where(context.ShouldIncludeSymbol);
+            var shouldIncludeSymbolContext = new ShouldIncludeSymbolContext(context, cancellationToken);
+            symbols = symbols.WhereAsArray(shouldIncludeSymbolContext.ShouldIncludeSymbol);
             return symbols;
         }
 
         private sealed class ShouldIncludeSymbolContext
         {
-            private readonly AbstractSyntaxContext _context;
+            private readonly SyntaxContext _context;
             private readonly CancellationToken _cancellationToken;
             private IEnumerable<INamedTypeSymbol> _lazyOuterTypesAndBases;
             private IEnumerable<INamedTypeSymbol> _lazyEnclosingTypeBases;
 
-            internal ShouldIncludeSymbolContext(AbstractSyntaxContext context, CancellationToken cancellationToken)
+            internal ShouldIncludeSymbolContext(SyntaxContext context, CancellationToken cancellationToken)
             {
                 _context = context;
                 _cancellationToken = cancellationToken;
@@ -81,8 +91,10 @@ namespace Microsoft.CodeAnalysis.Recommendations
 
                 if (_context.IsAttributeNameContext)
                 {
-                    var enclosingSymbol = _context.SemanticModel.GetEnclosingNamedType(_context.LeftToken.SpanStart, _cancellationToken);
-                    return symbol.IsOrContainsAccessibleAttribute(enclosingSymbol, _context.SemanticModel.Compilation.Assembly);
+                    return symbol.IsOrContainsAccessibleAttribute(
+                        _context.SemanticModel.GetEnclosingNamedType(_context.LeftToken.SpanStart, _cancellationToken),
+                        _context.SemanticModel.Compilation.Assembly,
+                        _cancellationToken);
                 }
 
                 if (_context.IsEnumTypeMemberAccessContext)
@@ -102,8 +114,7 @@ namespace Microsoft.CodeAnalysis.Recommendations
                     }
                 }
 
-                var namespaceSymbol = symbol as INamespaceSymbol;
-                if (namespaceSymbol != null)
+                if (symbol is INamespaceSymbol namespaceSymbol)
                 {
                     return namespaceSymbol.ContainsAccessibleTypesOrNamespaces(_context.SemanticModel.Compilation.Assembly);
                 }

@@ -332,7 +332,7 @@ End Class
 ]]>)
         End Sub
 
-        <Fact(), WorkItem(9151, "DevDiv_Projects/Roslyn"), WorkItem(546096, "DevDiv")>
+        <Fact(), WorkItem(9151, "DevDiv_Projects/Roslyn"), WorkItem(546096, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546096")>
         Public Sub IterationVarInConditionalExpression()
             CompileAndVerify(
 <compilation>
@@ -414,7 +414,7 @@ End Class
 ]]>)
         End Sub
 
-        <Fact(), WorkItem(9151, "DevDiv_Projects/Roslyn"), WorkItem(546096, "DevDiv")>
+        <Fact(), WorkItem(9151, "DevDiv_Projects/Roslyn"), WorkItem(546096, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546096")>
         Public Sub TraversingNothing()
             Dim TEMP = CompileAndVerify(
 <compilation>
@@ -711,7 +711,7 @@ Class C
         For Each x In str
             System.Console.WriteLine(x)
         Next
-        For Each var In "foo"
+        For Each var In "goo"
             If Not var.[GetType]().Equals(GetType(Char)) Then
                 System.Console.WriteLine("False")
             End If
@@ -913,7 +913,7 @@ Class C
     End Sub
 End Class
     </file>
-</compilation>, options:=TestOptions.ReleaseExe.WithModuleName("MODULE"), additionalRefs:={LinqAssemblyRef}, expectedOutput:=<![CDATA[
+</compilation>, options:=TestOptions.ReleaseExe.WithModuleName("MODULE"), references:={LinqAssemblyRef}, expectedOutput:=<![CDATA[
 1
 2
 3
@@ -1798,7 +1798,7 @@ End Class
 ]]>)
         End Sub
 
-        <WorkItem(528679, "DevDiv")>
+        <WorkItem(528679, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528679")>
         <Fact>
         Public Sub TestForEachNested()
             Dim TEMP = CompileAndVerify(
@@ -1882,7 +1882,7 @@ End Class
 ]]>)
         End Sub
 
-        <WorkItem(542075, "DevDiv")>
+        <WorkItem(542075, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542075")>
         <Fact>
         Public Sub TestGetEnumeratorWithParams()
             Dim TEMP = CompileAndVerify(
@@ -1962,13 +1962,13 @@ Option Infer On
 Imports System.Collections
 Class Program
     Public  Shared Sub Main()
-        Foo(sub(x)
+        Goo(sub(x)
                 For Each y In x
                 Next
             end sub )
     End Sub
 
-    Public Shared Sub Foo(a As System.Action(Of IEnumerable))
+    Public Shared Sub Goo(a As System.Action(Of IEnumerable))
         System.Console.WriteLine(1)
     End Sub
 
@@ -2024,7 +2024,7 @@ End Class
 ]]>)
         End Sub
 
-        <WorkItem(542079, "DevDiv")>
+        <WorkItem(542079, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542079")>
         <Fact>
         Public Sub TestForEachStructEnumerable()
             Dim TEMP = CompileAndVerify(
@@ -2159,7 +2159,7 @@ End Structure
 ]]>)
         End Sub
 
-        <WorkItem(542079, "DevDiv")>
+        <WorkItem(542079, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542079")>
         <Fact>
         Public Sub TestForEachMutableStructEnumerableInterface()
             Dim TEMP = CompileAndVerify(
@@ -2273,7 +2273,7 @@ Class C1(Of S As {IEnumerator, IDisposable})
         Dim myCustomCollection As Custom(Of S) = nothing
 
         For Each element In myCustomCollection
-            Console.WriteLine("foo")
+            Console.WriteLine("goo")
         Next
     End Sub
 End Class 
@@ -2302,7 +2302,7 @@ End Class
   IL_0013:  callvirt   "Function System.Collections.IEnumerator.get_Current() As Object"
   IL_0018:  call       "Function System.Runtime.CompilerServices.RuntimeHelpers.GetObjectValue(Object) As Object"
   IL_001d:  pop
-  IL_001e:  ldstr      "foo"
+  IL_001e:  ldstr      "goo"
   IL_0023:  call       "Sub System.Console.WriteLine(String)"
   IL_0028:  ldloca.s   V_1
   IL_002a:  constrained. "S"
@@ -2346,7 +2346,7 @@ Class C1(Of S As {IEnumerator, IDisposable, Structure})
         Dim myCustomCollection As Custom(Of S) = nothing
 
         For Each element In myCustomCollection
-            Console.WriteLine("foo")
+            Console.WriteLine("goo")
         Next
     End Sub
 End Class 
@@ -2375,7 +2375,7 @@ End Class
   IL_0013:  callvirt   "Function System.Collections.IEnumerator.get_Current() As Object"
   IL_0018:  call       "Function System.Runtime.CompilerServices.RuntimeHelpers.GetObjectValue(Object) As Object"
   IL_001d:  pop
-  IL_001e:  ldstr      "foo"
+  IL_001e:  ldstr      "goo"
   IL_0023:  call       "Sub System.Console.WriteLine(String)"
   IL_0028:  ldloca.s   V_1
   IL_002a:  constrained. "S"
@@ -2471,7 +2471,7 @@ End Class
             ' there should be a check for null before calling Dispose
         End Sub
 
-        <WorkItem(542185, "DevDiv")>
+        <WorkItem(542185, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542185")>
         <Fact>
         Public Sub CustomDefinedType()
             Dim TEMP = CompileAndVerify(
@@ -2520,12 +2520,12 @@ Module Program
 End Module
 </file>
 </compilation>,
-            additionalRefs:={LinqAssemblyRef},
+            references:={LinqAssemblyRef},
             expectedOutput:="123")
 
         End Sub
 
-        <WorkItem(544311, "DevDiv")>
+        <WorkItem(544311, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544311")>
         <Fact()>
         Public Sub ForEachWithMultipleDimArray()
             CompileAndVerify(
@@ -2554,7 +2554,7 @@ End Module
 
         End Sub
 
-        <WorkItem(545519, "DevDiv")>
+        <WorkItem(545519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545519")>
         <Fact()>
         Public Sub NewForEachScopeDev11()
             Dim source =
@@ -2664,7 +2664,7 @@ End Module
 ]]>)
         End Sub
 
-        <WorkItem(545519, "DevDiv")>
+        <WorkItem(545519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545519")>
         <Fact()>
         Public Sub NewForEachScopeDev11_2()
             Dim source =
@@ -2754,7 +2754,7 @@ End Module
 ]]>)
         End Sub
 
-        <WorkItem(545519, "DevDiv")>
+        <WorkItem(545519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545519")>
         <Fact()>
         Public Sub NewForEachScopeDev11_3()
             Dim source =
@@ -2771,7 +2771,7 @@ Module m1
         for j = 0 to 2
             ' test lifting of control variable in loop body and lifting of control variable when used 
             ' in the collection expression itself.
-            for each i as integer in (function(a) foo())(i)
+            for each i as integer in (function(a) goo())(i)
                 x(i) = sub() console.write(i.toString &amp; " ")
             next
 
@@ -2783,7 +2783,7 @@ Module m1
         next j
     End Sub
 
-    function foo() as IEnumerable(of Integer)
+    function goo() as IEnumerable(of Integer)
         return new list(of integer) from {1, 2, 3}
     end function
 End Module
@@ -2880,7 +2880,7 @@ End Module
 ]]>)
         End Sub
 
-        <WorkItem(545519, "DevDiv")>
+        <WorkItem(545519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545519")>
         <Fact()>
         Public Sub NewForEachScopeDev11_4()
             Dim source =

@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
@@ -7,7 +7,6 @@ Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.Formatting.Rules
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Microsoft.CodeAnalysis.Simplification
 
@@ -68,8 +67,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
             Return VisualBasicCodeGenerator.GenerateResultAsync(insertionPoint, selectionResult, analyzeResult, cancellationToken)
         End Function
 
-        Protected Overrides Function GetFormattingRules(document As Document) As IEnumerable(Of IFormattingRule)
-            Return SpecializedCollections.SingletonEnumerable(Of IFormattingRule)(New FormattingRule()).Concat(Formatter.GetDefaultFormattingRules(document))
+        Protected Overrides Function GetFormattingRules(document As Document) As IEnumerable(Of AbstractFormattingRule)
+            Return SpecializedCollections.SingletonEnumerable(Of AbstractFormattingRule)(New FormattingRule()).Concat(Formatter.GetDefaultFormattingRules(document))
         End Function
 
         Protected Overrides Function GetMethodNameAtInvocation(methodNames As IEnumerable(Of SyntaxNodeOrToken)) As SyntaxToken
@@ -102,9 +101,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
                 Dim symbolInfo = binding.GetSpeculativeSymbolInfo(contextNode.SpanStart, typeName, SpeculativeBindingOption.BindAsTypeOrNamespace)
                 Dim currentType = TryCast(symbolInfo.Symbol, ITypeSymbol)
 
-                If currentType IsNot vbType Then
+                If Not AllNullabilityIgnoringSymbolComparer.Instance.Equals(currentType, typeParameter) Then
                     Return New OperationStatus(OperationStatusFlag.BestEffort,
-                        String.Format(FeaturesResources.TypeParameterIsHiddenByAnother,
+                        String.Format(FeaturesResources.Type_parameter_0_is_hidden_by_another_type_parameter_1,
                             typeParameter.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                             If(currentType Is Nothing, String.Empty, currentType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))))
                 End If
@@ -114,9 +113,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExtractMethod
         End Function
 
         Private Class FormattingRule
-            Inherits AbstractFormattingRule
+            Inherits CompatAbstractFormattingRule
 
-            Public Overrides Function GetAdjustNewLinesOperation(previousToken As SyntaxToken, currentToken As SyntaxToken, optionSet As OptionSet, nextOperation As NextOperation(Of AdjustNewLinesOperation)) As AdjustNewLinesOperation
+            Public Overrides Function GetAdjustNewLinesOperationSlow(previousToken As SyntaxToken, currentToken As SyntaxToken, optionSet As OptionSet, ByRef nextOperation As NextGetAdjustNewLinesOperation) As AdjustNewLinesOperation
                 If Not previousToken.IsLastTokenOfStatement() Then
                     Return nextOperation.Invoke()
                 End If

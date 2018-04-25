@@ -1,10 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editing;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.CodeGeneration
 {
@@ -14,7 +11,7 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
 
         protected CodeGenerationTypeSymbol(
             INamedTypeSymbol containingType,
-            IList<AttributeData> attributes,
+            ImmutableArray<AttributeData> attributes,
             Accessibility declaredAccessibility,
             DeclarationModifiers modifiers,
             string name,
@@ -26,81 +23,62 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
 
         public abstract TypeKind TypeKind { get; }
 
-        public virtual INamedTypeSymbol BaseType
-        {
-            get
-            {
-                return null;
-            }
-        }
+        public virtual INamedTypeSymbol BaseType => null;
 
         public virtual ImmutableArray<INamedTypeSymbol> Interfaces
-        {
-            get
-            {
-                return ImmutableArray.Create<INamedTypeSymbol>();
-            }
-        }
+            => ImmutableArray.Create<INamedTypeSymbol>();
 
         public ImmutableArray<INamedTypeSymbol> AllInterfaces
+            => ImmutableArray.Create<INamedTypeSymbol>();
+
+        public bool IsReferenceType => false;
+
+        public bool IsValueType => TypeKind == TypeKind.Struct || TypeKind == TypeKind.Enum;
+
+        public bool IsAnonymousType => false;
+
+        public bool IsTupleType => false;
+
+        public ImmutableArray<ITypeSymbol> TupleElementTypes => default;
+
+        public ImmutableArray<string> TupleElementNames => default;
+
+        public INamedTypeSymbol TupleUnderlyingType => null;
+
+        public new ITypeSymbol OriginalDefinition => this;
+
+        public ISymbol FindImplementationForInterfaceMember(ISymbol interfaceMember) => null;
+
+        public string ToDisplayString(NullableFlowState topLevelNullability, SymbolDisplayFormat format = null)
         {
-            get
-            {
-                return ImmutableArray.Create<INamedTypeSymbol>();
-            }
+            throw new System.NotImplementedException();
         }
 
-        public bool IsReferenceType
+        public ImmutableArray<SymbolDisplayPart> ToDisplayParts(NullableFlowState topLevelNullability, SymbolDisplayFormat format = null)
         {
-            get
-            {
-                return false;
-            }
+            throw new System.NotImplementedException();
         }
 
-        public bool IsValueType
+        public string ToMinimalDisplayString(SemanticModel semanticModel, NullableFlowState topLevelNullability, int position, SymbolDisplayFormat format = null)
         {
-            get
-            {
-                return false;
-            }
+            throw new System.NotImplementedException();
         }
 
-        public bool IsAnonymousType
+        public ImmutableArray<SymbolDisplayPart> ToMinimalDisplayParts(SemanticModel semanticModel, NullableFlowState topLevelNullability, int position, SymbolDisplayFormat format = null)
         {
-            get
-            {
-                return false;
-            }
+            throw new System.NotImplementedException();
         }
 
-        public new ITypeSymbol OriginalDefinition
-        {
-            get
-            {
-                return this;
-            }
-        }
+        public override bool IsNamespace => false;
 
-        public ISymbol FindImplementationForInterfaceMember(ISymbol interfaceMember)
-        {
-            return null;
-        }
+        public override bool IsType => true;
 
-        public override bool IsNamespace
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public bool IsSerializable => false;
 
-        public override bool IsType
-        {
-            get
-            {
-                return true;
-            }
-        }
+        bool ITypeSymbol.IsRefLikeType => throw new System.NotImplementedException();
+
+        bool ITypeSymbol.IsUnmanagedType => throw new System.NotImplementedException();
+
+        bool ITypeSymbol.IsReadOnly => Modifiers.IsReadOnly;
     }
 }

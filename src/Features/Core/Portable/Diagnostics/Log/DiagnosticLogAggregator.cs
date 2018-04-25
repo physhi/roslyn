@@ -26,6 +26,9 @@ namespace Microsoft.CodeAnalysis.Diagnostics.Log
             "Analyzer.OperationBlock",
             "Analyzer.OperationBlockEnd",
             "Analyzer.OperationBlockStart",
+            "Analyzer.SymbolEnd",
+            "Analyzer.SymbolStart",
+            "Analyzer.Suppression",
         };
 
         private readonly DiagnosticAnalyzerService _owner;
@@ -37,14 +40,11 @@ namespace Microsoft.CodeAnalysis.Diagnostics.Log
             _analyzerInfoMap = ImmutableDictionary<Type, AnalyzerInfo>.Empty;
         }
 
-        public IEnumerable<KeyValuePair<Type, AnalyzerInfo>> AnalyzerInfoMap
-        {
-            get { return _analyzerInfoMap; }
-        }
+        public IEnumerable<KeyValuePair<Type, AnalyzerInfo>> AnalyzerInfoMap => _analyzerInfoMap;
 
         public void UpdateAnalyzerTypeCount(DiagnosticAnalyzer analyzer, AnalyzerTelemetryInfo analyzerTelemetryInfo, Project projectOpt)
         {
-            var telemetry = DiagnosticAnalyzerLogger.AllowsTelemetry(_owner, analyzer, projectOpt?.Id);
+            var telemetry = DiagnosticAnalyzerLogger.AllowsTelemetry(analyzer, _owner);
 
             ImmutableInterlocked.AddOrUpdate(
                 ref _analyzerInfoMap,
@@ -86,6 +86,9 @@ namespace Microsoft.CodeAnalysis.Diagnostics.Log
                 Counts[11] = analyzerTelemetryInfo.OperationBlockActionsCount;
                 Counts[12] = analyzerTelemetryInfo.OperationBlockEndActionsCount;
                 Counts[13] = analyzerTelemetryInfo.OperationBlockStartActionsCount;
+                Counts[14] = analyzerTelemetryInfo.SymbolStartActionsCount;
+                Counts[15] = analyzerTelemetryInfo.SymbolEndActionsCount;
+                Counts[16] = analyzerTelemetryInfo.SuppressionActionsCount;
             }
         }
     }

@@ -7,7 +7,7 @@ Imports System.Reflection
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
-Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
+Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.UnitTests
 
     Public Class ResultsViewTests
         Inherits VisualBasicResultProviderTestBase
@@ -110,7 +110,7 @@ End Class"
             End Using
         End Sub
 
-        <WorkItem(1043746)>
+        <WorkItem(1043746, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1043746")>
         <Fact>
         Public Sub GetProxyPropertyValueError()
             Const source =
@@ -126,7 +126,7 @@ End Class"
             runtime = New DkmClrRuntimeInstance(ReflectionUtilities.GetMscorlibAndSystemCore(GetAssembly(source)), getMemberValue:=getMemberValue)
             Using runtime.Load()
                 Dim type = runtime.GetType("C")
-                Dim value = CreateDkmClrValue(type.Instantiate(), type:=type)
+                Dim value = type.Instantiate()
                 Dim result = FormatResult("o", value)
                 Verify(result,
                        EvalResult("o", "{C}", "C", "o", DkmEvaluationResultFlags.Expandable))
@@ -142,6 +142,43 @@ End Class"
                 children = GetChildren(children(0))
                 Verify(children,
                     EvalFailedResult("Error", "Unable to evaluate 'Items'", flags:=DkmEvaluationResultFlags.None))
+            End Using
+        End Sub
+
+        <Fact>
+        Public Sub NoSideEffects()
+            Const source =
+"Imports System.Collections
+Class C
+    Implements IEnumerable
+    Private e As IEnumerable
+    Sub New(e As IEnumerable)
+        Me.e = e
+    End Sub
+    Private Function F() As IEnumerator Implements IEnumerable.GetEnumerator
+        Return e.GetEnumerator()
+    End Function
+End Class"
+            Dim assembly = GetAssembly(source)
+            Dim assemblies = ReflectionUtilities.GetMscorlibAndSystemCore(assembly)
+            Using ReflectionUtilities.LoadAssemblies(assemblies)
+                Dim runtime = New DkmClrRuntimeInstance(assemblies)
+                Dim type = assembly.GetType("C")
+                Dim value = CreateDkmClrValue(
+                    value:=type.Instantiate(New Integer() {1, 2}),
+                    type:=runtime.GetType(CType(type, TypeImpl)))
+                Dim inspectionContext = CreateDkmInspectionContext(DkmEvaluationFlags.NoSideEffects)
+                Dim result = FormatResult("o", value, inspectionContext:=inspectionContext)
+                Verify(result,
+                       EvalResult("o", "{C}", "C", "o", DkmEvaluationResultFlags.Expandable))
+                Dim children = GetChildren(result, inspectionContext:=inspectionContext)
+                Verify(children,
+                    EvalResult(
+                        "e",
+                        "{Length=2}",
+                        "System.Collections.IEnumerable {Integer()}",
+                        "o.e",
+                        DkmEvaluationResultFlags.Expandable))
             End Using
         End Sub
 

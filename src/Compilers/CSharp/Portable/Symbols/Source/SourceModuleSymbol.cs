@@ -1,14 +1,16 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Emit;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
@@ -82,6 +84,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                         return Machine.ArmThumb2;
                     case Platform.X64:
                         return Machine.Amd64;
+                    case Platform.Arm64:
+                        return Machine.Arm64;
                     case Platform.Itanium:
                         return Machine.IA64;
                     default:
@@ -142,10 +146,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 if (_lazyContainsExplicitDefinitionOfNoPiaLocalTypes == ThreeState.Unknown)
                 {
-                    // TODO: This will recursively visit all top level types and bind attributes on them.
-                    //       This might be very expensive to do, but explicitly declared local types are 
-                    //       very uncommon. We should consider optimizing this by analyzing syntax first, 
-                    //       for example, the way VB handles ExtensionAttribute, etc.
                     _lazyContainsExplicitDefinitionOfNoPiaLocalTypes = NamespaceContainsExplicitDefinitionOfNoPiaLocalTypes(GlobalNamespace).ToThreeState();
                 }
 
@@ -187,16 +187,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 if ((object)_globalNamespace == null)
                 {
-                    Interlocked.CompareExchange(ref _globalNamespace, MakeGlobalNamespace(), null);
+                    var diagnostics = DiagnosticBag.GetInstance();
+                    var globalNS = new SourceNamespaceSymbol(
+                        this, this, DeclaringCompilation.MergedRootDeclaration, diagnostics);
+                    Debug.Assert(diagnostics.IsEmptyWithoutResolution);
+                    diagnostics.Free();
+                    Interlocked.CompareExchange(ref _globalNamespace, globalNS, null);
                 }
 
                 return _globalNamespace;
             }
-        }
-
-        private SourceNamespaceSymbol MakeGlobalNamespace()
-        {
-            return new SourceNamespaceSymbol(this, this, _sources.MergedRoot);
         }
 
         internal sealed override bool RequiresCompletion
@@ -348,9 +348,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 if (_locations.IsDefault)
                 {
-                    ImmutableInterlocked.InterlockedCompareExchange(ref _locations,
-                        _sources.AllRootNamespacesUnordered().Select(n => n.Location).AsImmutable<Location>(),
-                        default(ImmutableArray<Location>));
+                    ImmutableInterlocked.InterlockedInitialize(
+                        ref _locations,
+                        DeclaringCompilation.MergedRootDeclaration.Declarations.SelectAsArray(d => (Location)d.Location));
                 }
 
                 return _locations;
@@ -479,7 +479,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// <remarks>
         /// Forces binding and decoding of attributes.
         /// </remarks>
-        internal CommonModuleWellKnownAttributeData GetDecodedWellKnownAttributeData()
+        private CommonModuleWellKnownAttributeData GetDecodedWellKnownAttributeData()
         {
             var attributesBag = _lazyCustomAttributesBag;
             if (attributesBag == null || !attributesBag.IsDecodedWellKnownAttributeDataComputed)
@@ -511,11 +511,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     arguments.GetOrCreateData<CommonModuleWellKnownAttributeData>().DefaultCharacterSet = charSet;
                 }
             }
+            else if (attribute.IsTargetAttribute(this, AttributeDescription.NullableContextAttribute))
+            {
+                ReportExplicitUseOfNullabilityAttribute(in arguments, AttributeDescription.NullableContextAttribute);
+            }
+            else if (attribute.IsTargetAttribute(this, AttributeDescription.NullablePublicOnlyAttribute))
+            {
+                ReportExplicitUseOfNullabilityAttribute(in arguments, AttributeDescription.NullablePublicOnlyAttribute);
+            }
         }
 
-        internal override void AddSynthesizedAttributes(ModuleCompilationState compilationState, ref ArrayBuilder<SynthesizedAttributeData> attributes)
+        internal override void AddSynthesizedAttributes(PEModuleBuilder moduleBuilder, ref ArrayBuilder<SynthesizedAttributeData> attributes)
         {
-            base.AddSynthesizedAttributes(compilationState, ref attributes);
+            base.AddSynthesizedAttributes(moduleBuilder, ref attributes);
 
             var compilation = _assemblySymbol.DeclaringCompilation;
             if (compilation.Options.AllowUnsafe)
@@ -526,6 +534,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     AddSynthesizedAttribute(ref attributes, compilation.TrySynthesizeAttribute(
                         WellKnownMember.System_Security_UnverifiableCodeAttribute__ctor));
                 }
+            }
+
+            if (moduleBuilder.ShouldEmitNullablePublicOnlyAttribute())
+            {
+                var includesInternals = ImmutableArray.Create(
+                    new TypedConstant(compilation.GetSpecialType(SpecialType.System_Boolean), TypedConstantKind.Primitive, _assemblySymbol.InternalsAreVisible));
+                AddSynthesizedAttribute(ref attributes, moduleBuilder.SynthesizeNullablePublicOnlyAttribute(includesInternals));
             }
         }
 
@@ -555,5 +570,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return data != null && data.HasDefaultCharSetAttribute ? data.DefaultCharacterSet : (CharSet?)null;
             }
         }
+
+        public override ModuleMetadata GetMetadata() => null;
     }
 }

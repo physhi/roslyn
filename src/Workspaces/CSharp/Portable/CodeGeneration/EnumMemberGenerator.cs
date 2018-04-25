@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
             var member = SyntaxFactory.EnumMemberDeclaration(enumMember.Name.ToIdentifierToken())
                 .WithEqualsValue(value == null ? null : SyntaxFactory.EqualsValueClause(value: value));
 
-            return AddCleanupAnnotationsTo(
+            return AddFormatterAndCodeGeneratorAnnotationsTo(
                 ConditionallyAddDocumentationCommentTo(member, enumMember, options));
         }
 
@@ -139,13 +139,18 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
                                 return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression,
                                     SyntaxFactory.Literal(numericText.Substring(0, 2) + value.ToString("X"), value));
                             }
+                            else if (numericText.StartsWith("0b", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression,
+                                    SyntaxFactory.Literal(numericText.Substring(0, 2) + Convert.ToString(value, 2), value));
+                            }
                         }
                     }
                 }
             }
 
             var namedType = enumMember.Type as INamedTypeSymbol;
-            var underlyingType = namedType != null ? namedType.EnumUnderlyingType : null;
+            var underlyingType = namedType?.EnumUnderlyingType;
 
             return ExpressionGenerator.GenerateNonEnumValueExpression(
                 underlyingType,

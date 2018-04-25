@@ -1,15 +1,17 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
+using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 {
     /// <summary>
-    /// Decodes <see cref="System.Runtime.CompilerServices.DynamicAttribute"/> applied to a specified metadata symbol and
+    /// Decodes System.Runtime.CompilerServices.DynamicAttribute applied to a specified metadata symbol and
     /// transforms the specified metadata type, using the decoded dynamic transforms attribute argument,
     /// by replacing each occurrence of <see cref="System.Object"/> type with dynamic type.
     /// </summary>
@@ -48,10 +50,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         /// <summary>
-        /// Decodes the attributes applied to the given <see paramref="targetSymbol"/> from metadata and checks if <see cref="System.Runtime.CompilerServices.DynamicAttribute"/> is applied.
+        /// Decodes the attributes applied to the given <see paramref="targetSymbol"/> from metadata and checks if System.Runtime.CompilerServices.DynamicAttribute is applied.
         /// If so, it transforms the given <see paramref="metadataType"/>, using the decoded dynamic transforms attribute argument,
         /// by replacing each occurrence of <see cref="System.Object"/> type with dynamic type.
-        /// If no <see cref="System.Runtime.CompilerServices.DynamicAttribute"/> is applied or the decoded dynamic transforms attribute argument is erroneous,
+        /// If no System.Runtime.CompilerServices.DynamicAttribute is applied or the decoded dynamic transforms attribute argument is erroneous,
         /// returns the unchanged <see paramref="metadataType"/>.
         /// </summary>
         /// <remarks>This method is a port of TypeManager::ImportDynamicTransformType from the native compiler.</remarks>
@@ -84,7 +86,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             ImmutableArray<bool> dynamicTransformFlags,
             bool checkLength = true)
         {
-            Debug.Assert(containingAssembly is SourceAssemblySymbol); // Doesn't happen during decoding.
             return TransformTypeInternal(
                 type,
                 containingAssembly,
@@ -137,7 +138,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             Debug.Assert(_index >= 0);
 
             if (!HasFlag ||
-                PeekFlag() && type.SpecialType != SpecialType.System_Object)
+                PeekFlag() && (type.SpecialType != SpecialType.System_Object && !type.IsDynamic()))
             {
                 // Bail, since flags are invalid.
                 return null;
@@ -206,6 +207,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
         private NamedTypeSymbol TransformNamedType(NamedTypeSymbol namedType, bool isContaining = false)
         {
+            if (namedType.IsTupleType)
+            {
+                return TransformTupleType(namedType, isContaining);
+            }
+
             // Native compiler encodes a bool for the given namedType, but none for its containing types.
             if (!isContaining)
             {
@@ -231,10 +237,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
 
             // Native compiler encodes bools for each type argument, starting from type arguments for the outermost containing type to those for the given namedType.
-            ImmutableArray<TypeSymbol> typeArguments = namedType.TypeArgumentsNoUseSiteDiagnostics;
-            var customModifiers = namedType.HasTypeArgumentsCustomModifiers ? namedType.TypeArgumentsCustomModifiers : default(ImmutableArray<ImmutableArray<CustomModifier>>);
+            ImmutableArray<TypeWithAnnotations> typeArguments = namedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics;
 
-            ImmutableArray<TypeSymbol> transformedTypeArguments = TransformTypeArguments(typeArguments); // Note, modifiers are not involved, this is behavior of the native compiler.
+            ImmutableArray<TypeWithAnnotations> transformedTypeArguments = TransformTypeArguments(typeArguments); // Note, modifiers are not involved, this is behavior of the native compiler.
 
             if (transformedTypeArguments.IsDefault)
             {
@@ -242,21 +247,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
 
             // Construct a new namedType, if required.
-            bool containerIsChanged = (newContainingType != containingType);
+            bool containerIsChanged = (!TypeSymbol.Equals(newContainingType, containingType, TypeCompareKind.ConsiderEverything2));
 
             if (containerIsChanged || transformedTypeArguments != typeArguments)
             {
-                var newTypeArguments = customModifiers.IsDefault ?
-                                       transformedTypeArguments.SelectAsArray(TypeMap.TypeSymbolAsTypeWithModifiers) :
-                                       transformedTypeArguments.Zip(customModifiers, (t, m) => new TypeWithModifiers(t, m)).AsImmutable();
-
                 if (containerIsChanged)
                 {
                     namedType = namedType.OriginalDefinition.AsMember(newContainingType);
-                    return namedType.ConstructIfGeneric(newTypeArguments);
+                    return namedType.ConstructIfGeneric(transformedTypeArguments);
                 }
 
-                return namedType.ConstructedFrom.Construct(newTypeArguments, unbound: false);
+                return namedType.ConstructedFrom.Construct(transformedTypeArguments, unbound: false);
             }
             else
             {
@@ -264,26 +265,44 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
-        private ImmutableArray<TypeSymbol> TransformTypeArguments(ImmutableArray<TypeSymbol> typeArguments)
+        private NamedTypeSymbol TransformTupleType(NamedTypeSymbol tupleType, bool isContaining)
+        {
+            Debug.Assert(tupleType.IsTupleType);
+
+            var underlying = tupleType.TupleUnderlyingType;
+            var transformedUnderlying = TransformNamedType(underlying, isContaining);
+
+            if ((object)transformedUnderlying == null)
+            {
+                // Bail, something is wrong with the flags.
+                // the dynamic transformation should be ignored.
+                return null;
+            }
+
+            return TupleTypeSymbol.Create(transformedUnderlying, tupleType.TupleElementNames);
+        }
+
+        private ImmutableArray<TypeWithAnnotations> TransformTypeArguments(ImmutableArray<TypeWithAnnotations> typeArguments)
         {
             if (!typeArguments.Any())
             {
                 return typeArguments;
             }
 
-            var transformedTypeArgsBuilder = ArrayBuilder<TypeSymbol>.GetInstance();
+            var transformedTypeArgsBuilder = ArrayBuilder<TypeWithAnnotations>.GetInstance();
             bool anyTransformed = false;
             foreach (var typeArg in typeArguments)
             {
-                TypeSymbol transformedTypeArg = TransformType(typeArg);
+                TypeSymbol transformedTypeArg = TransformType(typeArg.Type);
                 if ((object)transformedTypeArg == null)
                 {
                     transformedTypeArgsBuilder.Free();
-                    return default(ImmutableArray<TypeSymbol>);
+                    return default(ImmutableArray<TypeWithAnnotations>);
                 }
 
-                transformedTypeArgsBuilder.Add(transformedTypeArg);
-                anyTransformed |= transformedTypeArg != typeArg;
+                // Note, modifiers are not involved, this is behavior of the native compiler.
+                transformedTypeArgsBuilder.Add(typeArg.WithTypeAndModifiers(transformedTypeArg, typeArg.CustomModifiers));
+                anyTransformed |= !TypeSymbol.Equals(transformedTypeArg, typeArg.Type, TypeCompareKind.ConsiderEverything2);
             }
 
             if (!anyTransformed)
@@ -300,7 +319,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             var flag = ConsumeFlag();
             Debug.Assert(!flag);
 
-            if (!HandleCustomModifiers(arrayType.CustomModifiers.Length))
+            if (!HandleCustomModifiers(arrayType.ElementTypeWithAnnotations.CustomModifiers.Length))
             {
                 return null;
             }
@@ -311,11 +330,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 return null;
             }
 
-            return transformedElementType == arrayType.ElementType ?
+            return TypeSymbol.Equals(transformedElementType, arrayType.ElementType, TypeCompareKind.ConsiderEverything2) ?
                 arrayType :
                 arrayType.IsSZArray ?
-                    ArrayTypeSymbol.CreateSZArray(_containingAssembly, transformedElementType, arrayType.CustomModifiers) :
-                    ArrayTypeSymbol.CreateMDArray(_containingAssembly, transformedElementType, arrayType.Rank, arrayType.Sizes, arrayType.LowerBounds, arrayType.CustomModifiers);
+                    ArrayTypeSymbol.CreateSZArray(_containingAssembly, arrayType.ElementTypeWithAnnotations.WithTypeAndModifiers(transformedElementType, arrayType.ElementTypeWithAnnotations.CustomModifiers)) :
+                    ArrayTypeSymbol.CreateMDArray(_containingAssembly, arrayType.ElementTypeWithAnnotations.WithTypeAndModifiers(transformedElementType, arrayType.ElementTypeWithAnnotations.CustomModifiers), arrayType.Rank, arrayType.Sizes, arrayType.LowerBounds);
         }
 
         private PointerTypeSymbol TransformPointerType(PointerTypeSymbol pointerType)
@@ -323,7 +342,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             var flag = ConsumeFlag();
             Debug.Assert(!flag);
 
-            if (!HandleCustomModifiers(pointerType.CustomModifiers.Length))
+            if (!HandleCustomModifiers(pointerType.PointedAtTypeWithAnnotations.CustomModifiers.Length))
             {
                 return null;
             }
@@ -334,9 +353,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 return null;
             }
 
-            return transformedPointedAtType == pointerType.PointedAtType ?
+            return TypeSymbol.Equals(transformedPointedAtType, pointerType.PointedAtType, TypeCompareKind.ConsiderEverything2) ?
                 pointerType :
-                new PointerTypeSymbol(transformedPointedAtType, pointerType.CustomModifiers);
+                new PointerTypeSymbol(pointerType.PointedAtTypeWithAnnotations.WithTypeAndModifiers(transformedPointedAtType, pointerType.PointedAtTypeWithAnnotations.CustomModifiers));
         }
 
         private bool HasFlag => _index < _dynamicTransformFlags.Length || !_checkLength;

@@ -1,15 +1,15 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
 Imports Microsoft.VisualStudio.Text.Projection
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
+    <[UseExportProvider]>
     Public Class VisualBasicCompletionCommandHandlerTests_Projections
 
         <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestSimpleWithJustSubjectBuffer() As Task
-            Using state = TestState.CreateVisualBasicTestState(
+            Using state = TestStateFactory.CreateVisualBasicTestState(
                 <Document><![CDATA[
 Option Strict Off
 Option Explicit On
@@ -35,7 +35,6 @@ End Namespace
                 state.SendTypeChars(".")
                 Await state.AssertCompletionSession()
                 state.SendTypeChars("Curr")
-                Await state.WaitForAsynchronousOperationsAsync()
                 Await state.AssertSelectedCompletionItem(displayText:="CurrentDomain")
                 state.SendTab()
                 Assert.Contains("__o = AppDomain.CurrentDomain", state.GetLineTextFromCaretPosition(), StringComparison.Ordinal)
@@ -44,11 +43,11 @@ End Namespace
 
         <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestAfterDot() As Task
-            Using state = TestState.CreateVisualBasicTestState(
+            Using state = TestStateFactory.CreateVisualBasicTestState(
                 <Document><![CDATA[
 {|S2:
 Class C
-    Sub Foo()
+    Sub Goo()
         System$$
     End Sub
 End Class
@@ -66,26 +65,24 @@ End Class
 {|S2:&lt;/html&gt;|}
                               </Document>.NormalizedValue, {firstProjection}, LanguageNames.VisualBasic, options:=ProjectionBufferOptions.WritableLiteralSpans)
 
-
                 Dim view = topProjectionBuffer.GetTextView()
                 Dim buffer = subjectDocument.GetTextBuffer()
 
                 state.SendTypeCharsToSpecificViewAndBuffer(".", view, buffer)
-                Await state.AssertCompletionSession()
+                Await state.AssertCompletionSession(view)
 
                 state.SendTypeCharsToSpecificViewAndBuffer("Cons", view, buffer)
-                Await state.WaitForAsynchronousOperationsAsync()
-                Await state.AssertSelectedCompletionItem(displayText:="Console")
+                Await state.AssertSelectedCompletionItem(displayText:="Console", projectionsView:=view)
             End Using
         End Function
 
         <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestInObjectCreationExpression() As Task
-            Using state = TestState.CreateVisualBasicTestState(
+            Using state = TestStateFactory.CreateVisualBasicTestState(
                 <Document><![CDATA[
 {|S2:
 Class C
-    Sub Foo()
+    Sub Goo()
         Dim s As New$$
     End Sub
 End Class
@@ -103,16 +100,14 @@ End Class
 {|S2:&lt;/html&gt;|}
                               </Document>.NormalizedValue, {firstProjection}, LanguageNames.CSharp, options:=ProjectionBufferOptions.WritableLiteralSpans)
 
-
                 Dim view = topProjectionBuffer.GetTextView()
                 Dim buffer = subjectDocument.GetTextBuffer()
 
                 state.SendTypeCharsToSpecificViewAndBuffer(" ", view, buffer)
-                Await state.AssertCompletionSession()
+                Await state.AssertCompletionSession(view)
 
                 state.SendTypeCharsToSpecificViewAndBuffer("Str", view, buffer)
-                Await state.WaitForAsynchronousOperationsAsync()
-                Await state.AssertSelectedCompletionItem(displayText:="String", isHardSelected:=True)
+                Await state.AssertSelectedCompletionItem(displayText:="String", isHardSelected:=True, projectionsView:=view)
             End Using
         End Function
     End Class

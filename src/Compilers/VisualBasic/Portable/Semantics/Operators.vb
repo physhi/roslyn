@@ -5,6 +5,7 @@ Imports System.Diagnostics
 Imports System.Linq
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.Collections
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -453,7 +454,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If containingType.SpecialType = SpecialType.System_Nullable_T Then
                 Return typeFromSignature Is containingType
             Else
-                Return typeFromSignature.GetNullableUnderlyingTypeOrSelf() Is containingType
+                Return TypeSymbol.Equals(typeFromSignature.GetNullableUnderlyingTypeOrSelf().GetTupleUnderlyingTypeOrSelf(), containingType.GetTupleUnderlyingTypeOrSelf(), TypeCompareKind.ConsiderEverything)
             End If
         End Function
 
@@ -922,7 +923,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If leftIsEnum AndAlso rightIsEnum AndAlso
                (opCode = BinaryOperatorKind.Xor OrElse opCode = BinaryOperatorKind.And OrElse opCode = BinaryOperatorKind.Or) AndAlso
-               leftNullableUnderlying.IsSameTypeIgnoringCustomModifiers(rightNullableUnderlying) Then
+               leftNullableUnderlying.IsSameTypeIgnoringAll(rightNullableUnderlying) Then
                 '§11.17 Logical Operators
                 'The enumerated type operators do the bitwise operation on the underlying 
                 'type of the enumerated type, but the return value is the enumerated type.
@@ -1006,8 +1007,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             resultType As TypeSymbol,
             ByRef integerOverflow As Boolean,
             ByRef divideByZero As Boolean,
-            ByRef compoundLengthOutOfLimit As Boolean,
-            <[In], Out> Optional ByRef compoundStringLength As Integer = 0
+            ByRef lengthOutOfLimit As Boolean
         ) As ConstantValue
 
             Debug.Assert(left IsNot Nothing)
@@ -1016,7 +1016,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             integerOverflow = False
             divideByZero = False
-            compoundLengthOutOfLimit = False
+            lengthOutOfLimit = False
 
             Dim leftConstantValue As ConstantValue = left.ConstantValueOpt
             Dim rightConstantValue As ConstantValue = right.ConstantValueOpt
@@ -1040,7 +1040,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 rightType.AllowsCompileTimeOperations() AndAlso
                 resultType.AllowsCompileTimeOperations() Then
 
-                Debug.Assert(leftType.IsSameTypeIgnoringCustomModifiers(rightType) OrElse
+                Debug.Assert(leftType.IsSameTypeIgnoringAll(rightType) OrElse
                              op = BinaryOperatorKind.LeftShift OrElse op = BinaryOperatorKind.RightShift)
 
                 Dim leftUnderlying = leftType.GetEnumUnderlyingTypeOrSelf()
@@ -1081,11 +1081,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     result = FoldStringBinaryOperator(
                                                 op,
                                                 leftConstantValue,
-                                                rightConstantValue,
-                                                compoundStringLength)
+                                                rightConstantValue)
 
                     If result.IsBad Then
-                        compoundLengthOutOfLimit = True
+                        lengthOutOfLimit = True
                     End If
 
                 ElseIf leftUnderlying.IsBooleanType() Then
@@ -1486,41 +1485,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         ''' <summary>
         ''' Returns ConstantValue.Bad if, and only if, compound string length is out of supported limit.
-        ''' The <paramref name="compoundStringLength"/> parameter contains value corresponding to the 
-        ''' <paramref name="left"/> node, or zero, which will trigger inference. Upon return, it will 
-        ''' be adjusted to correspond future result node.
         ''' </summary>
         Private Shared Function FoldStringBinaryOperator(
             op As BinaryOperatorKind,
             left As ConstantValue,
-            right As ConstantValue,
-            <[In], Out> Optional ByRef compoundStringLength As Integer = 0
+            right As ConstantValue
         ) As ConstantValue
             Debug.Assert((op And BinaryOperatorKind.OpMask) = op)
 
             Dim result As ConstantValue
 
-            Dim leftValue As String = If(left.IsNothing, String.Empty, left.StringValue)
-            Dim rightValue As String = If(right.IsNothing, String.Empty, right.StringValue)
-
             Select Case op
                 Case BinaryOperatorKind.Concatenate
-                    If compoundStringLength = 0 Then
-                        ' Infer. Keep it simple for now.
-                        compoundStringLength = leftValue.Length
-                    End If
 
-                    Debug.Assert(compoundStringLength >= leftValue.Length)
+                    Dim leftValue As Rope = If(left.IsNothing, Rope.Empty, left.RopeValue)
+                    Dim rightValue As Rope = If(right.IsNothing, Rope.Empty, right.RopeValue)
 
-                    Dim newCompoundLength = CLng(compoundStringLength) + CLng(leftValue.Length) + CLng(rightValue.Length)
+                    Dim newLength = CLng(leftValue.Length) + CLng(rightValue.Length)
 
-                    If newCompoundLength > Integer.MaxValue Then
+                    If newLength > Integer.MaxValue Then
                         Return ConstantValue.Bad
                     End If
 
                     Try
-                        result = ConstantValue.Create(String.Concat(leftValue, rightValue))
-                        compoundStringLength = CInt(newCompoundLength)
+                        result = ConstantValue.CreateFromRope(Rope.Concat(leftValue, rightValue))
                     Catch e As System.OutOfMemoryException
                         Return ConstantValue.Bad
                     End Try
@@ -1531,6 +1519,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                      BinaryOperatorKind.LessThanOrEqual,
                      BinaryOperatorKind.Equals,
                      BinaryOperatorKind.NotEquals
+
+                    Dim leftValue As String = If(left.IsNothing, String.Empty, left.StringValue)
+                    Dim rightValue As String = If(right.IsNothing, String.Empty, right.StringValue)
 
                     Dim stringComparisonSucceeds As Boolean = False
 
@@ -2264,8 +2255,8 @@ Done:
 
                 Dim method As MethodSymbol = opSet(i)
 
-                If Not (mostSpecificSourceType.IsSameTypeIgnoringCustomModifiers(method.Parameters(0).Type) AndAlso
-                        mostSpecificTargetType.IsSameTypeIgnoringCustomModifiers(method.ReturnType)) Then
+                If Not (mostSpecificSourceType.IsSameTypeIgnoringAll(method.Parameters(0).Type) AndAlso
+                        mostSpecificTargetType.IsSameTypeIgnoringAll(method.ReturnType)) Then
                     Continue For
                 End If
 
@@ -2317,7 +2308,7 @@ Done:
                 Dim arrayLiteral = arrayLiteralType.ArrayLiteral
                 conversionIn = Conversions.ClassifyArrayLiteralConversion(arrayLiteral, inputType, arrayLiteral.Binder, useSiteDiagnostics)
                 If Conversions.IsWideningConversion(conversionIn) AndAlso
-                    IsSameTypeIgnoringCustomModifiers(arrayLiteralType, inputType) Then
+                    IsSameTypeIgnoringAll(arrayLiteralType, inputType) Then
                     conversionIn = ConversionKind.Identity
                 End If
             Else
@@ -2671,7 +2662,7 @@ Done:
             For i As Integer = 0 To typeSet.Count - 1
                 Dim type As TypeSymbol = typeSet(i)
 
-                If best IsNot Nothing AndAlso best.IsSameTypeIgnoringCustomModifiers(type) Then
+                If best IsNot Nothing AndAlso best.IsSameTypeIgnoringAll(type) Then
                     Continue For
                 End If
 
@@ -2693,7 +2684,7 @@ Done:
                 If best Is Nothing Then
                     best = type
                 Else
-                    Debug.Assert(Not best.IsSameTypeIgnoringCustomModifiers(type))
+                    Debug.Assert(Not best.IsSameTypeIgnoringAll(type))
                     best = Nothing ' More than one type 
                     Exit For
                 End If
@@ -2716,7 +2707,7 @@ Next_i:
             For i As Integer = 0 To typeSet.Count - 1
                 Dim type As TypeSymbol = typeSet(i)
 
-                If best IsNot Nothing AndAlso best.IsSameTypeIgnoringCustomModifiers(type) Then
+                If best IsNot Nothing AndAlso best.IsSameTypeIgnoringAll(type) Then
                     Continue For
                 End If
 
@@ -2738,7 +2729,7 @@ Next_i:
                 If best Is Nothing Then
                     best = type
                 Else
-                    Debug.Assert(Not best.IsSameTypeIgnoringCustomModifiers(type))
+                    Debug.Assert(Not best.IsSameTypeIgnoringAll(type))
                     best = Nothing ' More than one type 
                     Exit For
                 End If
@@ -2876,7 +2867,7 @@ Next_i:
                 Dim current = DirectCast(type2, NamedTypeSymbol)
 
                 Do
-                    If commonAncestor IsNot Nothing AndAlso commonAncestor.IsSameTypeIgnoringCustomModifiers(current) Then
+                    If commonAncestor IsNot Nothing AndAlso commonAncestor.IsSameTypeIgnoringAll(current) Then
                         Exit Do
                     End If
 
@@ -3301,6 +3292,12 @@ Next_i:
                 End Get
             End Property
 
+            Public Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+                Get
+                    Return _parameterToLift.RefCustomModifiers
+                End Get
+            End Property
+
             Public Overrides ReadOnly Property DeclaringSyntaxReferences As ImmutableArray(Of SyntaxReference)
                 Get
                     Return ImmutableArray(Of SyntaxReference).Empty
@@ -3389,12 +3386,6 @@ Next_i:
             Friend Overrides ReadOnly Property IsCallerFilePath As Boolean
                 Get
                     Return _parameterToLift.IsCallerFilePath
-                End Get
-            End Property
-
-            Friend Overrides ReadOnly Property CountOfCustomModifiersPrecedingByRef As UShort
-                Get
-                    Return _parameterToLift.CountOfCustomModifiersPrecedingByRef
                 End Get
             End Property
 

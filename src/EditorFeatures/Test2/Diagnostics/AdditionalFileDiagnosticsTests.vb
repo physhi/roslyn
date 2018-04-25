@@ -1,7 +1,6 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Collections.Immutable
-Imports System.IO
 Imports System.Threading
 Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.CodeActions
@@ -15,8 +14,8 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics.AdditionalFiles
     Public Class AdditionalFileDiagnosticsTests
         Inherits AbstractCrossLanguageUserDiagnosticTest
 
-        Friend Overrides Function CreateDiagnosticProviderAndFixer(workspace As Workspace, language As String) As Tuple(Of DiagnosticAnalyzer, CodeFixProvider)
-            Return Tuple.Create(Of DiagnosticAnalyzer, CodeFixProvider)(New AdditionalFileAnalyzer(), New AdditionalFileFixer())
+        Friend Overrides Function CreateDiagnosticProviderAndFixer(workspace As Workspace, language As String) As (DiagnosticAnalyzer, CodeFixProvider)
+            Return (New AdditionalFileAnalyzer(), New AdditionalFileFixer())
         End Function
 
         <WpfFact>
@@ -37,7 +36,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics.AdditionalFiles
                     </Project>
                 </Workspace>
 
-            Using workspace = Await TestWorkspaceFactory.CreateWorkspaceAsync(input)
+            Using workspace = TestWorkspace.Create(input)
                 Dim project = workspace.Projects.First()
                 Dim newSln = workspace.CurrentSolution.AddAdditionalDocument(DocumentId.CreateNewId(project.Id), "App.Config", SourceText.From("false"))
                 workspace.TryApplyChanges(newSln)
@@ -77,7 +76,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics.AdditionalFiles
         Private Function IsSerializationAllowed(options As AnalyzerOptions) As Boolean
             Dim serializationAllowed = False
             For Each item In options.AdditionalFiles
-                If item.Path.EndsWith("App.config", StringComparison.OrdinalIgnoreCase) Then
+                If item.Path.EndsWith("app.config", StringComparison.OrdinalIgnoreCase) Then
                     Dim text = item.GetText()
                     Boolean.TryParse(text.Lines(0).ToString(), serializationAllowed)
                 End If

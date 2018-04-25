@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -42,12 +42,11 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel.MethodXml
                     var firstNonWhitespacePosition = line.GetFirstNonWhitespacePosition() ?? -1;
                     if (firstNonWhitespacePosition == trivia.SpanStart)
                     {
-                        using (var tag = CommentTag())
-                        {
-                            // Skip initial slashes
-                            var trimmedComment = trivia.ToString().Substring(2);
-                            EncodedText(trimmedComment);
-                        }
+                        using var tag = CommentTag();
+
+                        // Skip initial slashes
+                        var trimmedComment = trivia.ToString().Substring(2);
+                        EncodedText(trimmedComment);
                     }
                 }
             }
@@ -56,7 +55,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel.MethodXml
         private void GenerateStatement(StatementSyntax statement)
         {
             var success = false;
-            int mark = GetMark();
+            var mark = GetMark();
 
             switch (statement.Kind())
             {
@@ -385,8 +384,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel.MethodXml
 
         private bool TryGenerateNewClass(ObjectCreationExpressionSyntax objectCreationExpression)
         {
-            var type = SemanticModel.GetSymbolInfo(objectCreationExpression.Type).Symbol as ITypeSymbol;
-            if (type == null)
+            if (!(SemanticModel.GetSymbolInfo(objectCreationExpression.Type).Symbol is ITypeSymbol type))
             {
                 return false;
             }

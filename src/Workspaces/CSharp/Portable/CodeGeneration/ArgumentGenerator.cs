@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,9 +12,9 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
     {
         public static ArgumentSyntax GenerateArgument(SyntaxNode argument)
         {
-            if (argument is ExpressionSyntax)
+            if (argument is ExpressionSyntax expression)
             {
-                return SyntaxFactory.Argument((ExpressionSyntax)argument);
+                return SyntaxFactory.Argument(expression);
             }
 
             return (ArgumentSyntax)argument;

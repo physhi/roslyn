@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -243,7 +243,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
             lock (_referencesLock)
             {
                 LoadedAssembly loadedAssembly;
-                if (requestingAssemblyOpt != null && 
+                if (requestingAssemblyOpt != null &&
                     _assembliesLoadedFromLocation.TryGetValue(requestingAssemblyOpt, out loadedAssembly))
                 {
                     loadDirectoryOpt = Path.GetDirectoryName(loadedAssembly.OriginalPath);
@@ -281,14 +281,14 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                     {
                         // Desktop FX: A weak-named assembly conflicts with another weak-named assembly of the same simple name,
                         // unless we find an assembly whose identity matches exactly and whose content is exactly the same.
-                        // TODO: We shouldn't block this on CoreCLR.
+                        // TODO: We shouldn't block this on CoreCLR. https://github.com/dotnet/roslyn/issues/38621
 
                         if (!identity.IsStrongName)
                         {
                             conflictingLoadedAssemblyOpt = loadedInfos.FirstOrDefault(info => !info.Identity.IsStrongName);
                         }
 
-                        loadedAssemblyWithEqualNameAndVersionOpt = loadedInfos.FirstOrDefault(info => 
+                        loadedAssemblyWithEqualNameAndVersionOpt = loadedInfos.FirstOrDefault(info =>
                             AssemblyIdentityComparer.SimpleNameComparer.Equals(info.Identity.Name, identity.Name) &&
                             info.Identity.Version == identity.Version);
                     }
@@ -302,26 +302,31 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                     {
                         Guid mvid;
                         if (TryReadMvid(assemblyFilePathOpt, out mvid) &&
-                            CorLightup.Desktop.GetModuleVersionId(loadedAssemblyWithEqualNameAndVersionOpt.Assembly.ManifestModule) == mvid)
+                            loadedAssemblyWithEqualNameAndVersionOpt.Assembly.ManifestModule.ModuleVersionId == mvid)
                         {
                             return loadedAssemblyWithEqualNameAndVersionOpt.Assembly;
                         }
 
-                        // TODO: localize
                         // error: attempt to load an assembly with the same identity as already loaded assembly but different content
                         throw new InteractiveAssemblyLoaderException(
-                            $"Assembly '{identity.Name}, Version={identity.Version}' has already been loaded from '{loadedAssemblyWithEqualNameAndVersionOpt.LocationOpt}'. " +
-                            $"A different assembly with the same name and version can't be loaded: '{assemblyFilePathOpt}'.");
+                            string.Format(null, ScriptingResources.AssemblyAlreadyLoaded,
+                            identity.Name,
+                            identity.Version,
+                            loadedAssemblyWithEqualNameAndVersionOpt.LocationOpt,
+                            assemblyFilePathOpt)
+                        );
                     }
 
-                    // TODO: Desktop FX only
+                    // TODO: Desktop FX only https://github.com/dotnet/roslyn/issues/38621
                     if (!conflictingLoadedAssemblyOpt.IsDefault)
                     {
-                        // TODO: localize
                         // error: attempt to load an assembly with the same identity as already loaded assembly but different content
                         throw new InteractiveAssemblyLoaderException(
-                            $"Assembly '{identity.Name}' has already been loaded from '{conflictingLoadedAssemblyOpt.LocationOpt}'. " +
-                            $"A different assembly with the same name can't be loaded unless it's signed: '{assemblyFilePathOpt}'.");
+                            string.Format(null, ScriptingResources.AssemblyAlreadyLoadedNotSigned,
+                            identity.Name,
+                            conflictingLoadedAssemblyOpt.LocationOpt,
+                            assemblyFilePathOpt)
+                        );
                     }
 
                     assembly = ShadowCopyAndLoadDependency(assemblyFilePathOpt).Assembly;

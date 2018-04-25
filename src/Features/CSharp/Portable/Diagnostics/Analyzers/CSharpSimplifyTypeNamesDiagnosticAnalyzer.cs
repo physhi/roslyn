@@ -1,31 +1,34 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Diagnostics.SimplifyTypeNames;
 using Microsoft.CodeAnalysis.Options;
+using Microsoft.CodeAnalysis.SimplifyTypeNames;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    internal sealed class CSharpSimplifyTypeNamesDiagnosticAnalyzer : SimplifyTypeNamesDiagnosticAnalyzerBase<SyntaxKind>
+    internal sealed class CSharpSimplifyTypeNamesDiagnosticAnalyzer
+        : SimplifyTypeNamesDiagnosticAnalyzerBase<SyntaxKind>
     {
-        private static readonly ImmutableArray<SyntaxKind> s_kindsOfInterest = ImmutableArray.Create(SyntaxKind.QualifiedName,
-            SyntaxKind.AliasQualifiedName,
-            SyntaxKind.GenericName,
-            SyntaxKind.IdentifierName,
-            SyntaxKind.SimpleMemberAccessExpression,
-            SyntaxKind.QualifiedCref);
+        private static readonly ImmutableArray<SyntaxKind> s_kindsOfInterest =
+            ImmutableArray.Create(
+                SyntaxKind.QualifiedName,
+                SyntaxKind.AliasQualifiedName,
+                SyntaxKind.GenericName,
+                SyntaxKind.IdentifierName,
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxKind.QualifiedCref);
 
-        public override void Initialize(AnalysisContext analysisContext)
+        public CSharpSimplifyTypeNamesDiagnosticAnalyzer()
+            : base(s_kindsOfInterest)
         {
-            analysisContext.RegisterSyntaxNodeAction(AnalyzeNode, s_kindsOfInterest.ToArray());
         }
 
         protected override void AnalyzeNode(SyntaxNodeAnalysisContext context)
@@ -42,41 +45,41 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
             }
 
             Diagnostic diagnostic;
-            Func<SyntaxNode, bool> descendIntoChildren = n =>
+            var options = context.Options;
+            var cancellationToken = context.CancellationToken;
+            bool descendIntoChildren(SyntaxNode n)
             {
                 if (!IsRegularCandidate(n) ||
-                    !TrySimplifyTypeNameExpression(context.SemanticModel, n, context.Options, out diagnostic, context.CancellationToken))
+                    !TrySimplifyTypeNameExpression(context.SemanticModel, n, options, out diagnostic, cancellationToken))
                 {
                     return true;
                 }
 
                 context.ReportDiagnostic(diagnostic);
                 return false;
-            };
+            }
 
             // find regular node first - search from top to down. once found one, don't get into its children
             foreach (var candidate in context.Node.DescendantNodesAndSelf(descendIntoChildren))
             {
-                context.CancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
             }
 
             // now search structure trivia
             foreach (var candidate in context.Node.DescendantNodesAndSelf(descendIntoChildren: n => !IsCrefCandidate(n), descendIntoTrivia: true))
             {
-                context.CancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
 
                 if (IsCrefCandidate(candidate) &&
-                    TrySimplifyTypeNameExpression(context.SemanticModel, candidate, context.Options, out diagnostic, context.CancellationToken))
+                    TrySimplifyTypeNameExpression(context.SemanticModel, candidate, options, out diagnostic, cancellationToken))
                 {
                     context.ReportDiagnostic(diagnostic);
                 }
             }
         }
 
-        internal static bool IsCandidate(SyntaxNode node)
-        {
-            return IsRegularCandidate(node) || IsCrefCandidate(node);
-        }
+        internal override bool IsCandidate(SyntaxNode node)
+            => IsRegularCandidate(node) || IsCrefCandidate(node);
 
         private static bool IsRegularCandidate(SyntaxNode node)
         {
@@ -88,15 +91,32 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
             return node is QualifiedCrefSyntax;
         }
 
-        protected sealed override bool CanSimplifyTypeNameExpressionCore(SemanticModel model, SyntaxNode node, OptionSet optionSet, out TextSpan issueSpan, out string diagnosticId, CancellationToken cancellationToken)
+        protected sealed override bool CanSimplifyTypeNameExpressionCore(
+            SemanticModel model, SyntaxNode node, OptionSet optionSet,
+            out TextSpan issueSpan, out string diagnosticId, out bool inDeclaration,
+            CancellationToken cancellationToken)
         {
-            return CanSimplifyTypeNameExpression(model, node, optionSet, out issueSpan, out diagnosticId, cancellationToken);
+            return CanSimplifyTypeNameExpression(
+                model, node, optionSet,
+                out issueSpan, out diagnosticId, out inDeclaration,
+                cancellationToken);
         }
 
-        internal static bool CanSimplifyTypeNameExpression(SemanticModel model, SyntaxNode node, OptionSet optionSet, out TextSpan issueSpan, out string diagnosticId, CancellationToken cancellationToken)
+        internal override bool CanSimplifyTypeNameExpression(
+            SemanticModel model, SyntaxNode node, OptionSet optionSet,
+            out TextSpan issueSpan, out string diagnosticId, out bool inDeclaration,
+            CancellationToken cancellationToken)
         {
-            issueSpan = default(TextSpan);
+            inDeclaration = false;
+            issueSpan = default;
             diagnosticId = IDEDiagnosticIds.SimplifyNamesDiagnosticId;
+
+            if (node is MemberAccessExpressionSyntax memberAccess && memberAccess.Expression.IsKind(SyntaxKind.ThisExpression))
+            {
+                // don't bother analyzing "this.Goo" expressions.  They will be analyzed by
+                // the CSharpSimplifyThisOrMeDiagnosticAnalyzer.
+                return false;
+            }
 
             // For Crefs, currently only Qualified Crefs needs to be handled separately
             if (node.Kind() == SyntaxKind.QualifiedCref)
@@ -107,9 +127,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
                 }
 
                 var crefSyntax = (CrefSyntax)node;
-
-                CrefSyntax replacementNode;
-                if (!crefSyntax.TryReduceOrSimplifyExplicitName(model, out replacementNode, out issueSpan, optionSet, cancellationToken))
+                if (!crefSyntax.TryReduceOrSimplifyExplicitName(model, out var replacementNode, out issueSpan, optionSet, cancellationToken))
                 {
                     return false;
                 }
@@ -127,19 +145,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Diagnostics.SimplifyTypeNames
                 var expressionToCheck = expression.Kind() == SyntaxKind.AsExpression || expression.Kind() == SyntaxKind.IsExpression
                     ? ((BinaryExpressionSyntax)expression).Right
                     : expression;
-
-                ExpressionSyntax replacementSyntax;
-                if (!expressionToCheck.TryReduceOrSimplifyExplicitName(model, out replacementSyntax, out issueSpan, optionSet, cancellationToken))
+                if (!expressionToCheck.TryReduceOrSimplifyExplicitName(model, out var replacementSyntax, out issueSpan, optionSet, cancellationToken))
                 {
                     return false;
                 }
 
-                if (expression.Kind() == SyntaxKind.SimpleMemberAccessExpression)
+                // set proper diagnostic ids.
+                if (replacementSyntax.HasAnnotations(nameof(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInDeclaration)))
                 {
-                    var memberAccess = (MemberAccessExpressionSyntax)expression;
-                    diagnosticId = memberAccess.Expression.Kind() == SyntaxKind.ThisExpression ?
-                        IDEDiagnosticIds.SimplifyThisOrMeDiagnosticId :
-                        IDEDiagnosticIds.SimplifyMemberAccessDiagnosticId;
+                    inDeclaration = true;
+                    diagnosticId = IDEDiagnosticIds.PreferBuiltInOrFrameworkTypeDiagnosticId;
+                }
+                else if (replacementSyntax.HasAnnotations(nameof(CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInMemberAccess)))
+                {
+                    inDeclaration = false;
+                    diagnosticId = IDEDiagnosticIds.PreferBuiltInOrFrameworkTypeDiagnosticId;
+                }
+                else if (expression.Kind() == SyntaxKind.SimpleMemberAccessExpression)
+                {
+                    diagnosticId = IDEDiagnosticIds.SimplifyMemberAccessDiagnosticId;
                 }
             }
 

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Roslyn.Utilities;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 {
     /// <summary>
     /// An ErrorSymbol is used when the compiler cannot determine a symbol object to return because
-    /// of an error. For example, if a field is declared "Foo x;", and the type "Foo" cannot be
+    /// of an error. For example, if a field is declared "Goo x;", and the type "Goo" cannot be
     /// found, an ErrorSymbol is returned when asking the field "x" what it's type is.
     /// </summary>
     internal abstract partial class ErrorTypeSymbol : NamedTypeSymbol, IErrorTypeSymbol
@@ -31,14 +32,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal virtual LookupResultKind ResultKind { get { return LookupResultKind.Empty; } }
 
         /// <summary>
-        /// Called by <see cref="AbstractTypeMap.SubstituteType"/> to perform substitution
+        /// Called by <see cref="AbstractTypeMap.SubstituteType(TypeSymbol)"/> to perform substitution
         /// on types with TypeKind ErrorType.  The general pattern is to use the type map
         /// to perform substitution on the wrapped type, if any, and then construct a new
         /// error type symbol from the result (if there was a change).
         /// </summary>
-        internal virtual TypeWithModifiers Substitute(AbstractTypeMap typeMap)
+        internal TypeWithAnnotations Substitute(AbstractTypeMap typeMap)
         {
-            return new TypeWithModifiers((ErrorTypeSymbol)typeMap.SubstituteNamedType(this));
+            return TypeWithAnnotations.Create(typeMap.SubstituteNamedType(this));
         }
 
         /// <summary>
@@ -97,9 +98,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// IsReferenceType and IsValueType both return true. However, for an unconstrained type
         /// parameter, IsReferenceType and IsValueType will both return false.
         /// </summary>
-        public override bool IsValueType
+        public sealed override bool IsValueType
         {
             get { return false; }
+        }
+
+        public sealed override bool IsRefLikeType
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public sealed override bool IsReadOnly
+        {
+            get
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -130,7 +147,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// no members with this name, returns an empty ImmutableArray. Never returns Null.</returns>
         public override ImmutableArray<Symbol> GetMembers(string name)
         {
-            return ImmutableArray<Symbol>.Empty;
+            return GetMembers().WhereAsArray(m => m.Name == name);
         }
 
         internal sealed override IEnumerable<FieldSymbol> GetFieldsToEmit()
@@ -268,27 +285,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// If nothing has been substituted for a give type parameters,
         /// then the type parameter itself is consider the type argument.
         /// </summary>
-        internal override ImmutableArray<TypeSymbol> TypeArgumentsNoUseSiteDiagnostics
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
         {
             get
             {
-                return TypeParameters.Cast<TypeParameterSymbol, TypeSymbol>();
-            }
-        }
-
-        internal override bool HasTypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        internal override ImmutableArray<ImmutableArray<CustomModifier>> TypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return CreateEmptyTypeArgumentsCustomModifiers();
+                return GetTypeParametersAsTypeArguments();
             }
         }
 
@@ -418,12 +419,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override NamedTypeSymbol BaseTypeNoUseSiteDiagnostics
-        {
-            get { return null; }
-        }
+        internal override NamedTypeSymbol BaseTypeNoUseSiteDiagnostics => null;
 
-        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<Symbol> basesBeingResolved)
+        internal override bool HasCodeAnalysisEmbeddedAttribute => false;
+
+        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<TypeSymbol> basesBeingResolved)
         {
             return ImmutableArray<NamedTypeSymbol>.Empty;
         }
@@ -433,17 +433,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return ImmutableArray<NamedTypeSymbol>.Empty;
         }
 
-        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<Symbol> basesBeingResolved)
+        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<TypeSymbol> basesBeingResolved)
         {
             return null;
         }
 
-        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<Symbol> basesBeingResolved)
+        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<TypeSymbol> basesBeingResolved)
         {
             return ImmutableArray<NamedTypeSymbol>.Empty;
         }
 
-        protected override NamedTypeSymbol ConstructCore(ImmutableArray<TypeWithModifiers> typeArguments, bool unbound)
+        protected override NamedTypeSymbol ConstructCore(ImmutableArray<TypeWithAnnotations> typeArguments, bool unbound)
         {
             return new ConstructedErrorTypeSymbol(this, typeArguments);
         }
@@ -475,7 +475,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return DefaultMarshallingCharSet; }
         }
 
-        internal sealed override bool IsSerializable
+        public sealed override bool IsSerializable
         {
             get { return false; }
         }
@@ -596,27 +596,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     internal sealed class ConstructedErrorTypeSymbol : SubstitutedErrorTypeSymbol
     {
         private readonly ErrorTypeSymbol _constructedFrom;
-        private readonly ImmutableArray<TypeSymbol> _typeArguments;
-        private readonly bool _hasTypeArgumentsCustomModifiers;
+        private readonly ImmutableArray<TypeWithAnnotations> _typeArgumentsWithAnnotations;
         private readonly TypeMap _map;
 
-        public ConstructedErrorTypeSymbol(ErrorTypeSymbol constructedFrom, ImmutableArray<TypeWithModifiers> typeArguments) :
+        public ConstructedErrorTypeSymbol(ErrorTypeSymbol constructedFrom, ImmutableArray<TypeWithAnnotations> typeArgumentsWithAnnotations) :
             base((ErrorTypeSymbol)constructedFrom.OriginalDefinition)
         {
             _constructedFrom = constructedFrom;
-            bool hasTypeArgumentsCustomModifiers = false;
-            _typeArguments = typeArguments.SelectAsArray(a =>
-                                                            {
-                                                                if (!a.CustomModifiers.IsDefaultOrEmpty)
-                                                                {
-                                                                    hasTypeArgumentsCustomModifiers = true;
-                                                                }
-
-                                                                return a.Type;
-                                                            });
-
-            _hasTypeArgumentsCustomModifiers = hasTypeArgumentsCustomModifiers;
-            _map = new TypeMap(constructedFrom.ContainingType, constructedFrom.OriginalDefinition.TypeParameters, typeArguments);
+            _typeArgumentsWithAnnotations = typeArgumentsWithAnnotations;
+            _map = new TypeMap(constructedFrom.ContainingType, constructedFrom.OriginalDefinition.TypeParameters, typeArgumentsWithAnnotations);
         }
 
         public override ImmutableArray<TypeParameterSymbol> TypeParameters
@@ -624,30 +612,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _constructedFrom.TypeParameters; }
         }
 
-        internal override ImmutableArray<TypeSymbol> TypeArgumentsNoUseSiteDiagnostics
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
         {
-            get { return _typeArguments; }
-        }
-
-        internal override bool HasTypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return _hasTypeArgumentsCustomModifiers;
-            }
-        }
-
-        internal override ImmutableArray<ImmutableArray<CustomModifier>> TypeArgumentsCustomModifiers
-        {
-            get
-            {
-                if (_hasTypeArgumentsCustomModifiers)
-                {
-                    return _map.GetTypeArgumentsCustomModifiersFor(_constructedFrom.OriginalDefinition);
-                }
-
-                return CreateEmptyTypeArgumentsCustomModifiers();
-            }
+            get { return _typeArgumentsWithAnnotations; }
         }
 
         public override NamedTypeSymbol ConstructedFrom
@@ -684,25 +651,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _typeParameters; }
         }
 
-        internal override ImmutableArray<TypeSymbol> TypeArgumentsNoUseSiteDiagnostics
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
         {
-            get { return this.TypeParameters.Cast<TypeParameterSymbol, TypeSymbol>(); }
-        }
-
-        internal override bool HasTypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        internal override ImmutableArray<ImmutableArray<CustomModifier>> TypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return CreateEmptyTypeArgumentsCustomModifiers();
-            }
+            get { return GetTypeParametersAsTypeArguments(); }
         }
 
         public override NamedTypeSymbol ConstructedFrom

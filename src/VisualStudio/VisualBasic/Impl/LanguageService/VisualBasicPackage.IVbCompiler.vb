@@ -1,8 +1,9 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Editor.Shared.Utilities
+Imports Microsoft.CodeAnalysis.Host
 Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 Imports Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
 Imports Microsoft.VisualStudio.LanguageServices.VisualBasic.ProjectSystemShim
 Imports Microsoft.VisualStudio.LanguageServices.VisualBasic.ProjectSystemShim.Interop
@@ -18,17 +19,16 @@ Namespace Microsoft.VisualStudio.LanguageServices.VisualBasic
         End Function
 
         Public Function CreateProject(wszName As String, punkProject As Object, pProjHier As IVsHierarchy, pVbCompilerHost As IVbCompilerHost) As IVbCompilerProject Implements IVbCompiler.CreateProject
-            Dim visualStudioWorkspace = ComponentModel.GetService(Of VisualStudioWorkspaceImpl)()
             Dim hostDiagnosticUpdateSource = ComponentModel.GetService(Of HostDiagnosticUpdateSource)()
-            Return New VisualBasicProjectShimWithServices(
-                visualStudioWorkspace.ProjectTracker,
-                pVbCompilerHost,
+
+            Return New VisualBasicProject(
                 wszName,
+                pVbCompilerHost,
                 pProjHier,
                 Me,
-                Me.ComponentModel.GetService(Of MiscellaneousFilesWorkspace),
-                visualStudioWorkspace,
-                hostDiagnosticUpdateSource)
+                ComponentModel.GetService(Of IThreadingContext),
+                hostDiagnosticUpdateSource,
+                commandLineParserServiceOpt:=Workspace.Services.GetLanguageServices(LanguageNames.VisualBasic).GetService(Of ICommandLineParserService))
         End Function
 
         Public Function IsValidIdentifier(wszIdentifier As String) As Boolean Implements IVbCompiler.IsValidIdentifier

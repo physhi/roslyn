@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.LanguageServices;
@@ -50,7 +49,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateConstructor
             return null;
         }
 
-        private static bool ParameterTypesMatch(SemanticDocument document, IList<ITypeSymbol> parameterTypes, IMethodSymbol method)
+        private static bool ParameterTypesMatch(SemanticDocument semanticDocument, IList<ITypeSymbol> parameterTypes, IMethodSymbol method)
         {
             if (method == null)
             {
@@ -62,8 +61,8 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateConstructor
                 return false;
             }
 
-            var compilation = document.SemanticModel.Compilation;
-            var semanticFactsService = document.Document.GetLanguageService<ISemanticFactsService>();
+            var compilation = semanticDocument.SemanticModel.Compilation;
+            var semanticFactsService = semanticDocument.Document.GetLanguageService<ISemanticFactsService>();
 
             for (var i = 0; i < parameterTypes.Count; i++)
             {
@@ -72,7 +71,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateConstructor
                 {
                     var type2 = method.Parameters[i].Type;
 
-                    if (!semanticFactsService.IsAssignableTo(type1, type2, compilation))
+                    if (!compilation.HasImplicitConversion(fromType: type1.WithoutNullability(), toType: type2.WithoutNullability()))
                     {
                         return false;
                     }

@@ -12,6 +12,34 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Formatting
     public class FormattingEngineTriviaTests : CSharpFormattingTestBase
     {
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
+        [WorkItem(31130, "https://github.com/dotnet/roslyn/issues/31130")]
+        public async Task PreprocessorNullable()
+        {
+            var content = @"
+    #nullable
+class C
+{
+    #nullable     enable
+    void Method()
+    {
+        #nullable    disable
+    }
+}";
+
+            var expected = @"
+#nullable
+class C
+{
+#nullable enable
+    void Method()
+    {
+#nullable disable
+    }
+}";
+            await AssertFormatAsync(expected, content);
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task PreprocessorInEmptyFile()
         {
             var content = @"
@@ -1339,7 +1367,7 @@ void Method() {
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537895, "DevDiv")]
+        [WorkItem(537895, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537895")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Preprocessor9()
         {
@@ -1371,7 +1399,7 @@ void Method() {
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537895, "DevDiv")]
+        [WorkItem(537895, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537895")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Preprocessor10()
         {
@@ -1401,13 +1429,13 @@ void Method() {
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537765, "DevDiv")]
+        [WorkItem(537765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537765")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Comment25()
         {
             var content = @"class C 
 {
-            void Foo()//method
+            void Goo()//method
 {
     int x;//variable
 double y;
@@ -1417,7 +1445,7 @@ double y;
 
             var expected = @"class C
 {
-    void Foo()//method
+    void Goo()//method
     {
         int x;//variable
         double y;
@@ -1428,13 +1456,13 @@ double y;
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537765, "DevDiv")]
+        [WorkItem(537765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537765")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Comment26()
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
 /**/int x;
     }
@@ -1442,7 +1470,7 @@ double y;
 
             var expected = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         /**/
         int x;
@@ -1457,7 +1485,7 @@ double y;
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         //      
         // 
@@ -1472,7 +1500,7 @@ double y;
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         //      
             
@@ -1483,7 +1511,7 @@ double y;
 
             var expected = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         //      
 
@@ -1499,7 +1527,7 @@ double y;
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         int			/**/ i = 10;
     }
@@ -1507,7 +1535,7 @@ double y;
 
             var code = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         int         /**/ i = 10;
     }
@@ -1556,7 +1584,7 @@ class Program
             await AssertFormatAsync(code, content);
         }
 
-        [WorkItem(538703, "DevDiv")]
+        [WorkItem(538703, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538703")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Comment32()
         {
@@ -1581,7 +1609,7 @@ class Program
             await AssertFormatAsync(code, content);
         }
 
-        [WorkItem(542316, "DevDiv")]
+        [WorkItem(542316, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542316")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task CommentInExpression()
         {
@@ -1618,7 +1646,7 @@ class Program
             await AssertFormatAsync(code, content);
         }
 
-        [WorkItem(542546, "DevDiv")]
+        [WorkItem(542546, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542546")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task FormatInvalidCode_1()
         {
@@ -1626,7 +1654,7 @@ class Program
             await AssertFormatAsync(content, content);
         }
 
-        [WorkItem(542546, "DevDiv")]
+        [WorkItem(542546, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542546")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task FormatInvalidCode_2()
         {
@@ -1635,7 +1663,7 @@ class Program
             await AssertFormatAsync(expectedContent, content);
         }
 
-        [WorkItem(537895, "DevDiv")]
+        [WorkItem(537895, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537895")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task EmbededStatement1()
         {
@@ -1707,14 +1735,14 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
-        public async Task NewLineOptions_LineFeedOnly()
+        public void NewLineOptions_LineFeedOnly()
         {
             var tree = SyntaxFactory.ParseCompilationUnit("class C\r\n{\r\n}");
 
             // replace all EOL trivia with elastic markers to force the formatter to add EOL back
             tree = tree.ReplaceTrivia(tree.DescendantTrivia().Where(tr => tr.IsKind(SyntaxKind.EndOfLineTrivia)), (o, r) => SyntaxFactory.ElasticMarker);
 
-            var formatted = await Formatter.FormatAsync(tree, DefaultWorkspace, DefaultWorkspace.Options.WithChangedOption(FormattingOptions.NewLine, LanguageNames.CSharp, "\n"));
+            var formatted = Formatter.Format(tree, DefaultWorkspace, DefaultWorkspace.Options.WithChangedOption(FormattingOptions.NewLine, LanguageNames.CSharp, "\n"));
 
             var actual = formatted.ToFullString();
             var expected = "class C\n{\n}";
@@ -1724,7 +1752,7 @@ class Program
 
         [WorkItem(4019, "https://github.com/dotnet/roslyn/issues/4019")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
-        public async Task FormatWithTabs()
+        public void FormatWithTabs()
         {
             var code = @"#region Assembly mscorlib
 // C:\
@@ -1755,7 +1783,7 @@ class F
                                                                                                               .WithLeadingTrivia(SyntaxFactory.TriviaList())
                                                                                                               .WithAdditionalAnnotations(SyntaxAnnotation.ElasticAnnotation));
 
-            var formatted = await Formatter.FormatAsync(tree, DefaultWorkspace, DefaultWorkspace.Options.WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, true));
+            var formatted = Formatter.Format(tree, DefaultWorkspace, DefaultWorkspace.Options.WithChangedOption(FormattingOptions.UseTabs, LanguageNames.CSharp, true));
 
             var actual = formatted.ToFullString();
             Assert.Equal(expected, actual);

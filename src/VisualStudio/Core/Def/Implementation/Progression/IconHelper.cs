@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -77,9 +77,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Progression
             {
                 foreach (var itemKvp in supportedGlyphItems)
                 {
-                    string iconName = GetIconName(groupKvp.Value, itemKvp.Value);
-                    StandardGlyphGroup localGroup = groupKvp.Key;
-                    StandardGlyphItem localItem = itemKvp.Key;
+                    var iconName = GetIconName(groupKvp.Value, itemKvp.Value);
+                    var localGroup = groupKvp.Key;
+                    var localItem = itemKvp.Key;
                     iconService.AddIcon(iconName, iconName, () => glyphService.GetGlyph(localGroup, localItem));
                 }
             }

@@ -21,7 +21,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     internal sealed class ErrorPropertySymbol : PropertySymbol
     {
         private readonly Symbol _containingSymbol;
-        private readonly TypeSymbol _type;
+        private readonly TypeWithAnnotations _typeWithAnnotations;
         private readonly string _name;
         private readonly bool _isIndexer;
         private readonly bool _isIndexedProperty;
@@ -29,7 +29,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         public ErrorPropertySymbol(Symbol containingSymbol, TypeSymbol type, string name, bool isIndexer, bool isIndexedProperty)
         {
             _containingSymbol = containingSymbol;
-            _type = type;
+            _typeWithAnnotations = TypeWithAnnotations.Create(type);
             _name = name;
             _isIndexer = isIndexer;
             _isIndexedProperty = isIndexedProperty;
@@ -37,7 +37,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override Symbol ContainingSymbol { get { return _containingSymbol; } }
 
-        public override TypeSymbol Type { get { return _type; } }
+        public override RefKind RefKind { get { return RefKind.None; } }
+
+        public override TypeWithAnnotations TypeWithAnnotations { get { return _typeWithAnnotations; } }
 
         public override string Name { get { return _name; } }
 
@@ -81,6 +83,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override ImmutableArray<PropertySymbol> ExplicitInterfaceImplementations { get { return ImmutableArray<PropertySymbol>.Empty; } }
 
-        public override ImmutableArray<CustomModifier> TypeCustomModifiers { get { return ImmutableArray<CustomModifier>.Empty; } }
+        public override ImmutableArray<CustomModifier> RefCustomModifiers { get { return ImmutableArray<CustomModifier>.Empty; } }
     }
 }

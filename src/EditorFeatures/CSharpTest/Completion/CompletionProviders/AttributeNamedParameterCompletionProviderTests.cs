@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
 using Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionProviders;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -16,7 +17,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionSe
         {
         }
 
-        internal override CompletionListProvider CreateCompletionProvider()
+        internal override CompletionProvider CreateCompletionProvider()
         {
             return new AttributeNamedParameterCompletionProvider();
         }
@@ -29,7 +30,7 @@ using System;
 class class1
 {
     [Test($$
-    public void Foo()
+    public void Goo()
     {
     }
 }
@@ -39,8 +40,9 @@ public class TestAttribute : Attribute
     public ConsoleColor Color { get; set; }
 }";
 
-            await VerifySendEnterThroughToEnterAsync(markup, "Color =", sendThroughEnterEnabled: false, expected: false);
-            await VerifySendEnterThroughToEnterAsync(markup, "Color =", sendThroughEnterEnabled: true, expected: true);
+            await VerifySendEnterThroughToEnterAsync(markup, "Color =", sendThroughEnterOption: EnterKeyRule.Never, expected: false);
+            await VerifySendEnterThroughToEnterAsync(markup, "Color =", sendThroughEnterOption: EnterKeyRule.AfterFullyTypedWord, expected: true);
+            await VerifySendEnterThroughToEnterAsync(markup, "Color =", sendThroughEnterOption: EnterKeyRule.Always, expected: true);
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -51,7 +53,7 @@ using System;
 class class1
 {
     [Test($$
-    public void Foo()
+    public void Goo()
     {
     }
 }
@@ -72,7 +74,7 @@ using System;
 class class1
 {
     [Test($$
-    public void Foo()
+    public void Goo()
     {
     }
 }
@@ -82,7 +84,7 @@ public class TestAttribute : Attribute
     public ConsoleColor Color { get; set; }
 }";
 
-            await VerifyItemExistsAsync(markup, "Color =");
+            await VerifyItemExistsAsync(markup, "Color", displayTextSuffix: " =");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -93,7 +95,7 @@ using System;
 class class1
 {
     [Test(Color = ConsoleColor.Black, $$
-    public void Foo()
+    public void Goo()
     {
     }
 }
@@ -104,10 +106,10 @@ public class TestAttribute : Attribute
     public string Text { get; set; }
 }";
 
-            await VerifyItemExistsAsync(markup, "Text =");
+            await VerifyItemExistsAsync(markup, "Text", displayTextSuffix: " =");
         }
 
-        [WorkItem(544345)]
+        [WorkItem(544345, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544345")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task ExistingItemsAreFiltered()
         {
@@ -116,7 +118,7 @@ using System;
 class class1
 {
     [Test(Color = ConsoleColor.Black, $$
-    public void Foo()
+    public void Goo()
     {
     }
 }
@@ -127,8 +129,8 @@ public class TestAttribute : Attribute
     public string Text { get; set; }
 }";
 
-            await VerifyItemExistsAsync(markup, "Text =");
-            await VerifyItemIsAbsentAsync(markup, "Color =");
+            await VerifyItemExistsAsync(markup, "Text", displayTextSuffix: " =");
+            await VerifyItemIsAbsentAsync(markup, "Color", displayTextSuffix: " =");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -143,11 +145,11 @@ class TestAttribute : Attribute
 }
  
 [Test($$
-class Foo
+class Goo
 { }
 ";
 
-            await VerifyItemExistsAsync(markup, "a:");
+            await VerifyItemExistsAsync(markup, "a", displayTextSuffix: ":");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -162,14 +164,14 @@ class TestAttribute : Attribute
 }
 
 [Test(s:"""", $$
-class Foo
+class Goo
 { }
 ";
 
-            await VerifyItemExistsAsync(markup, "a:");
+            await VerifyItemExistsAsync(markup, "a", displayTextSuffix: ":");
         }
 
-        [WorkItem(545426)]
+        [WorkItem(545426, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545426")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task TestPropertiesInScript()
         {
@@ -185,14 +187,14 @@ class TestAttribute : Attribute
 }
  
 [Test($$
-class Foo
+class Goo
 {
 }";
 
-            await VerifyItemExistsAsync(markup, "Text =");
+            await VerifyItemExistsAsync(markup, "Text", displayTextSuffix: " =");
         }
 
-        [WorkItem(1075278)]
+        [WorkItem(1075278, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1075278")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NotInComment()
         {
@@ -201,7 +203,7 @@ using System;
 class class1
 {
     [Test( //$$
-    public void Foo()
+    public void Goo()
     {
     }
 }

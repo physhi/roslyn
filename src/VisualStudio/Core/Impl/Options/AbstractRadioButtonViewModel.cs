@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,7 +13,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
         private readonly AbstractOptionPreviewViewModel _info;
         internal readonly string Preview;
         private bool _isChecked;
-        private string _groupName;
 
         public string Description { get; }
         public string GroupName { get; }
@@ -36,7 +35,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
             }
         }
 
-        public AbstractRadioButtonViewModel(string description, string preview, AbstractOptionPreviewViewModel info, OptionSet options, bool isChecked, string group)
+        public AbstractRadioButtonViewModel(string description, string preview, AbstractOptionPreviewViewModel info, bool isChecked, string group)
         {
             Description = description;
             this.Preview = preview;

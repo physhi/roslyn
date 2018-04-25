@@ -10,6 +10,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     Friend Class BasicLinkedFileMergeConflictCommentAdditionService
         Inherits AbstractLinkedFileMergeConflictCommentAdditionService
 
+        <ImportingConstructor>
+        Public Sub New()
+        End Sub
+
         Friend Overrides Function GetConflictCommentText(header As String, beforeString As String, afterString As String) As String
             If beforeString Is Nothing AndAlso afterString Is Nothing Then
                 Return Nothing
@@ -21,7 +25,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 {2}
 ",
                     header,
-                    WorkspacesResources.AddedHeader,
+                    WorkspacesResources.Added_colon,
                     GetCommentedText(afterString))
             ElseIf afterString Is Nothing Then
                 ' Removed code
@@ -31,7 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 {2}
 ",
                     header,
-                    WorkspacesResources.RemovedHeader,
+                    WorkspacesResources.Removed_colon,
                     GetCommentedText(beforeString))
             Else
                 Return String.Format("
@@ -42,9 +46,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 {4}
 ",
                     header,
-                    WorkspacesResources.BeforeHeader,
+                    WorkspacesResources.Before_colon,
                     GetCommentedText(beforeString),
-                    WorkspacesResources.AfterHeader,
+                    WorkspacesResources.After_colon,
                     GetCommentedText(afterString))
 
             End If
@@ -57,7 +61,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim newlines = Regex.Matches(text, "\r\n|\r|\n")
-            Contract.Assert(newlines.Count = lines.Length - 1)
+            Debug.Assert(newlines.Count = lines.Length - 1)
 
             Dim builder = New StringBuilder()
 

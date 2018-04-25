@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -42,7 +42,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Venus
             pceltFetched = Math.Min(celt, (uint)(_codeBlocks.Count - _currentElement));
 
             // Copy each element over
-            for (int i = 0; i < pceltFetched; i++)
+            for (var i = 0; i < pceltFetched; i++)
             {
                 rgelt[i] = _codeBlocks[_currentElement++];
             }

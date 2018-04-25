@@ -5,20 +5,24 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
+using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
     internal class ControlFlowPass : AbstractFlowPass<ControlFlowPass.LocalState>
     {
-        private readonly PooledHashSet<LabelSymbol> _labelsDefined = PooledHashSet<LabelSymbol>.GetInstance();
+        private readonly PooledDictionary<LabelSymbol, BoundBlock> _labelsDefined = PooledDictionary<LabelSymbol, BoundBlock>.GetInstance();
         private readonly PooledHashSet<LabelSymbol> _labelsUsed = PooledHashSet<LabelSymbol>.GetInstance();
         protected bool _convertInsufficientExecutionStackExceptionToCancelledByStackGuardException = false; // By default, just let the original exception to bubble up.
+
+        private readonly ArrayBuilder<(LocalSymbol symbol, BoundBlock block)> _usingDeclarations = ArrayBuilder<(LocalSymbol, BoundBlock)>.GetInstance();
+        private BoundBlock _currentBlock = null;
 
         protected override void Free()
         {
             _labelsDefined.Free();
             _labelsUsed.Free();
-
+            _usingDeclarations.Free();
             base.Free();
         }
 
@@ -32,7 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
         }
 
-        internal struct LocalState : AbstractLocalState
+        internal struct LocalState : ILocalState
         {
             internal bool Alive;
             internal bool Reported; // reported unreachable statement
@@ -58,14 +62,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        protected override void UnionWith(ref LocalState self, ref LocalState other)
+        protected override void Meet(ref LocalState self, ref LocalState other)
         {
             self.Alive &= other.Alive;
             self.Reported &= other.Reported;
             Debug.Assert(!self.Alive || !self.Reported);
         }
 
-        protected override bool IntersectWith(ref LocalState self, ref LocalState other)
+        protected override bool Join(ref LocalState self, ref LocalState other)
         {
             var old = self;
             self.Alive |= other.Alive;
@@ -79,7 +83,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             return "[alive: " + state.Alive + "; reported: " + state.Reported + "]";
         }
 
-        protected override LocalState ReachableState()
+        protected override LocalState TopState()
         {
             return new LocalState(true, false);
         }
@@ -114,7 +118,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             this.Diagnostics.Clear();  // clear reported diagnostics
             var result = base.Scan(ref badRegion);
-            foreach (var label in _labelsDefined)
+            foreach (var label in _labelsDefined.Keys)
             {
                 if (!_labelsUsed.Contains(label))
                 {
@@ -218,6 +222,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case BoundKind.Block:
                 case BoundKind.ThrowStatement:
                 case BoundKind.LabeledStatement:
+                case BoundKind.LocalFunctionStatement:
                     base.VisitStatement(statement);
                     break;
                 case BoundKind.StatementList:
@@ -232,7 +237,10 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private void CheckReachable(BoundStatement statement)
         {
-            if (!this.State.Alive && !this.State.Reported && !statement.WasCompilerGenerated && statement.Syntax.Span.Length != 0)
+            if (!this.State.Alive &&
+                !this.State.Reported &&
+                !statement.WasCompilerGenerated &&
+                statement.Syntax.Span.Length != 0)
             {
                 var firstToken = statement.Syntax.GetFirstToken();
                 Diagnostics.Add(ErrorCode.WRN_UnreachableCode, new SourceLocation(firstToken));
@@ -285,10 +293,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             RestorePending(oldPending1);
         }
 
+        // For purpose of control flow analysis, awaits do not create pending branches, so asynchronous usings and foreachs don't either
+        public sealed override bool AwaitUsingAndForeachAddsPendingBranch => false;
 
         protected override void VisitLabel(BoundLabeledStatement node)
         {
-            _labelsDefined.Add(node.Label);
+            _labelsDefined[node.Label] = _currentBlock;
             base.VisitLabel(node);
         }
 
@@ -303,34 +313,69 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override BoundNode VisitGotoStatement(BoundGotoStatement node)
         {
             _labelsUsed.Add(node.Label);
+
+            // check for illegal jumps across using declarations
+            var sourceLocation = node.Syntax.Location;
+            var sourceStart = sourceLocation.SourceSpan.Start;
+            var targetStart = node.Label.Locations[0].SourceSpan.Start;
+
+            foreach (var usingDecl in _usingDeclarations)
+            {
+                var usingStart = usingDecl.symbol.Locations[0].SourceSpan.Start;
+                if (sourceStart < usingStart && targetStart > usingStart)
+                {
+                    // No forward jumps
+                    Diagnostics.Add(ErrorCode.ERR_GoToForwardJumpOverUsingVar, sourceLocation);
+                    break;
+                }
+                else if (sourceStart > usingStart && targetStart < usingStart)
+                {
+                    // Backwards jump, so we must have already seen the label
+                    Debug.Assert(_labelsDefined.ContainsKey(node.Label));
+
+                    // Error if label and using are part of the same block
+                    if (_labelsDefined[node.Label] == usingDecl.block)
+                    {
+                        Diagnostics.Add(ErrorCode.ERR_GoToBackwardJumpOverUsingVar, sourceLocation);
+                        break;
+                    }
+                }
+            }
+
             return base.VisitGotoStatement(node);
         }
 
-        protected override void VisitSwitchSectionLabel(LabelSymbol label, BoundSwitchSection node)
+        protected override void VisitSwitchSection(BoundSwitchSection node, bool isLastSection)
         {
-            _labelsDefined.Add(label);
-            base.VisitSwitchSectionLabel(label, node);
-
-            // switch statement labels are always considered to be referenced
-            _labelsUsed.Add(label);
-        }
-
-        public override BoundNode VisitSwitchSection(BoundSwitchSection node, bool lastSection)
-        {
-            base.VisitSwitchSection(node);
+            base.VisitSwitchSection(node, isLastSection);
 
             // Check for switch section fall through error
             if (this.State.Alive)
             {
-                Debug.Assert(node.BoundSwitchLabels.Any());
+                var syntax = node.SwitchLabels.Last().Pattern.Syntax;
+                Diagnostics.Add(isLastSection ? ErrorCode.ERR_SwitchFallOut : ErrorCode.ERR_SwitchFallThrough,
+                                new SourceLocation(syntax), syntax.ToString());
+            }
+        }
 
-                var boundLabel = node.BoundSwitchLabels.Last();
-                Diagnostics.Add(lastSection ? ErrorCode.ERR_SwitchFallOut : ErrorCode.ERR_SwitchFallThrough,
-                                new SourceLocation(boundLabel.Syntax), boundLabel.Label.Name);
-                this.State.Reported = true;
+        public override BoundNode VisitBlock(BoundBlock node)
+        {
+            var parentBlock = _currentBlock;
+            _currentBlock = node;
+            var initialUsingCount = _usingDeclarations.Count;
+            foreach (var local in node.Locals)
+            {
+                if (local.IsUsing)
+                {
+                    _usingDeclarations.Add((local, node));
+                }
             }
 
-            return null;
+            var result = base.VisitBlock(node);
+
+            _usingDeclarations.Clip(initialUsingCount);
+            _currentBlock = parentBlock;
+            return result;
         }
     }
 }

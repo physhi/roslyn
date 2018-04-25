@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        public static explicit operator string (LocalizableString localizableResource)
+        public static explicit operator string(LocalizableString localizableResource)
         {
             return localizableResource.ToString(null);
         }
@@ -120,5 +120,10 @@ namespace Microsoft.CodeAnalysis
                 // Ignore exceptions from the exception handlers themselves.
             }
         }
+
+        /// <summary>
+        /// Flag indicating if any methods on this type can throw exceptions from public entrypoints.
+        /// </summary>
+        internal virtual bool CanThrowExceptions => true;
     }
 }

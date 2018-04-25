@@ -60,6 +60,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
+        public override Version AssemblyVersionPattern => null;
+
         internal override ImmutableArray<byte> PublicKey
         {
             get { return Identity.PublicKey; }
@@ -83,7 +85,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return identity.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(Symbol obj, TypeCompareKind compareKind)
         {
             return Equals(obj as MissingAssemblySymbol);
         }
@@ -184,5 +186,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return false;
             }
         }
+
+        public override AssemblyMetadata GetMetadata() => null;
     }
 }

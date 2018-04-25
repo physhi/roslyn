@@ -7,11 +7,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeActions;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
 {
-    internal abstract partial class AbstractSuppressionCodeFixProvider : ISuppressionFixProvider
+    internal abstract partial class AbstractSuppressionCodeFixProvider : IConfigurationFixProvider
     {
         internal sealed class GlobalSuppressMessageFixAllCodeAction : AbstractGlobalSuppressMessageCodeAction
         {
@@ -106,7 +107,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
                     foreach (var diagnostic in diagnostics)
                     {
                         Contract.ThrowIfFalse(!diagnostic.IsSuppressed);
-                        suppressionsRoot = await Fixer.AddGlobalSuppressMessageAttributeAsync(suppressionsRoot, targetSymbol, diagnostic, workspace, cancellationToken).ConfigureAwait(false);
+                        suppressionsRoot = Fixer.AddGlobalSuppressMessageAttribute(suppressionsRoot, targetSymbol, diagnostic, workspace, cancellationToken);
                     }
                 }
 
@@ -160,8 +161,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
                     return;
                 }
 
-                List<Diagnostic> diagnosticsForSymbol;
-                if (!diagnosticsMapBuilder.TryGetValue(targetSymbol, out diagnosticsForSymbol))
+                if (!diagnosticsMapBuilder.TryGetValue(targetSymbol, out var diagnosticsForSymbol))
                 {
                     diagnosticsForSymbol = new List<Diagnostic>();
                     diagnosticsMapBuilder.Add(targetSymbol, diagnosticsForSymbol);
@@ -180,7 +180,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
                 var builder = new List<KeyValuePair<ISymbol, ImmutableArray<Diagnostic>>>();
                 foreach (var kvp in diagnosticsMapBuilder)
                 {
-                    builder.Add(KeyValuePair.Create(kvp.Key, GetUniqueDiagnostics(kvp.Value)));
+                    builder.Add(KeyValuePairUtil.Create(kvp.Key, GetUniqueDiagnostics(kvp.Value)));
                 }
 
                 return builder.OrderBy(kvp => kvp.Key.GetDocumentationCommentId() ?? string.Empty);
@@ -189,7 +189,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
             private static ImmutableArray<Diagnostic> GetUniqueDiagnostics(List<Diagnostic> diagnostics)
             {
                 var uniqueIds = new HashSet<string>();
-                var uniqueDiagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+                var uniqueDiagnostics = ArrayBuilder<Diagnostic>.GetInstance();
                 foreach (var diagnostic in diagnostics)
                 {
                     if (uniqueIds.Add(diagnostic.Id))
@@ -198,7 +198,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Suppression
                     }
                 }
 
-                return uniqueDiagnostics.ToImmutable();
+                return uniqueDiagnostics.ToImmutableAndFree();
             }
         }
     }

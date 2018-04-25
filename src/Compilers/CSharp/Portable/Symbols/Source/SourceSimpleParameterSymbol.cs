@@ -1,13 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Threading;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
 {
@@ -19,7 +13,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     {
         public SourceSimpleParameterSymbol(
             Symbol owner,
-            TypeSymbol parameterType,
+            TypeWithAnnotations parameterType,
             int ordinal,
             RefKind refKind,
             string name,
@@ -48,7 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return false; }
         }
 
-        public override ImmutableArray<CustomModifier> CustomModifiers
+        public override ImmutableArray<CustomModifier> RefCustomModifiers
         {
             get { return ImmutableArray<CustomModifier>.Empty; }
         }
@@ -61,16 +55,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal override bool IsExtensionMethodThis
         {
             get { return false; }
-        }
-
-        internal override bool IsMetadataIn
-        {
-            get { return false; }
-        }
-
-        internal override bool IsMetadataOut
-        {
-            get { return RefKind == RefKind.Out; }
         }
 
         internal override bool IsIDispatchConstant
@@ -97,6 +81,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get { return false; }
         }
+
+        internal override FlowAnalysisAnnotations FlowAnalysisAnnotations
+        {
+            get { return FlowAnalysisAnnotations.None; }
+        }
+
+        internal override ImmutableHashSet<string> NotNullIfParameterNotNull => ImmutableHashSet<string>.Empty;
 
         internal override MarshalPseudoCustomAttributeData MarshallingInformation
         {

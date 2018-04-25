@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Diagnostics;
@@ -60,9 +60,9 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel
 
             private static void AppendTypeName(StringBuilder builder, TypeSyntax type)
             {
-                if (type is NameSyntax)
+                if (type is NameSyntax name)
                 {
-                    AppendName(builder, (NameSyntax)type);
+                    AppendName(builder, name);
                 }
                 else
                 {
@@ -77,7 +77,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.CodeModel
                             AppendTypeName(builder, arrayType.ElementType);
 
                             var specifiers = arrayType.RankSpecifiers;
-                            for (int i = 0; i < specifiers.Count; i++)
+                            for (var i = 0; i < specifiers.Count; i++)
                             {
                                 builder.Append('[');
 

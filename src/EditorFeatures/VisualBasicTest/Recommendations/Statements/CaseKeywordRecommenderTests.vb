@@ -1,107 +1,100 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
-
-Imports Microsoft.CodeAnalysis.Text
-Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Roslyn.Test.Utilities
-Imports Xunit
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations.Statements
     Public Class CaseKeywordRecommenderTests
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseAfterSelect()
-            VerifyRecommendationsContain(<MethodBody>Select |</MethodBody>, "Case")
-        End Sub
+        Public Async Function CaseAfterSelectTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Select |</MethodBody>, "Case")
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoCaseAfterQuerySelect()
-            VerifyRecommendationsMissing(<MethodBody>Dim q = From x in "abc" Select |</MethodBody>, "Case")
-        End Sub
+        Public Async Function NoCaseAfterQuerySelectTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>Dim q = From x in "abc" Select |</MethodBody>, "Case")
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoCaseElseAfterQuerySelect()
-            VerifyRecommendationsMissing(<MethodBody>Dim q = From x in "abc" Select |</MethodBody>, "Case Else")
-        End Sub
+        Public Async Function NoCaseElseAfterQuerySelectTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>Dim q = From x in "abc" Select |</MethodBody>, "Case Else")
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseNotByItself()
-            VerifyRecommendationsMissing(<MethodBody>|</MethodBody>, "Case")
-        End Sub
+        Public Async Function CaseNotByItselfTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>|</MethodBody>, "Case")
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseInSelectBlock()
-            VerifyRecommendationsContain(<MethodBody>
-Select Case foo
+        Public Async Function CaseInSelectBlockTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>
+Select Case goo
 |
 End Select</MethodBody>, "Case")
-        End Sub
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseElseInSelectBlock()
-            VerifyRecommendationsContain(<MethodBody>
-Select Case foo
+        Public Async Function CaseElseInSelectBlockTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>
+Select Case goo
 |
 End Select</MethodBody>, "Case Else")
-        End Sub
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseElseNotInSelectBlockThatAlreadyHasCaseElse()
-            VerifyRecommendationsMissing(<MethodBody>
-Select Case foo
+        Public Async Function CaseElseNotInSelectBlockThatAlreadyHasCaseElseTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>
+Select Case goo
 Case Else
 |
 End Select</MethodBody>, "Case Else")
-        End Sub
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseElseNotInSelectBlockIfBeforeCase()
-            VerifyRecommendationsMissing(<MethodBody>
-Select Case foo
+        Public Async Function CaseElseNotInSelectBlockIfBeforeCaseTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>
+Select Case goo
 |
 Case
 End Select</MethodBody>, "Case Else")
-        End Sub
+        End Function
 
         <Fact>
-        <WorkItem(543384)>
+        <WorkItem(543384, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543384")>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoCaseInSelectBlockIfAfterCaseElse()
-            VerifyRecommendationsMissing(<MethodBody>
-Select Case foo
+        Public Async Function NoCaseInSelectBlockIfAfterCaseElseTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>
+Select Case goo
     Case Else
         Dim i = 3
     |
 End Select</MethodBody>, "Case")
-        End Sub
+        End Function
 
         <Fact>
-        <WorkItem(543384)>
+        <WorkItem(543384, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543384")>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub CaseInSelectBlockBeforeCaseElse()
-            VerifyRecommendationsContain(<MethodBody>
-Select Case foo
+        Public Async Function CaseInSelectBlockBeforeCaseElseTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>
+Select Case goo
     |
     Case Else
         Dim i = 3
 End Select</MethodBody>, "Case")
-        End Sub
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoCaseIsInSelectBlock()
-            VerifyRecommendationsMissing(<MethodBody>
-Select Case foo
+        Public Async Function NoCaseIsInSelectBlockTest() As Task
+            Await VerifyRecommendationsMissingAsync(<MethodBody>
+Select Case goo
 |
 End Select</MethodBody>, "Case Is")
-        End Sub
+        End Function
     End Class
 End Namespace

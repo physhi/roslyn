@@ -24,7 +24,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
-            builder.Add(CreatePart(SymbolDisplayPartKind.FieldName, symbol, symbol.Name, visitedParents))
+            If symbol.ContainingType.TypeKind = TypeKind.Enum Then
+                builder.Add(CreatePart(SymbolDisplayPartKind.EnumMemberName, symbol, symbol.Name, visitedParents))
+            ElseIf symbol.IsConst Then
+                builder.Add(CreatePart(SymbolDisplayPartKind.ConstantName, symbol, symbol.Name, visitedParents))
+            Else
+                builder.Add(CreatePart(SymbolDisplayPartKind.FieldName, symbol, symbol.Name, visitedParents))
+            End If
 
             If format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeType) AndAlso
                Me.isFirstSymbolVisited AndAlso
@@ -67,6 +73,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeModifiers) AndAlso symbol.IsIndexer Then
                 AddKeyword(SyntaxKind.DefaultKeyword)
+                AddSpace()
+            End If
+
+            If symbol.ReturnsByRef AndAlso format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeRef) Then
+                AddKeyword(SyntaxKind.ByRefKeyword)
+                AddCustomModifiersIfRequired(symbol.RefCustomModifiers)
                 AddSpace()
             End If
 
@@ -128,10 +140,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim sourceSymbol = TryCast(symbol, SourceEventSymbol)
             If sourceSymbol IsNot Nothing AndAlso sourceSymbol.IsTypeInferred Then
                 If format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeParameters) Then
-                    Dim invoke = DirectCast(sourceSymbol.Type, SynthesizedEventDelegateSymbol).DelegateInvokeMethod
-
                     AddPunctuation(SyntaxKind.OpenParenToken)
-                    AddParametersIfRequired(isExtensionMethod:=False, parameters:=StaticCast(Of IParameterSymbol).From(invoke.Parameters))
+                    AddParametersIfRequired(isExtensionMethod:=False, parameters:=StaticCast(Of IParameterSymbol).From(sourceSymbol.DelegateParameters))
                     AddPunctuation(SyntaxKind.CloseParenToken)
                 End If
             End If
@@ -177,6 +187,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             AddAccessibilityIfRequired(symbol)
             AddMemberModifiersIfRequired(symbol)
+
+            If symbol.ReturnsByRef AndAlso format.MemberOptions.IncludesOption(SymbolDisplayMemberOptions.IncludeRef) Then
+                AddKeyword(SyntaxKind.ByRefKeyword)
+                AddCustomModifiersIfRequired(symbol.RefCustomModifiers)
+                AddSpace()
+            End If
+
             AddMethodKind(symbol)
             AddMethodName(symbol)
             AddMethodGenericParameters(symbol)
@@ -301,8 +318,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Select Case symbol.MethodKind
-                Case MethodKind.Ordinary, MethodKind.ReducedExtension, MethodKind.DelegateInvoke, MethodKind.DeclareMethod
+                Case MethodKind.Ordinary, MethodKind.DelegateInvoke, MethodKind.DeclareMethod
                     builder.Add(CreatePart(SymbolDisplayPartKind.MethodName, symbol, symbol.Name, visitedParents))
+
+                Case MethodKind.ReducedExtension
+                    ' Note: Extension methods invoked off of their static class will be tagged as methods.
+                    '       This behavior matches the semantic classification done in NameSyntaxClassifier.
+                    builder.Add(CreatePart(SymbolDisplayPartKind.ExtensionMethodName, symbol, symbol.Name, visitedParents))
 
                 Case MethodKind.PropertyGet,
                     MethodKind.PropertySet,
@@ -455,7 +477,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Sub VisitParameter(symbol As IParameterSymbol)
-            Dim vbParameter = TryCast(symbol, ParameterSymbol)
 
             If format.ParameterOptions.IncludesOption(SymbolDisplayParameterOptions.IncludeOptionalBrackets) Then
                 If symbol.IsOptional Then
@@ -468,9 +489,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     AddKeyword(SyntaxKind.ByRefKeyword)
                     AddSpace()
 
-                    If vbParameter IsNot Nothing AndAlso vbParameter.CountOfCustomModifiersPrecedingByRef > 0 Then
-                        AddCustomModifiersIfRequired(symbol.CustomModifiers.Take(vbParameter.CountOfCustomModifiersPrecedingByRef).AsImmutable(), leadingSpace:=False, trailingSpace:=True)
-                    End If
+                    AddCustomModifiersIfRequired(symbol.RefCustomModifiers, leadingSpace:=False, trailingSpace:=True)
                 End If
 
                 If symbol.IsParams Then
@@ -480,7 +499,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             If format.ParameterOptions.IncludesOption(SymbolDisplayParameterOptions.IncludeName) Then
-                builder.Add(CreatePart(SymbolDisplayPartKind.ParameterName, symbol, symbol.Name, False))
+                Dim kind = If(symbol.IsThis, SymbolDisplayPartKind.Keyword, SymbolDisplayPartKind.ParameterName)
+                builder.Add(CreatePart(kind, symbol, symbol.Name, False))
             End If
 
             If format.ParameterOptions.IncludesOption(SymbolDisplayParameterOptions.IncludeType) Then
@@ -491,14 +511,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 symbol.Type.Accept(Me.NotFirstVisitor())
-
-                If vbParameter IsNot Nothing Then
-                    If vbParameter.IsByRef AndAlso IsExplicitByRefParameter(symbol) AndAlso vbParameter.CountOfCustomModifiersPrecedingByRef > 0 Then
-                        AddCustomModifiersIfRequired(symbol.CustomModifiers.Skip(vbParameter.CountOfCustomModifiersPrecedingByRef).AsImmutable())
-                    Else
-                        AddCustomModifiersIfRequired(symbol.CustomModifiers)
-                    End If
-                End If
+                AddCustomModifiersIfRequired(symbol.CustomModifiers)
             End If
 
             If format.ParameterOptions.IncludesOption(SymbolDisplayParameterOptions.IncludeDefaultValue) AndAlso symbol.HasExplicitDefaultValue Then

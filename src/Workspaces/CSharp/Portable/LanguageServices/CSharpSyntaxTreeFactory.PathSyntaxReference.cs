@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 {
     internal partial class CSharpSyntaxTreeFactoryServiceFactory
     {
-        internal partial class CSharpSyntaxTreeFactoryService
+        private partial class CSharpSyntaxTreeFactoryService
         {
             /// <summary>
             /// Represents a syntax reference that doesn't actually hold onto the 
@@ -75,7 +75,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         }
                         else if (node != root)
                         {
-                            throw new InvalidOperationException(CSharpWorkspaceResources.NodeDoesNotDescendFromRoo);
+                            throw new InvalidOperationException(CSharpWorkspaceResources.Node_does_not_descend_from_root);
                         }
                     }
 
@@ -86,7 +86,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 private int GetChildIndex(SyntaxNodeOrToken child)
                 {
                     var parent = child.Parent;
-                    int index = 0;
+                    var index = 0;
 
                     foreach (var nodeOrToken in parent.ChildNodesAndTokens())
                     {
@@ -98,13 +98,13 @@ namespace Microsoft.CodeAnalysis.CSharp
                         index++;
                     }
 
-                    throw new InvalidOperationException(CSharpWorkspaceResources.NodeNotInParentsChildLis);
+                    throw new InvalidOperationException(CSharpWorkspaceResources.Node_not_in_parent_s_child_list);
                 }
 
                 private int GetTriviaIndex(SyntaxTrivia trivia)
                 {
                     var token = trivia.Token;
-                    int index = 0;
+                    var index = 0;
 
                     foreach (var tr in token.LeadingTrivia)
                     {
@@ -126,7 +126,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         index++;
                     }
 
-                    throw new InvalidOperationException(CSharpWorkspaceResources.TriviaIsNotAssociatedWith);
+                    throw new InvalidOperationException(CSharpWorkspaceResources.Trivia_is_not_associated_with_token);
                 }
 
                 private SyntaxTrivia GetTrivia(SyntaxToken token, int triviaIndex)
@@ -146,7 +146,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return this.GetNode(_tree.GetRoot(cancellationToken));
                 }
 
-                public async override Task<SyntaxNode> GetSyntaxAsync(CancellationToken cancellationToken = default(CancellationToken))
+                public async override Task<SyntaxNode> GetSyntaxAsync(CancellationToken cancellationToken = default)
                 {
                     var root = await _tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
                     return this.GetNode(root);

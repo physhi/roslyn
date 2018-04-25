@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 namespace Microsoft.CodeAnalysis.ChangeSignature
 {
@@ -12,11 +12,11 @@ namespace Microsoft.CodeAnalysis.ChangeSignature
 
         public ChangeSignatureResult(bool succeeded, Solution updatedSolution = null, string name = null, Glyph? glyph = null, bool previewChanges = false)
         {
-            this.Succeeded = succeeded;
-            this.UpdatedSolution = updatedSolution;
-            this.Name = name;
-            this.Glyph = glyph;
-            this.PreviewChanges = previewChanges;
+            Succeeded = succeeded;
+            UpdatedSolution = updatedSolution;
+            Name = name;
+            Glyph = glyph;
+            PreviewChanges = previewChanges;
         }
     }
 }

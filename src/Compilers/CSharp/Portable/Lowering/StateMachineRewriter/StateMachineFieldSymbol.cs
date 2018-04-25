@@ -13,7 +13,8 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// </summary>
     internal sealed class StateMachineFieldSymbol : SynthesizedFieldSymbolBase, ISynthesizedMethodBodyImplementationSymbol
     {
-        private readonly TypeSymbol _type;
+        private readonly TypeWithAnnotations _type;
+        private readonly bool _isThis;
 
         // -1 if the field doesn't represent a long-lived local or an awaiter.
         internal readonly int SlotIndex;
@@ -21,9 +22,10 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal readonly LocalSlotDebugInfo SlotDebugInfo;
 
         // Some fields need to be public since they are initialized directly by the kickoff method.
-        public StateMachineFieldSymbol(NamedTypeSymbol stateMachineType, TypeSymbol type, string name, bool isPublic)
+        public StateMachineFieldSymbol(NamedTypeSymbol stateMachineType, TypeWithAnnotations type, string name, bool isPublic, bool isThis)
             : this(stateMachineType, type, name, new LocalSlotDebugInfo(SynthesizedLocalKind.LoweringTemp, LocalDebugId.None), slotIndex: -1, isPublic: isPublic)
         {
+            _isThis = isThis;
         }
 
         public StateMachineFieldSymbol(NamedTypeSymbol stateMachineType, TypeSymbol type, string name, SynthesizedLocalKind synthesizedKind, int slotIndex, bool isPublic)
@@ -31,7 +33,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
         }
 
-        public StateMachineFieldSymbol(NamedTypeSymbol stateMachineType, TypeSymbol type, string name, LocalSlotDebugInfo slotDebugInfo, int slotIndex, bool isPublic)
+        public StateMachineFieldSymbol(NamedTypeSymbol stateMachineType, TypeSymbol type, string name, LocalSlotDebugInfo slotDebugInfo, int slotIndex, bool isPublic) :
+            this(stateMachineType, TypeWithAnnotations.Create(type), name, slotDebugInfo, slotIndex, isPublic)
+        {
+        }
+
+        public StateMachineFieldSymbol(NamedTypeSymbol stateMachineType, TypeWithAnnotations type, string name, LocalSlotDebugInfo slotDebugInfo, int slotIndex, bool isPublic)
             : base(stateMachineType, name, isPublic: isPublic, isReadOnly: false, isStatic: false)
         {
             Debug.Assert((object)type != null);
@@ -42,7 +49,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             this.SlotDebugInfo = slotDebugInfo;
         }
 
-        internal override TypeSymbol GetFieldType(ConsList<FieldSymbol> fieldsBeingBound)
+        internal override bool SuppressDynamicAttribute
+        {
+            get { return true; }
+        }
+
+        internal override TypeWithAnnotations GetFieldType(ConsList<FieldSymbol> fieldsBeingBound)
         {
             return _type;
         }
@@ -55,6 +67,11 @@ namespace Microsoft.CodeAnalysis.CSharp
         IMethodSymbol ISynthesizedMethodBodyImplementationSymbol.Method
         {
             get { return ((ISynthesizedMethodBodyImplementationSymbol)ContainingSymbol).Method; }
+        }
+
+        internal override bool IsCapturedFrame
+        {
+            get { return _isThis; }
         }
     }
 }

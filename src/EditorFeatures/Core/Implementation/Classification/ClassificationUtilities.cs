@@ -17,8 +17,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Classification
 
         public static List<ClassifiedSpan> GetOrCreateClassifiedSpanList()
         {
-            List<ClassifiedSpan> result;
-            return s_spanCache.TryDequeue(out result)
+            return s_spanCache.TryDequeue(out var result)
                 ? result
                 : new List<ClassifiedSpan>();
         }
@@ -38,10 +37,15 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Classification
         {
             foreach (var classifiedSpan in list)
             {
-                addTag(new TagSpan<IClassificationTag>(
-                    classifiedSpan.TextSpan.ToSnapshotSpan(snapshot),
-                    new ClassificationTag(typeMap.GetClassificationType(classifiedSpan.ClassificationType))));
+                addTag(Convert(typeMap, snapshot, classifiedSpan));
             }
+        }
+
+        public static TagSpan<IClassificationTag> Convert(ClassificationTypeMap typeMap, ITextSnapshot snapshot, ClassifiedSpan classifiedSpan)
+        {
+            return new TagSpan<IClassificationTag>(
+                classifiedSpan.TextSpan.ToSnapshotSpan(snapshot),
+                new ClassificationTag(typeMap.GetClassificationType(classifiedSpan.ClassificationType)));
         }
 
         public static List<ITagSpan<IClassificationTag>> ConvertAndReturnList(ClassificationTypeMap typeMap, ITextSnapshot snapshot, List<ClassifiedSpan> classifiedSpans)

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,7 @@ using VsTextSpan = Microsoft.VisualStudio.TextManager.Interop.TextSpan;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.Venus
 {
-    internal partial class ContainedLanguage<TPackage, TLanguageService, TProject> : IVsContainedCode
+    internal partial class ContainedLanguage<TPackage, TLanguageService> : IVsContainedCode
     {
         public int HostSpansUpdated()
         {
@@ -45,7 +45,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Venus
         private IList<TextSpanAndCookie> EnumOriginalCodeBlocksWorker(CancellationToken cancellationToken)
         {
             var snapshot = this.SubjectBuffer.CurrentSnapshot;
-            Document document = snapshot.GetOpenDocumentInCurrentContextWithChanges();
+            var document = snapshot.GetOpenDocumentInCurrentContextWithChanges();
             if (document == null)
             {
                 return SpecializedCollections.EmptyList<TextSpanAndCookie>();

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.DebuggerIntelli
     {
         // HACK HACK HACK HACK HACK: We'll use this fake ICompletionSession to trick them into
         // routing commands to us for both completion and sighelp
-        private HACK_CompletionSession _hackCompletionSession = new HACK_CompletionSession();
+        private readonly HACK_CompletionSession _hackCompletionSession = new HACK_CompletionSession();
 
         public void HACK_StartCompletionSession(IIntellisenseSession editorSessionOpt)
         {

@@ -1,5 +1,8 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+// This file references the DesktopAnalyzerAssemblyLoader, which is only present in desktop
+#if NET472
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -10,6 +13,7 @@ using System.Text;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
+using Roslyn.Test.Utilities.Desktop;
 using Roslyn.Utilities;
 using Xunit;
 
@@ -66,7 +70,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
 
     public class AnalyzerFileReferenceTests : TestBase
     {
-        private static readonly SimpleAnalyzerAssemblyLoader s_analyzerLoader = new SimpleAnalyzerAssemblyLoader();
+        private static readonly DesktopAnalyzerAssemblyLoader s_analyzerLoader = new DesktopAnalyzerAssemblyLoader();
 
         public static AnalyzerFileReference CreateAnalyzerFileReference(string fullPath)
         {
@@ -180,8 +184,9 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public void TestAnalyzerLoading()
         {
             var dir = Temp.CreateDirectory();
+            dir.CopyFile(typeof(AppDomainUtils).Assembly.Location);
             var test = dir.CopyFile(typeof(FromFileLoader).Assembly.Location);
-            var analyzerFile = TestHelpers.CreateCSharpAnalyzerAssemblyWithTestAnalyzer(dir, "MyAnalyzer");
+            var analyzerFile = DesktopTestHelpers.CreateCSharpAnalyzerAssemblyWithTestAnalyzer(dir, "MyAnalyzer");
             var loadDomain = AppDomainUtils.Create("AnalyzerTestDomain", basePath: dir.Path);
             try
             {
@@ -196,7 +201,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(WindowsDesktopOnly), Reason = "https://github.com/mono/mono/issues/10960")]
         public void TestAnalyzerLoading_Error()
         {
             var analyzerSource = @"
@@ -216,7 +221,10 @@ public class TestAnalyzer : DiagnosticAnalyzer
 
             var dir = Temp.CreateDirectory();
 
-            var metadata = dir.CopyFile(typeof(System.Reflection.Metadata.MetadataReader).Assembly.Location);
+            dir.CopyFile(typeof(System.Reflection.Metadata.MetadataReader).Assembly.Location);
+            dir.CopyFile(typeof(AppDomainUtils).Assembly.Location);
+            dir.CopyFile(typeof(Memory<>).Assembly.Location);
+            dir.CopyFile(typeof(System.Runtime.CompilerServices.Unsafe).Assembly.Location);
             var immutable = dir.CopyFile(typeof(ImmutableArray).Assembly.Location);
             var analyzer = dir.CopyFile(typeof(DiagnosticAnalyzer).Assembly.Location);
             var test = dir.CopyFile(typeof(FromFileLoader).Assembly.Location);
@@ -226,7 +234,8 @@ public class TestAnalyzer : DiagnosticAnalyzer
                 new SyntaxTree[] { CSharp.SyntaxFactory.ParseSyntaxTree(analyzerSource) },
                 new MetadataReference[]
                 {
-                    SystemRuntimePP7Ref,
+                    TestReferences.NetStandard20.NetStandard,
+                    TestReferences.NetStandard20.SystemRuntimeRef,
                     MetadataReference.CreateFromFile(immutable.Path),
                     MetadataReference.CreateFromFile(analyzer.Path)
                 },
@@ -251,18 +260,18 @@ public class TestAnalyzer : DiagnosticAnalyzer
         private static Assembly OnResolve(object sender, ResolveEventArgs e)
         {
             Console.WriteLine($"Resolve in {AppDomain.CurrentDomain.Id} for {e.Name}");
-            return null; 
+            return null;
         }
 
         [Fact]
-        [WorkItem(1029928, "DevDiv")]
+        [WorkItem(1029928, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1029928")]
         public void BadAnalyzerReference_DisplayName()
         {
             var directory = Temp.CreateDirectory();
-            var textFile = directory.CreateFile("Foo.txt").WriteAllText("I am the very model of a modern major general.");
+            var textFile = directory.CreateFile("Goo.txt").WriteAllText("I am the very model of a modern major general.");
             AnalyzerFileReference reference = CreateAnalyzerFileReference(textFile.Path);
 
-            Assert.Equal(expected: "Foo", actual: reference.Display);
+            Assert.Equal(expected: "Goo", actual: reference.Display);
         }
 
         [Fact]
@@ -296,14 +305,14 @@ public class TestAnalyzer : DiagnosticAnalyzer
         public void BadAnalyzerReference_Id()
         {
             var directory = Temp.CreateDirectory();
-            var textFile = directory.CreateFile("Foo.txt").WriteAllText("I am the very model of a modern major general.");
+            var textFile = directory.CreateFile("Goo.txt").WriteAllText("I am the very model of a modern major general.");
             AnalyzerFileReference reference = CreateAnalyzerFileReference(textFile.Path);
 
-            Assert.Equal(expected: "Foo", actual: reference.Id);
+            Assert.Equal(expected: "Goo", actual: reference.Id);
         }
 
         [Fact]
-        [WorkItem(1032909)]
+        [WorkItem(1032909, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1032909")]
         public void TestFailedLoadDoesntCauseNoAnalyzersWarning()
         {
             var directory = Temp.CreateDirectory();
@@ -388,3 +397,5 @@ public class TestAnalyzer : DiagnosticAnalyzer
         public override void Initialize(AnalysisContext context) { throw new NotImplementedException(); }
     }
 }
+
+#endif

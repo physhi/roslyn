@@ -21,24 +21,43 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         /// <summary>
         /// The symbol definition that these are references to.
         /// </summary>
-        public ISymbol Definition { get; }
+        public ISymbol Definition => DefinitionAndProjectId.Symbol;
+
+        internal SymbolAndProjectId DefinitionAndProjectId { get; }
 
         /// <summary>
         /// The set of reference locations in the solution.
         /// </summary>
         public IEnumerable<ReferenceLocation> Locations { get; }
 
-        internal ReferencedSymbol(ISymbol definition, IEnumerable<ReferenceLocation> locations)
+        internal ReferencedSymbol(
+            SymbolAndProjectId definitionAndProjectId,
+            IEnumerable<ReferenceLocation> locations)
         {
-            this.Definition = definition;
+            this.DefinitionAndProjectId = definitionAndProjectId;
             this.Locations = (locations ?? SpecializedCollections.EmptyEnumerable<ReferenceLocation>()).ToReadOnlyCollection();
         }
 
-        /// <remarks>Internal for testing purposes</remarks>
-        internal string GetDebuggerDisplay()
+        private string GetDebuggerDisplay()
         {
             var count = this.Locations.Count();
             return string.Format("{0}, {1} {2}", this.Definition.Name, count, count == 1 ? "ref" : "refs");
+        }
+
+        internal TestAccessor GetTestAccessor()
+            => new TestAccessor(this);
+
+        internal readonly struct TestAccessor
+        {
+            private readonly ReferencedSymbol _referencedSymbol;
+
+            public TestAccessor(ReferencedSymbol referencedSymbol)
+            {
+                _referencedSymbol = referencedSymbol;
+            }
+
+            internal string GetDebuggerDisplay()
+                => _referencedSymbol.GetDebuggerDisplay();
         }
     }
 }

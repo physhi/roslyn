@@ -1,6 +1,5 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.ChangeSignature
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
 
@@ -147,7 +146,7 @@ End Class
 
 Module CExt
     <System.Runtime.CompilerServices.Extension()>
-    $$Public Sub M(ByVal this As C, x As Integer, y As Integer, Optional a As String = "test_a", Optional b As String = "test_b", Optional c As String = "test_c")
+    Public Sub M($$ByVal this As C, x As Integer, y As Integer, Optional a As String = "test_a", Optional b As String = "test_b", Optional c As String = "test_c")
     End Sub
 End Module]]></Text>.NormalizedValue()
             Dim permutation = {0, 2, 1, 5, 4, 3}
@@ -164,7 +163,10 @@ Module CExt
     End Sub
 End Module]]></Text>.NormalizedValue()
 
-            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
+            ' Although the `ParameterConfig` has 0 for the `SelectedIndex`, the UI dialog will make an adjustment
+            ' and select parameter `y` instead because the `this` parameter cannot be moved or removed.
+            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation,
+                                                     expectedUpdatedInvocationDocumentCode:=updatedCode, expectedSelectedIndex:=0)
         End Function
 
         <WpfFact, Trait(Traits.Feature, Traits.Features.ChangeSignature)>
@@ -298,7 +300,7 @@ Class C
         End Set
     End Property
 
-    Sub Foo()
+    Sub Goo()
         Dim c = New C()
         Dim x = c(1, 2)
         c(3, 4) = x
@@ -315,52 +317,10 @@ Class C
         End Set
     End Property
 
-    Sub Foo()
+    Sub Goo()
         Dim c = New C()
         Dim x = c(2, 1)
         c(4, 3) = x
-    End Sub
-End Class]]></Text>.NormalizedValue()
-
-            Await TestChangeSignatureViaCommandAsync(LanguageNames.VisualBasic, markup, updatedSignature:=permutation, expectedUpdatedInvocationDocumentCode:=updatedCode)
-        End Function
-
-        <WpfFact(Skip:="908023"), Trait(Traits.Feature, Traits.Features.ChangeSignature)>
-        Public Async Function TestReorderCollectionInitializerAddMethodParametersAndArguments() As Task
-
-            Dim markup = <Text><![CDATA[
-Imports System.Collections
-
-Class C
-    Implements IEnumerable
-
-    Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
-        Throw New NotImplementedException()
-    End Function
-
-    $$Sub Add(x As Integer, y As Integer)
-    End Sub
-
-    Sub M()
-        Dim c = New C From {{1, 2}, {3, 4}}
-    End Sub
-End Class]]></Text>.NormalizedValue()
-            Dim permutation = {1, 0}
-            Dim updatedCode = <Text><![CDATA[
-Imports System.Collections
-
-Class C
-    Implements IEnumerable
-
-    Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
-        Throw New NotImplementedException()
-    End Function
-
-    Sub Add(y As Integer, x As Integer)
-    End Sub
-
-    Sub M()
-        Dim c = New C From {{2, 1}, {4, 3}}
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -375,7 +335,7 @@ Class C
     ''' <param name="x">x!</param>
     ''' <param name="y">y!</param>
     ''' <param name="z">z!</param>
-    $$Sub Foo(x As Integer, y As Integer, z As Integer)
+    $$Sub Goo(x As Integer, y As Integer, z As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
             Dim permutation = {2, 1, 0}
@@ -384,7 +344,7 @@ Class C
     ''' <param name="z">z!</param>
     ''' <param name="y">y!</param>
     ''' <param name="x">x!</param>
-    Sub Foo(z As Integer, y As Integer, x As Integer)
+    Sub Goo(z As Integer, y As Integer, x As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -397,14 +357,14 @@ End Class]]></Text>.NormalizedValue()
             Dim markup = <Text><![CDATA[
 Class C
     ''' <param name="x">x!</param><param name="y">y!</param><param name="z">z!</param>
-    $$Sub Foo(x As Integer, y As Integer, z As Integer)
+    $$Sub Goo(x As Integer, y As Integer, z As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
             Dim permutation = {2, 1, 0}
             Dim updatedCode = <Text><![CDATA[
 Class C
     ''' <param name="z">z!</param><param name="y">y!</param><param name="x">x!</param>
-    Sub Foo(z As Integer, y As Integer, x As Integer)
+    Sub Goo(z As Integer, y As Integer, x As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -419,7 +379,7 @@ Class C
     ''' <param name="x">x!</param>
     ''' <param name="z">z!</param>
     ''' <param name="y">y!</param>
-    $$Sub Foo(x As Integer, y As Integer, z As Integer)
+    $$Sub Goo(x As Integer, y As Integer, z As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
             Dim permutation = {2, 1, 0}
@@ -428,7 +388,7 @@ Class C
     ''' <param name="x">x!</param>
     ''' <param name="z">z!</param>
     ''' <param name="y">y!</param>
-    Sub Foo(z As Integer, y As Integer, x As Integer)
+    Sub Goo(z As Integer, y As Integer, x As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -442,7 +402,7 @@ End Class]]></Text>.NormalizedValue()
 Class C
     ''' <param name="x">x!</param>
     ''' <param name="z">z!</param>
-    $$Sub Foo(x As Integer, y As Integer, z As Integer)
+    $$Sub Goo(x As Integer, y As Integer, z As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
             Dim permutation = {2, 1, 0}
@@ -450,7 +410,7 @@ End Class]]></Text>.NormalizedValue()
 Class C
     ''' <param name="x">x!</param>
     ''' <param name="z">z!</param>
-    Sub Foo(z As Integer, y As Integer, x As Integer)
+    Sub Goo(z As Integer, y As Integer, x As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -466,7 +426,7 @@ Class C
     ''' <param name="x">x!</param>
     ''' <param name="y">y!</param>
     ''' <param name="z">z!</param>
-    $$Sub Foo(x As Integer, y As Integer, z As Integer)
+    $$Sub Goo(x As Integer, y As Integer, z As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
             Dim permutation = {2, 1, 0}
@@ -476,7 +436,7 @@ Class C
     ''' <param name="x">x!</param>
     ''' <param name="y">y!</param>
     ''' <param name="z">z!</param>
-    Sub Foo(z As Integer, y As Integer, x As Integer)
+    Sub Goo(z As Integer, y As Integer, x As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -491,7 +451,7 @@ Class C
     ''' <param name="x2">x2!</param>
     ''' <param name="y">y!</param>
     ''' <param name="z">z!</param>
-    $$Sub Foo(x As Integer, y As Integer, z As Integer)
+    $$Sub Goo(x As Integer, y As Integer, z As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
             Dim permutation = {2, 1, 0}
@@ -500,7 +460,7 @@ Class C
     ''' <param name="x2">x2!</param>
     ''' <param name="y">y!</param>
     ''' <param name="z">z!</param>
-    Sub Foo(z As Integer, y As Integer, x As Integer)
+    Sub Goo(z As Integer, y As Integer, x As Integer)
     End Sub
 End Class]]></Text>.NormalizedValue()
 
@@ -515,7 +475,7 @@ Class C
     ''' <param name="x">x!</param>
     ''' <param name="y">y!</param>
     ''' <param name="z">z!</param>
-    $$Function Foo(x As Integer, y As Integer, z As Integer) As Integer
+    $$Function Goo(x As Integer, y As Integer, z As Integer) As Integer
         Return 1
     End Sub
 End Class]]></Text>.NormalizedValue()
@@ -525,7 +485,7 @@ Class C
     ''' <param name="z">z!</param>
     ''' <param name="y">y!</param>
     ''' <param name="x">x!</param>
-    Function Foo(z As Integer, y As Integer, x As Integer) As Integer
+    Function Goo(z As Integer, y As Integer, x As Integer) As Integer
         Return 1
     End Sub
 End Class]]></Text>.NormalizedValue()

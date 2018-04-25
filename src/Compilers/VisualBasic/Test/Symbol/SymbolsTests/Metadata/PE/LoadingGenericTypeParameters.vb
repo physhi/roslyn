@@ -50,10 +50,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols.Metadata.PE
             Assert.Equal("C1_T", C1_T.Name)
             Assert.Equal("C1_T", C1_T.ToTestDisplayString())
             Assert.Equal(0, C1_T.GetMembers().Length())
-            Assert.Equal(0, C1_T.GetMembers("foo").Length())
+            Assert.Equal(0, C1_T.GetMembers("goo").Length())
             Assert.Equal(0, C1_T.GetTypeMembers().Length())
-            Assert.Equal(0, C1_T.GetTypeMembers("foo").Length())
-            Assert.Equal(0, C1_T.GetTypeMembers("foo", 1).Length())
+            Assert.Equal(0, C1_T.GetTypeMembers("goo").Length())
+            Assert.Equal(0, C1_T.GetTypeMembers("goo", 1).Length())
             Assert.False(C1_T.HasConstructorConstraint)
             Assert.False(C1_T.HasReferenceTypeConstraint)
             Assert.False(C1_T.HasValueTypeConstraint)
@@ -188,7 +188,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols.Metadata.PE
 
         End Sub
 
-        <WorkItem(619267, "DevDiv")>
+        <WorkItem(619267, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/619267")>
         <Fact>
         Public Sub InvalidNestedArity_2()
             Dim ilSource = <![CDATA[

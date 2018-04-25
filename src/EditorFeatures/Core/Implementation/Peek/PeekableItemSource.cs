@@ -1,15 +1,14 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.CodeAnalysis.Editor.Host;
-using Microsoft.CodeAnalysis.Editor.Navigation;
 using Microsoft.CodeAnalysis.Editor.Peek;
-using Microsoft.CodeAnalysis.Editor.SymbolMapping;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Navigation;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Microsoft.CodeAnalysis.SymbolMapping;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
@@ -22,20 +21,17 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Peek
         private readonly ITextBuffer _textBuffer;
         private readonly IPeekableItemFactory _peekableItemFactory;
         private readonly IPeekResultFactory _peekResultFactory;
-        private readonly IMetadataAsSourceFileService _metadataAsSourceService;
         private readonly IWaitIndicator _waitIndicator;
 
         public PeekableItemSource(
             ITextBuffer textBuffer,
             IPeekableItemFactory peekableItemFactory,
             IPeekResultFactory peekResultFactory,
-            IMetadataAsSourceFileService metadataAsSourceService,
             IWaitIndicator waitIndicator)
         {
             _textBuffer = textBuffer;
             _peekableItemFactory = peekableItemFactory;
             _peekResultFactory = peekResultFactory;
-            _metadataAsSourceService = metadataAsSourceService;
             _waitIndicator = waitIndicator;
         }
 
@@ -58,7 +54,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Peek
                 return;
             }
 
-            _waitIndicator.Wait(EditorFeaturesResources.Peek, EditorFeaturesResources.LoadingPeekInformation, allowCancel: true, action: context =>
+            _waitIndicator.Wait(EditorFeaturesResources.Peek, EditorFeaturesResources.Loading_Peek_information, allowCancel: true, action: context =>
             {
                 var cancellationToken = context.CancellationToken;
 
@@ -77,11 +73,12 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Peek
                 else
                 {
                     var semanticModel = document.GetSemanticModelAsync(cancellationToken).WaitAndGetResult(cancellationToken);
-                    var symbol = SymbolFinder.FindSymbolAtPosition(semanticModel,
-                                                                   triggerPoint.Value.Position,
-                                                                   document.Project.Solution.Workspace,
-                                                                   bindLiteralsToUnderlyingType: true,
-                                                                   cancellationToken: cancellationToken);
+                    var symbol = SymbolFinder.GetSemanticInfoAtPositionAsync(
+                        semanticModel,
+                        triggerPoint.Value.Position,
+                        document.Project.Solution.Workspace,
+                        cancellationToken).WaitAndGetResult(cancellationToken)
+                                          .GetAnySymbol(includeType: true);
 
                     if (symbol == null)
                     {
@@ -95,7 +92,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Peek
                     var mappingResult = symbolMappingService.MapSymbolAsync(document, symbol, cancellationToken)
                                                             .WaitAndGetResult(cancellationToken);
 
-                    mappingResult = mappingResult ?? new SymbolMappingResult(document.Project, symbol);
+                    mappingResult ??= new SymbolMappingResult(document.Project, symbol);
 
                     results = _peekableItemFactory.GetPeekableItemsAsync(mappingResult.Symbol, mappingResult.Project, _peekResultFactory, cancellationToken)
                                                  .WaitAndGetResult(cancellationToken);
@@ -120,7 +117,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Peek
                     var document = item.Document;
                     if (navigationService.CanNavigateToPosition(workspace, document.Id, item.SourceSpan.Start))
                     {
-                        var text = document.GetTextAsync(cancellationToken).WaitAndGetResult(cancellationToken);
+                        var text = document.GetTextSynchronously(cancellationToken);
                         var linePositionSpan = text.Lines.GetLinePositionSpan(item.SourceSpan);
                         yield return new ExternalFilePeekableItem(
                             new FileLinePositionSpan(document.FilePath, linePositionSpan),

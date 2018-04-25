@@ -1,15 +1,16 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Reflection.Metadata.Ecma335
+Imports Microsoft.CodeAnalysis.ExpressionEvaluator
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
-Imports Microsoft.CodeAnalysis.ExpressionEvaluator
 Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests
 Imports Microsoft.VisualStudio.Debugger.Evaluation
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
-Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
+Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.UnitTests
 
     '// TODO: constructors
     '// TODO: keyword identifiers
@@ -161,7 +162,7 @@ End Module"
                 GetName(source, "Module1.VB$StateMachine_0_M.MoveNext", DkmVariableInfoFlags.Names Or DkmVariableInfoFlags.Types))
         End Sub
 
-        <Fact, WorkItem(1107977)>
+        <Fact, WorkItem(1107977, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1107977")>
         Public Sub GetNameGenericAsync()
             Dim source = "
 Imports System.Threading.Tasks
@@ -327,7 +328,7 @@ End Module"
                 GetName(source, "Module1.M2", DkmVariableInfoFlags.None))
         End Sub
 
-        <Fact, WorkItem(1107978)>
+        <Fact, WorkItem(1107978, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1107978")>
         Public Sub GetNameRefAndOutParameters()
             Dim source = "
 Imports System.Runtime.InteropServices
@@ -371,7 +372,7 @@ End Class"
                 GetName(source, "C.M", DkmVariableInfoFlags.Types Or DkmVariableInfoFlags.Names))
         End Sub
 
-        <Fact, WorkItem(1154945, "DevDiv")>
+        <Fact, WorkItem(1154945, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1154945")>
         Public Sub GetNameIncorrectNumberOfArgumentValues()
             Dim source = "
 Class C
@@ -498,7 +499,7 @@ End Class"
         End Function
 
         Private Function GetConstructedMethod(source As String, methodName As String, serializedTypeArgumentNames() As String, instructionDecoder As VisualBasicInstructionDecoder) As MethodSymbol
-            Dim compilation = CreateCompilationWithReferences(
+            Dim compilation = CreateEmptyCompilationWithReferences(
                 {VisualBasicSyntaxTree.ParseText(source)},
                 references:={MscorlibRef_v4_0_30316_17626, MsvbRef_v4_0_30319_17929},
                 options:=TestOptions.DebugDll,
@@ -514,12 +515,11 @@ End Class"
             ' async/ iterator "MoveNext" methods to the original source method.
             Dim method As MethodSymbol = compilation.GetSourceMethod(
                 DirectCast(frame.ContainingModule, PEModuleSymbol).Module.GetModuleVersionIdOrThrow(),
-                MetadataTokens.GetToken(frame.Handle))
+                frame.Handle)
             If serializedTypeArgumentNames IsNot Nothing Then
                 Assert.NotEmpty(serializedTypeArgumentNames)
                 Dim typeParameters = instructionDecoder.GetAllTypeParameters(method)
                 Assert.NotEmpty(typeParameters)
-                Dim typeNameDecoder = New EETypeNameDecoder(compilation, DirectCast(method.ContainingModule, PEModuleSymbol))
                 ' Use the same helper method as the FrameDecoder to get the TypeSymbols for the
                 ' generic type arguments (rather than using EETypeNameDecoder directly).
                 Dim typeArgumentSymbols = instructionDecoder.GetTypeSymbols(compilation, method, serializedTypeArgumentNames)

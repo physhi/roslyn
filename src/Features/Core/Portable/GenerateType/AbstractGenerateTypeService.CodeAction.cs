@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Threading;
@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Notification;
 using Microsoft.CodeAnalysis.ProjectManagement;
-using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.CodeAnalysis.GenerateType
 {
@@ -73,7 +73,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
                 {
                     if (_intoNamespace)
                     {
-                        var namespaceToGenerateIn = string.IsNullOrEmpty(_state.NamespaceToGenerateInOpt) ? FeaturesResources.GlobalNamespace : _state.NamespaceToGenerateInOpt;
+                        var namespaceToGenerateIn = string.IsNullOrEmpty(_state.NamespaceToGenerateInOpt) ? FeaturesResources.Global_Namespace : _state.NamespaceToGenerateInOpt;
                         return FormatDisplayText(_state, _inNewFile, isNested: false);
                     }
                     else
@@ -83,13 +83,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
                 }
             }
 
-            public override string EquivalenceKey
-            {
-                get
-                {
-                    return _equivalenceKey;
-                }
-            }
+            public override string EquivalenceKey => _equivalenceKey;
         }
 
         private class GenerateTypeCodeActionWithOption : CodeActionWithOptions
@@ -105,28 +99,16 @@ namespace Microsoft.CodeAnalysis.GenerateType
                 _state = state;
             }
 
-            public override string Title
-            {
-                get
-                {
-                    return FeaturesResources.GenerateNewType;
-                }
-            }
+            public override string Title => FeaturesResources.Generate_new_type;
 
-            public override string EquivalenceKey
-            {
-                get
-                {
-                    return _state.Name;
-                }
-            }
+            public override string EquivalenceKey => _state.Name;
 
             public override object GetOptions(CancellationToken cancellationToken)
             {
                 var generateTypeOptionsService = _document.Project.Solution.Workspace.Services.GetService<IGenerateTypeOptionsService>();
                 var notificationService = _document.Project.Solution.Workspace.Services.GetService<INotificationService>();
                 var projectManagementService = _document.Project.Solution.Workspace.Services.GetService<IProjectManagementService>();
-                var syntaxFactsService = _document.Project.LanguageServices.GetService<ISyntaxFactsService>();
+                var syntaxFactsService = _document.GetLanguageService<ISyntaxFactsService>();
                 var typeKindValue = GetTypeKindOption(_state);
                 var isPublicOnlyAccessibility = IsPublicOnlyAccessibility(_state, _document.Project);
                 return generateTypeOptionsService.GetGenerateTypeOptions(
@@ -145,9 +127,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
 
             private TypeKindOptions GetTypeKindOption(State state)
             {
-                TypeKindOptions typeKindValue;
-
-                var gotPreassignedTypeOptions = GetPredefinedTypeKindOption(state, out typeKindValue);
+                var gotPreassignedTypeOptions = GetPredefinedTypeKindOption(state, out var typeKindValue);
                 if (!gotPreassignedTypeOptions)
                 {
                     typeKindValue = state.IsSimpleNameGeneric ? TypeKindOptionsHelper.RemoveOptions(typeKindValue, TypeKindOptions.GenericInCompatibleTypes) : typeKindValue;
@@ -168,7 +148,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
                     return true;
                 }
 
-                TypeKindOptions typeKindValue = TypeKindOptions.None;
+                var typeKindValue = TypeKindOptions.None;
                 if (_service.TryGetBaseList(state.NameOrMemberAccessExpression, out typeKindValue) || _service.TryGetBaseList(state.SimpleName, out typeKindValue))
                 {
                     typeKindValueFinal = typeKindValue;
@@ -202,8 +182,7 @@ namespace Microsoft.CodeAnalysis.GenerateType
             {
                 IEnumerable<CodeActionOperation> operations = null;
 
-                var generateTypeOptions = options as GenerateTypeOptionsResult;
-                if (generateTypeOptions != null && !generateTypeOptions.IsCancelled)
+                if (options is GenerateTypeOptionsResult generateTypeOptions && !generateTypeOptions.IsCancelled)
                 {
                     var semanticDocument = await SemanticDocument.CreateAsync(_document, cancellationToken).ConfigureAwait(false);
                     var editor = new Editor(_service, semanticDocument, _state, true, generateTypeOptions, cancellationToken);

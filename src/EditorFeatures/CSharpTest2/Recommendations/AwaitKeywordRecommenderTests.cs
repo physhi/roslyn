@@ -1,5 +1,7 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -8,9 +10,9 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Recommendations
     public class AwaitKeywordRecommenderTests : KeywordRecommenderTests
     {
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInTypeContext()
+        public async Task TestNotInTypeContext()
         {
-            VerifyAbsence(@"
+            await VerifyAbsenceAsync(@"
 class Program
 {
     $$
@@ -18,12 +20,12 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InSynchronousMethod()
+        public async Task TestInSynchronousMethod()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    void foo()
+    void goo()
     {
         $$
     }
@@ -31,12 +33,12 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void StatementInAsyncMethod()
+        public async Task TestStatementInAsyncMethod()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
         $$
     }
@@ -44,12 +46,12 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void ExpressionInAsyncMethod()
+        public async Task TestExpressionInAsyncMethod()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
         var z = $$
     }
@@ -57,12 +59,44 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInQuery()
+        public async Task TestUsingStatement()
         {
-            VerifyAbsence(@"
+            await VerifyAbsenceAsync(@"
 class Program
 {
-    async void foo()
+    void goo()
+    {
+        using $$
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestUsingDirective()
+        {
+            await VerifyAbsenceAsync("using $$");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestForeachStatement()
+        {
+            await VerifyAbsenceAsync(@"
+class Program
+{
+    void goo()
+    {
+        foreach $$
+    }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestNotInQuery()
+        {
+            await VerifyAbsenceAsync(@"
+class Program
+{
+    async void goo()
     {
         var z = from a in ""char""
                 select $$
@@ -70,14 +104,14 @@ class Program
 }");
         }
 
-        [WorkItem(907052)]
+        [WorkItem(907052, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/907052")]
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InFinally()
+        public async Task TestInFinally()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
         try { }
         finally { $$ } 
@@ -85,14 +119,14 @@ class Program
 }");
         }
 
-        [WorkItem(907052)]
+        [WorkItem(907052, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/907052")]
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InCatch()
+        public async Task TestInCatch()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
         try { }
         catch { $$ } 
@@ -101,12 +135,12 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInLock()
+        public async Task TestNotInLock()
         {
-            VerifyAbsence(@"
+            await VerifyAbsenceAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
        lock(this) { $$ } 
     }
@@ -114,12 +148,12 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InAsyncLambdaInCatch()
+        public async Task TestInAsyncLambdaInCatch()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
         try { }
         catch { var z = async () => $$ } 
@@ -128,21 +162,21 @@ class Program
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void AwaitInLock()
+        public async Task TestAwaitInLock()
         {
-            VerifyKeyword(@"
+            await VerifyKeywordAsync(@"
 class Program
 {
-    async void foo()
+    async void goo()
     {
         lock($$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InGlobalStatement()
+        public async Task TestInGlobalStatement()
         {
             const string text = @"$$";
-            VerifyKeyword(SourceCodeKind.Script, text);
+            await VerifyKeywordAsync(SourceCodeKind.Script, text);
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -18,8 +18,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
     {
         public static ExpressionSyntax GetUnparenthesizedExpression(this SyntaxNode node)
         {
-            var parenthesizedExpression = node as ParenthesizedExpressionSyntax;
-            if (parenthesizedExpression == null)
+            if (!(node is ParenthesizedExpressionSyntax parenthesizedExpression))
             {
                 return node as ExpressionSyntax;
             }
@@ -57,19 +56,22 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
 
         public static BlockSyntax GetBlockBody(this SyntaxNode node)
         {
-            return node.TypeSwitch(
-                (BaseMethodDeclarationSyntax m) => m.Body,
-                (AccessorDeclarationSyntax a) => a.Body,
-                (SimpleLambdaExpressionSyntax s) => s.Body as BlockSyntax,
-                (ParenthesizedLambdaExpressionSyntax p) => p.Body as BlockSyntax,
-                (AnonymousMethodExpressionSyntax a) => a.Block);
+            switch (node)
+            {
+                case BaseMethodDeclarationSyntax m: return m.Body;
+                case AccessorDeclarationSyntax a: return a.Body;
+                case SimpleLambdaExpressionSyntax s: return s.Body as BlockSyntax;
+                case ParenthesizedLambdaExpressionSyntax p: return p.Body as BlockSyntax;
+                case AnonymousMethodExpressionSyntax a: return a.Block;
+                default: return null;
+            }
         }
 
         public static bool UnderValidContext(this SyntaxNode node)
         {
             Contract.ThrowIfNull(node);
 
-            Func<SyntaxNode, bool> predicate = n =>
+            bool predicate(SyntaxNode n)
             {
                 if (n is BaseMethodDeclarationSyntax ||
                     n is AccessorDeclarationSyntax ||
@@ -79,14 +81,13 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     return true;
                 }
 
-                var constructorInitializer = n as ConstructorInitializerSyntax;
-                if (constructorInitializer != null)
+                if (n is ConstructorInitializerSyntax constructorInitializer)
                 {
                     return constructorInitializer.ContainsInArgument(node.Span);
                 }
 
                 return false;
-            };
+            }
 
             if (!node.GetAncestorsOrThis<SyntaxNode>().Any(predicate))
             {
@@ -144,8 +145,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     continue;
                 }
 
-                var throwStatement = token.Parent as ThrowStatementSyntax;
-                if (throwStatement == null || throwStatement.Expression != null)
+                if (!(token.Parent is ThrowStatementSyntax throwStatement) || throwStatement.Expression != null)
                 {
                     continue;
                 }
@@ -162,8 +162,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
 
         public static bool ContainPreprocessorCrossOver(this IEnumerable<SyntaxToken> tokens, TextSpan textSpan)
         {
-            int activeRegions = 0;
-            int activeIfs = 0;
+            var activeRegions = 0;
+            var activeIfs = 0;
 
             foreach (var trivia in tokens.GetAllTrivia())
             {
@@ -259,11 +259,6 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
         public static bool IsExpression(this SyntaxNode node)
         {
             return node is ExpressionSyntax;
-        }
-
-        public static bool IsErrorType(this ITypeSymbol type)
-        {
-            return type == null || type.Kind == SymbolKind.ErrorType;
         }
 
         public static bool IsObjectType(this ITypeSymbol type)

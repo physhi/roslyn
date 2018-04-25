@@ -1,9 +1,9 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editor.Implementation.Highlighting;
@@ -16,6 +16,11 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighli
     [ExportHighlighter(LanguageNames.CSharp)]
     internal class ReturnStatementHighlighter : AbstractKeywordHighlighter<ReturnStatementSyntax>
     {
+        [ImportingConstructor]
+        public ReturnStatementHighlighter()
+        {
+        }
+
         protected override IEnumerable<TextSpan> GetHighlights(
             ReturnStatementSyntax returnStatement, CancellationToken cancellationToken)
         {
@@ -40,14 +45,13 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighli
         /// </summary>
         private void HighlightRelatedKeywords(SyntaxNode node, List<TextSpan> spans)
         {
-            node.TypeSwitch(
-                (ReturnStatementSyntax statement) =>
-                {
+            switch (node)
+            {
+                case ReturnStatementSyntax statement:
                     spans.Add(statement.ReturnKeyword.Span);
                     spans.Add(EmptySpan(statement.SemicolonToken.Span.End));
-                },
-                _ =>
-                {
+                    break;
+                default:
                     foreach (var child in node.ChildNodes())
                     {
                         // Only recurse if we have anything to do
@@ -56,7 +60,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighli
                             HighlightRelatedKeywords(child, spans);
                         }
                     }
-                });
+                    break;
+            }
         }
     }
 }

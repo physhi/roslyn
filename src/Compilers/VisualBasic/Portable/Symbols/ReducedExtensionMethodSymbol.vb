@@ -3,6 +3,7 @@
 Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -252,7 +253,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End If
 
             For Each pair As KeyValuePair(Of TypeParameterSymbol, TypeSymbol) In _fixedTypeParameters
-                If pair.Key = reducedFromTypeParameter Then
+                If TypeSymbol.Equals(pair.Key, reducedFromTypeParameter, TypeCompareKind.ConsiderEverything) Then
                     Return pair.Value
                 End If
             Next
@@ -346,6 +347,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property TypeArguments As ImmutableArray(Of TypeSymbol)
             Get
                 Return StaticCast(Of TypeSymbol).From(_curriedTypeParameters)
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property ReturnsByRef As Boolean
+            Get
+                Return _curriedFromMethod.ReturnsByRef
             End Get
         End Property
 
@@ -483,7 +490,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Friend Overrides ReadOnly Property Syntax As VisualBasicSyntaxNode
+        Public Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+            Get
+                Return _curriedFromMethod.RefCustomModifiers
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property Syntax As SyntaxNode
             Get
                 Return _curriedFromMethod.Syntax
             End Get
@@ -837,6 +850,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Public Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+            Get
+                Return m_CurriedFromParameter.RefCustomModifiers
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property Ordinal As Integer
             Get
                 Return m_CurriedFromParameter.Ordinal - 1
@@ -894,12 +913,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Friend Overrides ReadOnly Property IsCallerFilePath As Boolean
             Get
                 Return m_CurriedFromParameter.IsCallerFilePath
-            End Get
-        End Property
-
-        Friend NotOverridable Overrides ReadOnly Property CountOfCustomModifiersPrecedingByRef As UShort
-            Get
-                Return m_CurriedFromParameter.CountOfCustomModifiersPrecedingByRef
             End Get
         End Property
 

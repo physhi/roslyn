@@ -3,14 +3,14 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
-using PooledStringBuilder = Microsoft.CodeAnalysis.Collections.PooledStringBuilder;
-using ExceptionUtilities = Roslyn.Utilities.ExceptionUtilities;
 using System.Reflection;
+using System.Text;
+using Microsoft.CodeAnalysis.PooledObjects;
+using ExceptionUtilities = Roslyn.Utilities.ExceptionUtilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
-#pragma warning disable RS0010
+#pragma warning disable CA1200 // Avoid using cref tags with a prefix
     /// <summary>
     /// Displays a value in the C# style.
     /// </summary>
@@ -19,7 +19,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// the Formatter project and we don't want it to be public there.
     /// </remarks>
     /// <seealso cref="T:Microsoft.CodeAnalysis.VisualBasic.Symbols.ObjectDisplay"/>
-#pragma warning restore RS0010
+#pragma warning restore CA1200 // Avoid using cref tags with a prefix
     internal static class ObjectDisplay
     {
         /// <summary>
@@ -133,53 +133,17 @@ namespace Microsoft.CodeAnalysis.CSharp
             return value ? "true" : "false";
         }
 
-        private static void FormatStringChar(StringBuilder builder, char c, char quote)
-        {
-            string replaceWith;
-            if (ReplaceChar(c, quote, out replaceWith))
-            {
-                if (replaceWith != null)
-                {
-                    builder.Append(replaceWith);
-                }
-                else
-                {
-                    builder.Append("\\u");
-                    builder.Append(((int)c).ToString("x4"));
-                }
-            }
-            else
-            {
-                builder.Append(c);
-            }
-        }
-
         /// <summary>
         /// Returns true if the character should be replaced and sets
-        /// <paramref name="replaceWith"/> to the replacement text if the
-        /// character is replaced with text other than the Unicode escape sequence.
+        /// <paramref name="replaceWith"/> to the replacement text.
         /// </summary>
-        private static bool ReplaceChar(char c, char quote, out string replaceWith)
+        private static bool TryReplaceChar(char c, out string replaceWith)
         {
-            Debug.Assert(quote == '\0' || quote == '"' || quote == '\'');
-
             replaceWith = null;
             switch (c)
             {
                 case '\\':
                     replaceWith = "\\\\";
-                    break;
-                case '"':
-                    if (quote == c)
-                    {
-                        replaceWith = "\\\"";
-                    }
-                    break;
-                case '\'':
-                    if (quote == c)
-                    {
-                        replaceWith = "\\'";
-                    }
                     break;
                 case '\0':
                     replaceWith = "\\0";
@@ -212,28 +176,28 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return true;
             }
 
-            switch (CharUnicodeInfo.GetUnicodeCategory(c))
+            if (NeedsEscaping(CharUnicodeInfo.GetUnicodeCategory(c)))
+            {
+                replaceWith = "\\u" + ((int)c).ToString("x4");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool NeedsEscaping(UnicodeCategory category)
+        {
+            switch (category)
             {
                 case UnicodeCategory.Control:
                 case UnicodeCategory.OtherNotAssigned:
                 case UnicodeCategory.ParagraphSeparator:
+                case UnicodeCategory.LineSeparator:
+                case UnicodeCategory.Surrogate:
                     return true;
                 default:
                     return false;
             }
-        }
-
-        private static bool ReplaceAny(string s, char quote)
-        {
-            foreach (var c in s)
-            {
-                string replaceWith;
-                if (ReplaceChar(c, quote, out replaceWith))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         /// <summary>
@@ -243,58 +207,101 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <param name="options">Options used to customize formatting of an object value.</param>
         /// <returns>A string literal with the given value.</returns>
         /// <remarks>
-        /// Escapes non-printable characters.
+        /// Optionally escapes non-printable characters.
         /// </remarks>
         public static string FormatLiteral(string value, ObjectDisplayOptions options)
         {
-            ValidateOptions(options);
-
             if (value == null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
 
-            var useQuotes = options.IncludesOption(ObjectDisplayOptions.UseQuotes);
-            var quote = useQuotes ? '"' : '\0';
-            if (!useQuotes && !ReplaceAny(value, quote))
-            {
-                return value;
-            }
+            const char quote = '"';
 
             var pooledBuilder = PooledStringBuilder.GetInstance();
             var builder = pooledBuilder.Builder;
+
+            var useQuotes = options.IncludesOption(ObjectDisplayOptions.UseQuotes);
+            var escapeNonPrintable = options.IncludesOption(ObjectDisplayOptions.EscapeNonPrintableCharacters);
+
+            var isVerbatim = useQuotes && !escapeNonPrintable && ContainsNewLine(value);
+
+            if (useQuotes)
+            {
+                if (isVerbatim)
+                {
+                    builder.Append('@');
+                }
+                builder.Append(quote);
+            }
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (escapeNonPrintable && CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.Surrogate)
+                {
+                    var category = CharUnicodeInfo.GetUnicodeCategory(value, i);
+                    if (category == UnicodeCategory.Surrogate)
+                    {
+                        // an unpaired surrogate
+                        builder.Append("\\u" + ((int)c).ToString("x4"));
+                    }
+                    else if (NeedsEscaping(category))
+                    {
+                        // a surrogate pair that needs to be escaped
+                        var unicode = char.ConvertToUtf32(value, i);
+                        builder.Append("\\U" + unicode.ToString("x8"));
+                        i++; // skip the already-encoded second surrogate of the pair
+                    }
+                    else
+                    {
+                        // copy a printable surrogate pair directly
+                        builder.Append(c);
+                        builder.Append(value[++i]);
+                    }
+                }
+                else if (escapeNonPrintable && TryReplaceChar(c, out var replaceWith))
+                {
+                    builder.Append(replaceWith);
+                }
+                else if (useQuotes && c == quote)
+                {
+                    if (isVerbatim)
+                    {
+                        builder.Append(quote);
+                        builder.Append(quote);
+                    }
+                    else
+                    {
+                        builder.Append('\\');
+                        builder.Append(quote);
+                    }
+                }
+                else
+                {
+                    builder.Append(c);
+                }
+            }
+
             if (useQuotes)
             {
                 builder.Append(quote);
             }
-            foreach (var c in value)
-            {
-                FormatStringChar(builder, c, quote);
-            }
-            if (useQuotes)
-            {
-                builder.Append(quote);
-            }
+
             return pooledBuilder.ToStringAndFree();
         }
 
-        internal static string FormatString(string str, bool useQuotes)
+        private static bool ContainsNewLine(string s)
         {
-            if (!useQuotes)
+            foreach (char c in s)
             {
-                return str;
+                if (SyntaxFacts.IsNewLine(c))
+                {
+                    return true;
+                }
             }
 
-            var pooledBuilder = PooledStringBuilder.GetInstance();
-            var builder = pooledBuilder.Builder;
-            const char quote = '"';
-            builder.Append(quote);
-            foreach (var c in str)
-            {
-                FormatStringChar(builder, c, quote);
-            }
-            builder.Append(quote);
-            return pooledBuilder.ToStringAndFree();
+            return false;
         }
 
         /// <summary>
@@ -305,31 +312,50 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns>A character literal with the given value.</returns>
         internal static string FormatLiteral(char c, ObjectDisplayOptions options)
         {
+            const char quote = '\'';
+
             var pooledBuilder = PooledStringBuilder.GetInstance();
             var builder = pooledBuilder.Builder;
+
             if (options.IncludesOption(ObjectDisplayOptions.IncludeCodePoints))
             {
                 builder.Append(options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers) ? "0x" + ((int)c).ToString("x4") : ((int)c).ToString());
                 builder.Append(" ");
             }
-            if (options.IncludesOption(ObjectDisplayOptions.UseQuotes))
+
+            var useQuotes = options.IncludesOption(ObjectDisplayOptions.UseQuotes);
+            var escapeNonPrintable = options.IncludesOption(ObjectDisplayOptions.EscapeNonPrintableCharacters);
+
+            if (useQuotes)
             {
-                const char quote = '\'';
                 builder.Append(quote);
-                FormatStringChar(builder, c, quote);
+            }
+
+            string replaceWith;
+            if (escapeNonPrintable && TryReplaceChar(c, out replaceWith))
+            {
+                builder.Append(replaceWith);
+            }
+            else if (useQuotes && c == quote)
+            {
+                builder.Append('\\');
                 builder.Append(quote);
             }
             else
             {
                 builder.Append(c);
             }
+
+            if (useQuotes)
+            {
+                builder.Append(quote);
+            }
+
             return pooledBuilder.ToStringAndFree();
         }
 
-        internal static string FormatLiteral(sbyte value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(sbyte value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             if (options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers))
             {
                 // Special Case: for sbyte and short, specifically, negatives are shown
@@ -338,28 +364,24 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                return value.ToString(CultureInfo.InvariantCulture);
+                return value.ToString(GetFormatCulture(cultureInfo));
             }
         }
 
-        internal static string FormatLiteral(byte value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(byte value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             if (options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers))
             {
                 return "0x" + value.ToString("x2");
             }
             else
             {
-                return value.ToString(CultureInfo.InvariantCulture);
+                return value.ToString(GetFormatCulture(cultureInfo));
             }
         }
 
-        internal static string FormatLiteral(short value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(short value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             if (options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers))
             {
                 // Special Case: for sbyte and short, specifically, negatives are shown
@@ -368,42 +390,36 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                return value.ToString(CultureInfo.InvariantCulture);
+                return value.ToString(GetFormatCulture(cultureInfo));
             }
         }
 
-        internal static string FormatLiteral(ushort value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(ushort value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             if (options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers))
             {
                 return "0x" + value.ToString("x4");
             }
             else
             {
-                return value.ToString(CultureInfo.InvariantCulture);
+                return value.ToString(GetFormatCulture(cultureInfo));
             }
         }
 
-        internal static string FormatLiteral(int value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(int value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             if (options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers))
             {
                 return "0x" + value.ToString("x8");
             }
             else
             {
-                return value.ToString(CultureInfo.InvariantCulture);
+                return value.ToString(GetFormatCulture(cultureInfo));
             }
         }
 
-        internal static string FormatLiteral(uint value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(uint value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             var pooledBuilder = PooledStringBuilder.GetInstance();
             var sb = pooledBuilder.Builder;
 
@@ -414,7 +430,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                sb.Append(value.ToString(GetFormatCulture(cultureInfo)));
             }
 
             if (options.IncludesOption(ObjectDisplayOptions.IncludeTypeSuffix))
@@ -425,10 +441,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             return pooledBuilder.ToStringAndFree();
         }
 
-        internal static string FormatLiteral(long value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(long value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             var pooledBuilder = PooledStringBuilder.GetInstance();
             var sb = pooledBuilder.Builder;
 
@@ -439,7 +453,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                sb.Append(value.ToString(GetFormatCulture(cultureInfo)));
             }
 
             if (options.IncludesOption(ObjectDisplayOptions.IncludeTypeSuffix))
@@ -450,10 +464,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             return pooledBuilder.ToStringAndFree();
         }
 
-        internal static string FormatLiteral(ulong value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(ulong value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
             var pooledBuilder = PooledStringBuilder.GetInstance();
             var sb = pooledBuilder.Builder;
 
@@ -464,7 +476,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                sb.Append(value.ToString(GetFormatCulture(cultureInfo)));
             }
 
             if (options.IncludesOption(ObjectDisplayOptions.IncludeTypeSuffix))
@@ -475,38 +487,30 @@ namespace Microsoft.CodeAnalysis.CSharp
             return pooledBuilder.ToStringAndFree();
         }
 
-        internal static string FormatLiteral(double value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(double value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
-            var result = value.ToString("R", CultureInfo.InvariantCulture);
+            var result = value.ToString("R", GetFormatCulture(cultureInfo));
 
             return options.IncludesOption(ObjectDisplayOptions.IncludeTypeSuffix) ? result + "D" : result;
         }
 
-        internal static string FormatLiteral(float value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(float value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
-            var result = value.ToString("R", CultureInfo.InvariantCulture);
+            var result = value.ToString("R", GetFormatCulture(cultureInfo));
 
             return options.IncludesOption(ObjectDisplayOptions.IncludeTypeSuffix) ? result + "F" : result;
         }
 
-        internal static string FormatLiteral(decimal value, ObjectDisplayOptions options)
+        internal static string FormatLiteral(decimal value, ObjectDisplayOptions options, CultureInfo cultureInfo = null)
         {
-            ValidateOptions(options);
-
-            var result = value.ToString(CultureInfo.InvariantCulture);
+            var result = value.ToString(GetFormatCulture(cultureInfo));
 
             return options.IncludesOption(ObjectDisplayOptions.IncludeTypeSuffix) ? result + "M" : result;
         }
 
-        [Conditional("DEBUG")]
-        private static void ValidateOptions(ObjectDisplayOptions options)
+        private static CultureInfo GetFormatCulture(CultureInfo cultureInfo)
         {
-            // These options are mutually exclusive in C# unless we're formatting a char...should not be passed otherwise...
-            Debug.Assert(!(options.IncludesOption(ObjectDisplayOptions.UseQuotes) && options.IncludesOption(ObjectDisplayOptions.UseHexadecimalNumbers)));
+            return cultureInfo ?? CultureInfo.InvariantCulture;
         }
     }
 }

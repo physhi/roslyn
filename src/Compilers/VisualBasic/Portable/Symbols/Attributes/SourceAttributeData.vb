@@ -35,7 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Me._applicationNode = applicationNode
             Me._attributeClass = attrClass
             Me._attributeConstructor = attrMethod
-            Me._constructorArguments = If(constructorArgs.IsDefault, ImmutableArray(Of TypedConstant).Empty, constructorArgs)
+            Me._constructorArguments = constructorArgs.NullToEmpty()
             Me._namedArguments = If(namedArgs.IsDefault, ImmutableArray.Create(Of KeyValuePair(Of String, TypedConstant))(), namedArgs)
             Me._isConditionallyOmitted = isConditionallyOmitted
             Me._hasErrors = hasErrors
@@ -166,6 +166,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                         End If
 
                         targetType = CByte(targetInfo.Underlying)
+
+                    ElseIf parameterType.IsArrayType Then
+                        specType = DirectCast(parameterType, ArrayTypeSymbol).ElementType.SpecialType
+
                     End If
 
                     Select Case targetType
@@ -230,8 +234,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                                 lazySystemType = GetSystemType(targetSymbol)
                             End If
 
-                            foundMatch = parameterType = lazySystemType
+                            foundMatch = TypeSymbol.Equals(parameterType, lazySystemType, TypeCompareKind.ConsiderEverything)
                             k += 1
+
+                        Case CByte(SignatureTypeCode.SZArray)
+                            ' skip over and check the next byte
+                            foundMatch = parameterType.IsArrayType
 
                         Case Else
                             Return -1

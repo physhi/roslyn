@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
@@ -66,8 +66,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel.Colle
                 throw Exceptions.ThrowEFail();
             }
 
-            var namespaceSymbol = namespaceSymbolId.Resolve(project.GetCompilationAsync().Result).Symbol as INamespaceSymbol;
-            if (namespaceSymbol == null)
+            if (!(namespaceSymbolId.Resolve(project.GetCompilationAsync().Result).Symbol is INamespaceSymbol namespaceSymbol))
             {
                 throw Exceptions.ThrowEFail();
             }
@@ -76,9 +75,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel.Colle
 
             foreach (var child in namespaceSymbol.GetMembers())
             {
-                if (child is INamespaceSymbol)
+                if (child is INamespaceSymbol namespaceChild)
                 {
-                    yield return (EnvDTE.CodeElement)ExternalCodeNamespace.Create(state, projectId, (INamespaceSymbol)child);
+                    yield return (EnvDTE.CodeElement)ExternalCodeNamespace.Create(state, projectId, namespaceChild);
                 }
                 else
                 {

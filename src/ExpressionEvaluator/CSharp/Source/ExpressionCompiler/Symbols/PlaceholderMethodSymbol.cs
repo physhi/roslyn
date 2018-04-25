@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -20,7 +21,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         private readonly NamedTypeSymbol _container;
         private readonly string _name;
         private readonly ImmutableArray<TypeParameterSymbol> _typeParameters;
-        private readonly TypeSymbol _returnType;
+        private readonly TypeWithAnnotations _returnType;
         private readonly ImmutableArray<ParameterSymbol> _parameters;
 
         internal PlaceholderMethodSymbol(
@@ -33,7 +34,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             _container = container;
             _name = name;
             _typeParameters = getTypeParameters(this);
-            _returnType = getReturnType(this);
+            _returnType = TypeWithAnnotations.Create(getReturnType(this));
             _parameters = getParameters(this);
         }
 
@@ -117,6 +118,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             get { return false; }
         }
 
+        internal override bool IsDeclaredReadOnly => false;
+
         public override ImmutableArray<Location> Locations
         {
             get { return ImmutableArray<Location>.Empty; }
@@ -142,24 +145,35 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             get { return false; }
         }
 
-        public override TypeSymbol ReturnType
+        public override RefKind RefKind
+        {
+            get { return RefKind.None; }
+        }
+
+        public override TypeWithAnnotations ReturnTypeWithAnnotations
         {
             get { return _returnType; }
         }
+
+        public override FlowAnalysisAnnotations ReturnTypeFlowAnalysisAnnotations => FlowAnalysisAnnotations.None;
+
+        public override ImmutableHashSet<string> ReturnNotNullIfParameterNotNull => ImmutableHashSet<string>.Empty;
+
+        public override FlowAnalysisAnnotations FlowAnalysisAnnotations => FlowAnalysisAnnotations.None;
 
         bool Cci.ISignature.ReturnValueIsByRef
         {
             get { return true; }
         }
 
-        public override ImmutableArray<CustomModifier> ReturnTypeCustomModifiers
+        public override ImmutableArray<CustomModifier> RefCustomModifiers
         {
             get { return ImmutableArray<CustomModifier>.Empty; }
         }
 
-        public override ImmutableArray<TypeSymbol> TypeArguments
+        public override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotations
         {
-            get { return _typeParameters.Cast<TypeParameterSymbol, TypeSymbol>(); }
+            get { return GetTypeParametersAsTypeArguments(); }
         }
 
         public override ImmutableArray<TypeParameterSymbol> TypeParameters

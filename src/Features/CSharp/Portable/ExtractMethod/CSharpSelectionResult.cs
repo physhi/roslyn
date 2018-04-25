@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Linq;
@@ -65,9 +65,9 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
             bool selectionInExpression,
             SemanticDocument document,
             SyntaxAnnotation firstTokenAnnotation,
-            SyntaxAnnotation lastTokenAnnotation) :
-            base(status, originalSpan, finalSpan, options, selectionInExpression,
-                 document, firstTokenAnnotation, lastTokenAnnotation)
+            SyntaxAnnotation lastTokenAnnotation)
+            : base(status, originalSpan, finalSpan, options, selectionInExpression,
+                   document, firstTokenAnnotation, lastTokenAnnotation)
         {
         }
 
@@ -151,8 +151,9 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
             var expressionBodiedMember = this.GetContainingScopeOf<ArrowExpressionClauseSyntax>();
             if (expressionBodiedMember != null)
             {
-                // the class declaration is the innermost statement container, since the method does not have a block body
-                return expressionBodiedMember.Parent.Parent;
+                // the class/struct declaration is the innermost statement container, since the 
+                // member does not have a block body
+                return this.GetContainingScopeOf<TypeDeclarationSyntax>();
             }
 
             // constructor initializer case

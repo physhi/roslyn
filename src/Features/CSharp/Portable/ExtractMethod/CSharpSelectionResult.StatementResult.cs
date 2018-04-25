@@ -1,7 +1,6 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.ExtractMethod;
 using Microsoft.CodeAnalysis.Options;
@@ -23,22 +22,24 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                 bool selectionInExpression,
                 SemanticDocument document,
                 SyntaxAnnotation firstTokenAnnotation,
-                SyntaxAnnotation lastTokenAnnotation) :
-                base(status, originalSpan, finalSpan, options, selectionInExpression, document, firstTokenAnnotation, lastTokenAnnotation)
+                SyntaxAnnotation lastTokenAnnotation)
+                : base(status, originalSpan, finalSpan, options, selectionInExpression, document, firstTokenAnnotation, lastTokenAnnotation)
             {
             }
 
             public override bool ContainingScopeHasAsyncKeyword()
             {
                 var node = this.GetContainingScope();
-                var semanticModel = this.SemanticDocument.SemanticModel;
 
-                return node.TypeSwitch(
-                    (AccessorDeclarationSyntax access) => false,
-                    (MethodDeclarationSyntax method) => method.Modifiers.Any(SyntaxKind.AsyncKeyword),
-                    (ParenthesizedLambdaExpressionSyntax lambda) => lambda.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword,
-                    (SimpleLambdaExpressionSyntax lambda) => lambda.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword,
-                    (AnonymousMethodExpressionSyntax anonymous) => anonymous.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword);
+                return node switch
+                {
+                    AccessorDeclarationSyntax access => false,
+                    MethodDeclarationSyntax method => method.Modifiers.Any(SyntaxKind.AsyncKeyword),
+                    ParenthesizedLambdaExpressionSyntax lambda => lambda.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword,
+                    SimpleLambdaExpressionSyntax lambda => lambda.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword,
+                    AnonymousMethodExpressionSyntax anonymous => anonymous.AsyncKeyword.Kind() == SyntaxKind.AsyncKeyword,
+                    _ => false,
+                };
             }
 
             public override SyntaxNode GetContainingScope()
@@ -66,21 +67,37 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                 var node = this.GetContainingScope();
                 var semanticModel = this.SemanticDocument.SemanticModel;
 
-                return node.TypeSwitch(
-                    (AccessorDeclarationSyntax access) =>
-                    {
-                        // property case
+                switch (node)
+                {
+                    case AccessorDeclarationSyntax access:
+                        // property or event case
                         if (access.Parent == null || access.Parent.Parent == null)
                         {
                             return null;
                         }
 
-                        return ((IPropertySymbol)semanticModel.GetDeclaredSymbol(access.Parent.Parent)).Type;
-                    },
-                    (MethodDeclarationSyntax method) => semanticModel.GetDeclaredSymbol(method).ReturnType,
-                    (ParenthesizedLambdaExpressionSyntax lambda) => semanticModel.GetLambdaOrAnonymousMethodReturnType(lambda),
-                    (SimpleLambdaExpressionSyntax lambda) => semanticModel.GetLambdaOrAnonymousMethodReturnType(lambda),
-                    (AnonymousMethodExpressionSyntax anonymous) => semanticModel.GetLambdaOrAnonymousMethodReturnType(anonymous));
+                        return semanticModel.GetDeclaredSymbol(access.Parent.Parent) switch
+                        {
+                            IPropertySymbol propertySymbol => propertySymbol.Type,
+                            IEventSymbol eventSymbol => eventSymbol.Type,
+                            _ => null,
+                        };
+
+                    case MethodDeclarationSyntax method:
+                        return semanticModel.GetDeclaredSymbol(method).ReturnType;
+
+                    case ParenthesizedLambdaExpressionSyntax lambda:
+                        return semanticModel.GetLambdaOrAnonymousMethodReturnType(lambda);
+
+                    case SimpleLambdaExpressionSyntax lambda:
+                        return semanticModel.GetLambdaOrAnonymousMethodReturnType(lambda);
+
+                    case AnonymousMethodExpressionSyntax anonymous:
+                        return semanticModel.GetLambdaOrAnonymousMethodReturnType(anonymous);
+
+                    default:
+                        return null;
+                }
             }
         }
     }

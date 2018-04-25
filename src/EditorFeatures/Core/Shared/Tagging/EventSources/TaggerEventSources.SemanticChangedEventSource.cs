@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Linq;
 using System.Threading;
@@ -16,8 +16,8 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
         {
             private readonly ISemanticChangeNotificationService _notificationService;
 
-            public SemanticChangedEventSource(ITextBuffer subjectBuffer, TaggerDelay delay, ISemanticChangeNotificationService notificationService) :
-                base(subjectBuffer, delay)
+            public SemanticChangedEventSource(ITextBuffer subjectBuffer, TaggerDelay delay, ISemanticChangeNotificationService notificationService)
+                : base(subjectBuffer, delay)
             {
                 _notificationService = notificationService;
             }
@@ -37,18 +37,23 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
             protected override void ConnectToWorkspace(Workspace workspace)
             {
                 _notificationService.OpenedDocumentSemanticChanged += OnOpenedDocumentSemanticChanged;
+                this.RaiseChanged();
             }
 
             protected override void DisconnectFromWorkspace(Workspace workspace)
             {
                 _notificationService.OpenedDocumentSemanticChanged -= OnOpenedDocumentSemanticChanged;
+                this.RaiseChanged();
             }
 
             private void OnSubjectBufferChanged(object sender, TextContentChangedEventArgs e)
             {
                 // Whenever this subject buffer has changed, we always consider that to be a 
                 // semantic change.
-                this.RaiseChanged();
+                if (e.Changes.Any())
+                {
+                    RaiseChanged();
+                }
             }
 
             private void OnOpenedDocumentSemanticChanged(object sender, Document document)
@@ -75,8 +80,8 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Tagging
                 // Note: although we're passing CancellationToken.None here, this should never actually
                 // block.  This is because we would have only gotten this notification if this value
                 // was already computed.  In which case retrieving it again should happen immediately.
-                var documentVersion = document.GetTopLevelChangeTextVersionAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
-                var projectVersion = document.Project.GetDependentSemanticVersionAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                var documentVersion = document.GetTopLevelChangeTextVersionAsync(CancellationToken.None).WaitAndGetResult_CanCallOnBackground(CancellationToken.None);
+                var projectVersion = document.Project.GetDependentSemanticVersionAsync(CancellationToken.None).WaitAndGetResult_CanCallOnBackground(CancellationToken.None);
 
                 if (documentVersion == projectVersion)
                 {

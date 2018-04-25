@@ -15,12 +15,11 @@ namespace Roslyn.Utilities
         public static EventHandler<TArgs> Create<TTarget>(TTarget target, Action<TTarget, object, TArgs> invoker)
             where TTarget : class
         {
-            WeakReference<TTarget> weakTarget = new WeakReference<TTarget>(target);
+            var weakTarget = new WeakReference<TTarget>(target);
 
             return (sender, args) =>
             {
-                TTarget targ;
-                if (weakTarget.TryGetTarget(out targ))
+                if (weakTarget.TryGetTarget(out var targ))
                 {
                     invoker(targ, sender, args);
                 }

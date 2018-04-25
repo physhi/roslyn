@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Shared.Extensions;
-using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Shared.Utilities
 {
@@ -29,7 +27,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
             }
 
             var candidateConstructors = editorBrowsableAttributeType.Constructors
-                                                                    .Where(c => c.Parameters.Length == 1 && c.Parameters[0].Type == editorBrowsableStateType);
+                                                                    .Where(c => c.Parameters.Length == 1 && Equals(c.Parameters[0].Type, editorBrowsableStateType));
 
             // Ensure the constructor adheres to the expected EditorBrowsable pattern
             candidateConstructors = candidateConstructors.Where(c => (!c.IsVararg &&
@@ -95,7 +93,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             var candidateConstructors = typeLibAttributeType.Constructors
                                                             .Where(c => c.Parameters.Length == 1 &&
-                                                                        (c.Parameters[0].Type == typeLibFlagsType || c.Parameters[0].Type == shortType));
+                                                                        (Equals(c.Parameters[0].Type, typeLibFlagsType) || Equals(c.Parameters[0].Type, shortType)));
 
             candidateConstructors = candidateConstructors.Where(c => (!c.IsVararg &&
                                                                       !c.Parameters[0].IsRefOrOut() &&

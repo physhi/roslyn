@@ -4,21 +4,23 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Roslyn.Utilities;
-using Word = System.UInt32;
+using Word = System.UInt64;
 
 namespace Microsoft.CodeAnalysis
 {
+    [DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
     internal struct BitVector : IEquatable<BitVector>
     {
+        private const Word ZeroWord = 0;
+        private const int Log2BitsPerWord = 6;
+
+        public const int BitsPerWord = 1 << Log2BitsPerWord;
+
         // Cannot expose the following two field publicly because this structure is mutable
         // and might become not null/empty, unless we restrict access to it.
-        private static readonly Word[] s_emptyArray = SpecializedCollections.EmptyArray<Word>();
-        private static readonly BitVector s_nullValue = new BitVector(0, null, 0);
+        private static readonly Word[] s_emptyArray = Array.Empty<Word>();
+        private static readonly BitVector s_nullValue = default;
         private static readonly BitVector s_emptyValue = new BitVector(0, s_emptyArray, 0);
-
-        private const int Log2BitsPerWord = 5;
-        internal const int BitsPerWord = 1 << Log2BitsPerWord;
-        private const Word ZeroWord = 0;
 
         private Word _bits0;
         private Word[] _bits;
@@ -36,15 +38,26 @@ namespace Microsoft.CodeAnalysis
 
         public bool Equals(BitVector other)
         {
-            // Bit arrays only equal if their underlying sets are of the same size.
+            // Bit arrays only equal if their underlying sets are of the same size
             return _capacity == other._capacity
+                // and have the same set of bits set
                 && _bits0 == other._bits0
-                && _bits.ValueEquals(other._bits);
+                && _bits.AsSpan().SequenceEqual(other._bits.AsSpan());
         }
 
         public override bool Equals(object obj)
         {
             return obj is BitVector && Equals((BitVector)obj);
+        }
+
+        public static bool operator ==(BitVector left, BitVector right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(BitVector left, BitVector right)
+        {
+            return !left.Equals(right);
         }
 
         public override int GetHashCode()
@@ -69,13 +82,7 @@ namespace Microsoft.CodeAnalysis
             return lastIndex;
         }
 
-        public int Capacity
-        {
-            get
-            {
-                return _capacity;
-            }
-        }
+        public int Capacity => _capacity;
 
         [Conditional("DEBUG_BITARRAY")]
         private void Check()
@@ -95,14 +102,14 @@ namespace Microsoft.CodeAnalysis
             Check();
         }
 
-        internal IEnumerable<Word> Words()
+        public IEnumerable<Word> Words()
         {
-            if (_bits0 != 0)
+            if (_capacity > 0)
             {
                 yield return _bits0;
             }
 
-            for (int i = 0; i < _bits.Length; i++)
+            for (int i = 0, n = _bits?.Length ?? 0; i < n; i++)
             {
                 yield return _bits[i];
             }
@@ -159,6 +166,11 @@ namespace Microsoft.CodeAnalysis
         /// <returns></returns>
         public static BitVector AllSet(int capacity)
         {
+            if (capacity == 0)
+            {
+                return Empty;
+            }
+
             int requiredWords = WordsForCapacity(capacity);
             Word[] bits = (requiredWords == 0) ? s_emptyArray : new Word[requiredWords];
             int lastWord = requiredWords - 1;
@@ -207,28 +219,16 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        public static BitVector Null
-        {
-            get
-            {
-                return s_nullValue;
-            }
-        }
+        public static BitVector Null => s_nullValue;
 
-        public static BitVector Empty
-        {
-            get
-            {
-                return s_emptyValue;
-            }
-        }
+        public static BitVector Empty => s_emptyValue;
 
         /// <summary>
         /// Modify this bit vector by bitwise AND-ing each element with the other bit vector.
         /// For the purposes of the intersection, any bits beyond the current length will be treated as zeroes.
         /// Return true if any changes were made to the bits of this bit vector.
         /// </summary>
-        public bool IntersectWith(BitVector other)
+        public bool IntersectWith(in BitVector other)
         {
             bool anyChanged = false;
             int otherLength = other._bits.Length;
@@ -277,18 +277,34 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Modify this bit vector by '|'ing each element with the other bit vector.
         /// </summary>
-        /// <param name="other"></param>
-        public void UnionWith(BitVector other)
+        /// <returns>
+        /// True if any bits were set as a result of the union.
+        /// </returns>
+        public bool UnionWith(in BitVector other)
         {
-            int l = other._bits.Length;
-            if (l > _bits.Length)
-                Array.Resize(ref _bits, l + 1);
-            _bits0 |= other._bits0;
-            for (int i = 0; i < l; i++)
-                _bits[i] |= other._bits[i];
+            bool anyChanged = false;
+
             if (other._capacity > _capacity)
                 EnsureCapacity(other._capacity);
+
+            Word oldbits = _bits0;
+            _bits0 |= other._bits0;
+
+            if (oldbits != _bits0)
+                anyChanged = true;
+
+            for (int i = 0; i < other._bits.Length; i++)
+            {
+                oldbits = _bits[i];
+                _bits[i] |= other._bits[i];
+
+                if (_bits[i] != oldbits)
+                    anyChanged = true;
+            }
+
             Check();
+
+            return anyChanged;
         }
 
         public bool this[int index]
@@ -298,10 +314,9 @@ namespace Microsoft.CodeAnalysis
                 if (index >= _capacity)
                     return false;
                 int i = (index >> Log2BitsPerWord) - 1;
-                int b = index & (BitsPerWord - 1);
-                Word mask = ((Word)1) << b;
                 var word = (i < 0) ? _bits0 : _bits[i];
-                return (word & mask) != 0;
+
+                return IsTrue(word, index);
             }
 
             set
@@ -332,6 +347,29 @@ namespace Microsoft.CodeAnalysis
         {
             _bits0 = 0;
             if (_bits != null) Array.Clear(_bits, 0, _bits.Length);
+        }
+
+        public static bool IsTrue(Word word, int index)
+        {
+            int b = index & (BitsPerWord - 1);
+            Word mask = ((Word)1) << b;
+            return (word & mask) != 0;
+        }
+
+        public static int WordsRequired(int capacity)
+        {
+            if (capacity <= 0) return 0;
+            return WordsForCapacity(capacity) + 1;
+        }
+
+        internal string GetDebuggerDisplay()
+        {
+            var value = new char[_capacity];
+            for (int i = 0; i < _capacity; i++)
+            {
+                value[_capacity - i - 1] = this[i] ? '1' : '0';
+            }
+            return new string(value);
         }
     }
 }

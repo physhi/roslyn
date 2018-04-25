@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.Semantics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Microsoft.CodeAnalysis.Diagnostics
 {
@@ -20,18 +20,41 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
     internal sealed class SymbolAnalyzerAction : AnalyzerAction
     {
-        private readonly Action<SymbolAnalysisContext> _action;
-        private readonly ImmutableArray<SymbolKind> _kinds;
+        public Action<SymbolAnalysisContext> Action { get; }
+        public ImmutableArray<SymbolKind> Kinds { get; }
 
         public SymbolAnalyzerAction(Action<SymbolAnalysisContext> action, ImmutableArray<SymbolKind> kinds, DiagnosticAnalyzer analyzer)
             : base(analyzer)
         {
+            Action = action;
+            Kinds = kinds;
+        }
+    }
+
+    internal sealed class SymbolStartAnalyzerAction : AnalyzerAction
+    {
+        public Action<SymbolStartAnalysisContext> Action { get; }
+        public SymbolKind Kind { get; }
+
+        public SymbolStartAnalyzerAction(Action<SymbolStartAnalysisContext> action, SymbolKind kind, DiagnosticAnalyzer analyzer)
+            : base(analyzer)
+        {
+            Action = action;
+            Kind = kind;
+        }
+    }
+
+    internal sealed class SymbolEndAnalyzerAction : AnalyzerAction
+    {
+        private readonly Action<SymbolAnalysisContext> _action;
+
+        public SymbolEndAnalyzerAction(Action<SymbolAnalysisContext> action, DiagnosticAnalyzer analyzer)
+            : base(analyzer)
+        {
             _action = action;
-            _kinds = kinds;
         }
 
         public Action<SymbolAnalysisContext> Action { get { return _action; } }
-        public ImmutableArray<SymbolKind> Kinds { get { return _kinds; } }
     }
 
     internal sealed class SyntaxNodeAnalyzerAction<TLanguageKindEnum> : AnalyzerAction where TLanguageKindEnum : struct
@@ -78,18 +101,18 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
     internal sealed class OperationAnalyzerAction : AnalyzerAction
     {
-        private readonly Action<OperationAnalysisContext> action;
-        private readonly ImmutableArray<OperationKind> kinds;
+        private readonly Action<OperationAnalysisContext> _action;
+        private readonly ImmutableArray<OperationKind> _kinds;
 
         public OperationAnalyzerAction(Action<OperationAnalysisContext> action, ImmutableArray<OperationKind> kinds, DiagnosticAnalyzer analyzer)
             : base(analyzer)
         {
-            this.action = action;
-            this.kinds = kinds;
+            _action = action;
+            _kinds = kinds;
         }
 
-        public Action<OperationAnalysisContext> Action { get { return this.action; } }
-        public ImmutableArray<OperationKind> Kinds { get { return this.kinds; } }
+        public Action<OperationAnalysisContext> Action { get { return _action; } }
+        public ImmutableArray<OperationKind> Kinds { get { return _kinds; } }
     }
 
     internal sealed class CompilationStartAnalyzerAction : AnalyzerAction

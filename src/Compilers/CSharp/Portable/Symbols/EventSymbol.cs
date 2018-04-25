@@ -45,9 +45,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         }
 
         /// <summary>
-        /// The type of the event. 
+        /// The type of the event along with its annotations.
         /// </summary>
-        public abstract TypeSymbol Type { get; }
+        public abstract TypeWithAnnotations TypeWithAnnotations { get; }
+
+        /// <summary>
+        /// The type of the event.
+        /// </summary>
+        public TypeSymbol Type => TypeWithAnnotations.Type;
 
         /// <summary>
         /// The 'add' accessor of the event.  Null only in error scenarios.
@@ -68,6 +73,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         }
 
         /// <summary>
+        /// Returns true if this symbol requires an instance reference as the implicit reciever. This is false if the symbol is static.
+        /// </summary>
+        public virtual bool RequiresInstanceReceiver => !IsStatic;
+
+        /// <summary>
         /// True if this is a Windows Runtime-style event.
         /// 
         /// A normal C# event, "event D E", has accessors
@@ -79,6 +89,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         ///     void remove_E(EventRegistrationToken t)
         /// </summary>
         public abstract bool IsWindowsRuntimeEvent { get; }
+
+        /// <summary>
+        /// True if the event itself is excluded from code coverage instrumentation.
+        /// True for source events marked with <see cref="AttributeDescription.ExcludeFromCodeCoverageAttribute"/>.
+        /// </summary>
+        internal virtual bool IsDirectlyExcludedFromCodeCoverage { get => false; }
 
         /// <summary>
         /// True if this symbol has a special name (metadata flag SpecialName is set).
@@ -242,7 +258,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             Debug.Assert(this.IsDefinition);
             Debug.Assert(ReferenceEquals(newOwner.OriginalDefinition, this.ContainingSymbol.OriginalDefinition));
-            return (newOwner == this.ContainingSymbol) ? this : new SubstitutedEventSymbol(newOwner as SubstitutedNamedTypeSymbol, this);
+            return newOwner.IsDefinition ? this : new SubstitutedEventSymbol(newOwner as SubstitutedNamedTypeSymbol, this);
         }
 
         internal abstract bool MustCallMethodsDirectly { get; }
@@ -264,7 +280,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Debug.Assert(this.IsDefinition);
 
             // Check event type.
-            if (DeriveUseSiteDiagnosticFromType(ref result, this.Type))
+            if (DeriveUseSiteDiagnosticFromType(ref result, this.TypeWithAnnotations))
             {
                 return true;
             }
@@ -274,7 +290,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // If the member is in an assembly with unified references, 
                 // we check if its definition depends on a type from a unified reference.
                 HashSet<TypeSymbol> unificationCheckedTypes = null;
-                if (this.Type.GetUnificationUseSiteDiagnosticRecursive(ref result, this, ref unificationCheckedTypes))
+                if (this.TypeWithAnnotations.GetUnificationUseSiteDiagnosticRecursive(ref result, this, ref unificationCheckedTypes))
                 {
                     return true;
                 }
@@ -302,6 +318,29 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         #endregion
 
+        /// <summary>
+        /// Is this an event of a tuple type?
+        /// </summary>
+        public virtual bool IsTupleEvent
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// If this is an event of a tuple type, return corresponding underlying event from the
+        /// tuple underlying type. Otherwise, null. 
+        /// </summary>
+        public virtual EventSymbol TupleUnderlyingEvent
+        {
+            get
+            {
+                return null;
+            }
+        }
+
         #region IEventSymbol Members
 
         ITypeSymbol IEventSymbol.Type
@@ -311,6 +350,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return this.Type;
             }
         }
+
+        CodeAnalysis.NullableAnnotation IEventSymbol.NullableAnnotation => TypeWithAnnotations.ToPublicAnnotation();
 
         IMethodSymbol IEventSymbol.AddMethod
         {
@@ -379,7 +420,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         #region Equality
 
-        public sealed override bool Equals(object obj)
+        public override bool Equals(Symbol obj, TypeCompareKind compareKind)
         {
             EventSymbol other = obj as EventSymbol;
 
@@ -395,7 +436,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             // This checks if the events have the same definition and the type parameters on the containing types have been
             // substituted in the same way.
-            return this.ContainingType == other.ContainingType && ReferenceEquals(this.OriginalDefinition, other.OriginalDefinition);
+            return TypeSymbol.Equals(this.ContainingType, other.ContainingType, compareKind) && ReferenceEquals(this.OriginalDefinition, other.OriginalDefinition);
         }
 
         public override int GetHashCode()

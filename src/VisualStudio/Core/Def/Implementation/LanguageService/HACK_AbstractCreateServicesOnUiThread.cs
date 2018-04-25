@@ -2,11 +2,9 @@
 
 using System;
 using System.Collections.ObjectModel;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.Options.Providers;
 using Microsoft.CodeAnalysis.Snippets;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Text;
@@ -27,7 +25,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
         private readonly string _languageName;
         private bool _initialized = false;
 
-        public HACK_AbstractCreateServicesOnUiThread(IServiceProvider serviceProvider, string languageName)
+        public HACK_AbstractCreateServicesOnUiThread(IThreadingContext threadingContext, IServiceProvider serviceProvider, string languageName)
+            : base(threadingContext)
         {
             _componentModel = (IComponentModel)serviceProvider.GetService(typeof(SComponentModel));
             _languageName = languageName;
@@ -61,15 +60,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
                 {
                     var unused = languageService.Value;
                     break;
-                }
-            }
-
-            var serializers = componentModel.DefaultExportProvider.GetExports<IOptionSerializer, OptionSerializerMetadata>();
-            foreach (var serializer in serializers)
-            {
-                if (serializer.Metadata.Language == null || serializer.Metadata.Language == languageName)
-                {
-                    var unused = serializer.Value;
                 }
             }
         }

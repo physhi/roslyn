@@ -1,7 +1,7 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -10,115 +10,133 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Recommendations
     public class BaseKeywordRecommenderTests : KeywordRecommenderTests
     {
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotAtRoot_Interactive()
+        public async Task TestNotAtRoot_Interactive()
         {
-            VerifyAbsence(SourceCodeKind.Script,
+            await VerifyAbsenceAsync(SourceCodeKind.Script,
 @"$$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInTopLevelMethod()
+        public async Task TestNotInTopLevelMethod()
         {
-            VerifyAbsence(SourceCodeKind.Script,
-@"void Foo()
+            await VerifyAbsenceAsync(SourceCodeKind.Script,
+@"void Goo()
 {
     $$
 }");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotAfterClass_Interactive()
+        public async Task TestNotAfterClass_Interactive()
         {
-            VerifyAbsence(SourceCodeKind.Script,
+            await VerifyAbsenceAsync(SourceCodeKind.Script,
 @"class C { }
 $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotAfterGlobalStatement_Interactive()
+        public async Task TestNotAfterGlobalStatement_Interactive()
         {
-            VerifyAbsence(SourceCodeKind.Script,
+            await VerifyAbsenceAsync(SourceCodeKind.Script,
 @"System.Console.WriteLine();
 $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotAfterGlobalVariableDeclaration_Interactive()
+        public async Task TestNotAfterGlobalVariableDeclaration_Interactive()
         {
-            VerifyAbsence(SourceCodeKind.Script,
+            await VerifyAbsenceAsync(SourceCodeKind.Script,
 @"int i = 0;
 $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInUsingAlias()
+        public async Task TestNotInUsingAlias()
         {
-            VerifyAbsence(
-@"using Foo = $$");
+            await VerifyAbsenceAsync(
+@"using Goo = $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InClassConstructorInitializer()
+        public async Task TestInClassConstructorInitializer()
         {
-            VerifyKeyword(
+            await VerifyKeywordAsync(
 @"class C {
     public C() : $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInStaticClassConstructorInitializer()
+        public async Task TestNotInStaticClassConstructorInitializer()
         {
-            VerifyAbsence(
+            await VerifyAbsenceAsync(
 @"class C {
     static C() : $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInStructConstructorInitializer()
+        public async Task TestNotInStructConstructorInitializer()
         {
-            VerifyAbsence(
+            await VerifyAbsenceAsync(
 @"struct C {
     public C() : $$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void AfterCast()
+        public async Task TestAfterCast()
         {
-            VerifyKeyword(
+            await VerifyKeywordAsync(
 @"struct C {
     new internal ErrorCode Code { get { return (ErrorCode)$$");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void InEmptyMethod()
+        public async Task TestInEmptyMethod()
         {
-            VerifyKeyword(
+            await VerifyKeywordAsync(
                 SourceCodeKind.Regular,
                 AddInsideMethod(
 @"$$"));
         }
 
-        [WorkItem(538264)]
+        [WorkItem(538264, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538264")]
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInEnumMemberInitializer1()
+        public async Task TestNotInEnumMemberInitializer1()
         {
-            VerifyAbsence(
+            await VerifyAbsenceAsync(
 @"enum E {
     a = $$
 }");
         }
 
-        [WorkItem(544219)]
+        [WorkItem(544219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544219")]
         [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
-        public void NotInObjectInitializerMemberContext()
+        public async Task TestNotInObjectInitializerMemberContext()
         {
-            VerifyAbsence(@"
+            await VerifyAbsenceAsync(@"
 class C
 {
     public int x, y;
     void M()
     {
         var c = new C { x = 2, y = 3, $$");
+        }
+
+        [WorkItem(16335, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/16335")]
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task InExpressionBodyAccessor()
+        {
+            await VerifyKeywordAsync(@"
+class B
+{
+    public virtual int T { get => bas$$ }
+}");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)]
+        public async Task TestAfterRefExpression()
+        {
+            await VerifyKeywordAsync(AddInsideMethod(
+@"ref int x = ref $$"));
         }
     }
 }

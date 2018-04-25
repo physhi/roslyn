@@ -1,13 +1,7 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
-Imports System.Threading.Tasks
-Imports Microsoft.CodeAnalysis.Text
-Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.CompletionProviders
     ' TODO: consider merging these tests with the keyword recommending tests in some way
@@ -16,7 +10,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
         Protected Overrides Function CheckResultAsync(validLocation As Boolean, position As Integer, syntaxTree As SyntaxTree) As Task
             Dim token = syntaxTree.GetTargetToken(position, CancellationToken.None)
             Assert.Equal(validLocation, syntaxTree.IsNamespaceContext(position, token, CancellationToken.None))
-            Return SpecializedTasks.EmptyTask
+            Return Task.CompletedTask
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>

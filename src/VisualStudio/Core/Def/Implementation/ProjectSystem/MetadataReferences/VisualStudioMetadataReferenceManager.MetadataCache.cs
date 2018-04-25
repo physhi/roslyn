@@ -28,10 +28,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 }
             }
 
+            public bool TryGetSource(FileKey key, out ValueSource<AssemblyMetadata> source)
+            {
+                lock (_gate)
+                {
+                    return _metadataCache.TryGetValue(key, out source);
+                }
+            }
+
             private bool TryGetMetadata_NoLock(FileKey key, out AssemblyMetadata metadata)
             {
-                ValueSource<AssemblyMetadata> metadataSource;
-                if (_metadataCache.TryGetValue(key, out metadataSource))
+                if (_metadataCache.TryGetValue(key, out var metadataSource))
                 {
                     metadata = metadataSource.GetValue();
                     return metadata != null;
@@ -68,28 +75,26 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                     return;
                 }
 
-                using (var pooledObject = SharedPools.Default<List<FileKey>>().GetPooledObject())
+                using var pooledObject = SharedPools.Default<List<FileKey>>().GetPooledObject();
+                var keysToRemove = pooledObject.Object;
+                foreach (var kv in _metadataCache)
                 {
-                    var keysToRemove = pooledObject.Object;
-                    foreach (var kv in _metadataCache)
+                    // metadata doesn't exist anymore. delete it from cache
+                    if (!kv.Value.HasValue)
                     {
-                        // metadata doesn't exist anymore. delete it from cache
-                        if (!kv.Value.HasValue)
-                        {
-                            keysToRemove.Add(kv.Key);
-                        }
+                        keysToRemove.Add(kv.Key);
                     }
+                }
 
-                    foreach (var key in keysToRemove)
-                    {
-                        _metadataCache.Remove(key);
-                    }
+                foreach (var key in keysToRemove)
+                {
+                    _metadataCache.Remove(key);
+                }
 
-                    // cache is too small, increase it
-                    if (_metadataCache.Count >= _capacity)
-                    {
-                        _capacity *= CapacityMultiplier;
-                    }
+                // cache is too small, increase it
+                if (_metadataCache.Count >= _capacity)
+                {
+                    _capacity *= CapacityMultiplier;
                 }
             }
 

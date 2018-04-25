@@ -1,25 +1,24 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.Diagnostics
+Imports Microsoft.CodeAnalysis.VisualBasic.ImplementInterface
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics.ImplementInterface
 
     Public Class ImplementInterfaceCrossLanguageTests
         Inherits AbstractCrossLanguageUserDiagnosticTest
 
-        Friend Overrides Function CreateDiagnosticProviderAndFixer(workspace As Workspace, language As String) As Tuple(Of DiagnosticAnalyzer, CodeFixProvider)
+        Friend Overrides Function CreateDiagnosticProviderAndFixer(workspace As Workspace, language As String) As (DiagnosticAnalyzer, CodeFixProvider)
             If language = LanguageNames.CSharp Then
                 Throw New NotSupportedException("Please add C# Implement interface tests to CSharpEditorTestTests.csproj. These tests require DiagnosticAnalyzer based test base and are NYI for AbstractCrossLanguageUserDiagnosticTest test base.")
             Else
-                Return Tuple.Create(Of DiagnosticAnalyzer, CodeFixProvider)(
-                    Nothing,
-                    New CodeAnalysis.VisualBasic.CodeFixes.ImplementInterface.ImplementInterfaceCodeFixProvider())
+                Return (Nothing, New VisualBasicImplementInterfaceCodeFixProvider())
             End If
         End Function
 
-        <WorkItem(545692)>
+        <WorkItem(545692, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545692")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_EnumsWithConflictingNames1() As Task
             Dim input =
@@ -33,7 +32,7 @@ public enum E
 
 public interface I
 {
-    void Foo(E x = E._);
+    void Goo(E x = E._);
 }
                         </Document>
                     </Project>
@@ -52,7 +51,7 @@ End Class
 Class C
     Implements I
  
-    Public Sub Foo(Optional x As E = 1) Implements I.Foo
+    Public Sub Goo(Optional x As E = 1) Implements I.Goo
         Throw New NotImplementedException()
     End Sub
 End Class
@@ -61,7 +60,7 @@ End Class
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(545743)>
+        <WorkItem(545743, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545743")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_EnumsWithConflictingNames2() As Task
             Dim input =
@@ -75,7 +74,7 @@ public enum E
 } 
 public interface I
 {
-    void Foo(E x = E.X);
+    void Goo(E x = E.X);
 }
                         </Document>
                     </Project>
@@ -94,7 +93,7 @@ End Class
 Class C
     Implements I
  
-    Public Sub Foo(Optional x As E = 1) Implements I.Foo
+    Public Sub Goo(Optional x As E = 1) Implements I.Goo
         Throw New NotImplementedException()
     End Sub
 End Class
@@ -103,7 +102,7 @@ End Class
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(545788), WorkItem(715013)>
+        <WorkItem(545788, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545788"), WorkItem(715013, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/715013")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_EnumsWithConflictingNames3() As Task
             Dim input =
@@ -122,7 +121,7 @@ public enum E
  
 public interface I
 {
-    void Foo(E x = E.A | E.a | E.B);
+    void Goo(E x = E.A | E.a | E.B);
 }
                         </Document>
                     </Project>
@@ -141,7 +140,7 @@ End Class
 Class C
     Implements I 
 
-    Public Sub Foo(Optional x As E = CType(1, E) Or CType(2, E) Or E.B) Implements I.Foo
+    Public Sub Goo(Optional x As E = CType(1, E) Or CType(2, E) Or E.B) Implements I.Goo
         Throw New NotImplementedException()
     End Sub
 End Class
@@ -150,7 +149,7 @@ End Class
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(545699)>
+        <WorkItem(545699, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545699")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_OptionalWithNoDefaultValue() As Task
             Dim input =
@@ -161,7 +160,7 @@ using System.Runtime.InteropServices;
  
 public interface I
 {
-    void Foo([Optional] int x);
+    void Goo([Optional] int x);
 }
                         </Document>
                     </Project>
@@ -180,7 +179,7 @@ End Class
 Class C
     Implements I 
 
-    Public Sub Foo(Optional x As Integer = Nothing) Implements I.Foo
+    Public Sub Goo(Optional x As Integer = Nothing) Implements I.Goo
         Throw New NotImplementedException()
     End Sub
 End Class
@@ -189,7 +188,7 @@ End Class
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(545820)>
+        <WorkItem(545820, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545820")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_IndexerWithNoRequiredParameters() As Task
             Dim input =
@@ -228,7 +227,7 @@ End Class
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(545868)>
+        <WorkItem(545868, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545868")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_ConflictingParameterNames1() As Task
             Dim input =
@@ -237,7 +236,7 @@ End Class
                         <Document FilePath='Test1.cs'>
 public interface IA
 {
-    void Foo(int a, int A);
+    void Goo(int a, int A);
 }
                         </Document>
                     </Project>
@@ -256,7 +255,7 @@ End Class
 Class C
     Implements IA
 
-    Public Sub Foo(a1 As Integer, a2 As Integer) Implements IA.Foo
+    Public Sub Goo(a1 As Integer, a2 As Integer) Implements IA.Goo
         Throw New NotImplementedException()
     End Sub
 End Class
@@ -265,7 +264,7 @@ End Class
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(545868)>
+        <WorkItem(545868, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545868")>
         <Fact(), Trait(Traits.Feature, Traits.Features.CodeActionsImplementInterface)>
         Public Async Function Test_ConflictingParameterNames2() As Task
             Dim input =

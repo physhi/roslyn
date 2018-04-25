@@ -46,8 +46,7 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
                 return ExactMatchDist;
             }
 
-            double weightedDistance;
-            if (TryComputeWeightedDistance(oldNode, newNode, out weightedDistance))
+            if (TryComputeWeightedDistance(oldNode, newNode, out var weightedDistance))
             {
                 if (weightedDistance == ExactMatchDist && !SyntaxFactory.AreEquivalent(oldNode, newNode))
                 {
@@ -67,7 +66,7 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
                 return ExactMatchDist;
             }
 
-            double distance = ComputeDistance(oldNode, newNode);
+            var distance = ComputeDistance(oldNode, newNode);
 
             // We don't want to return an exact match, because there
             // must be something different, since we got here 

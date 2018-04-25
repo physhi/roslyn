@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
@@ -20,8 +20,9 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                 private sealed class HighPriorityProcessor : IdleProcessor
                 {
                     private readonly IncrementalAnalyzerProcessor _processor;
-                    private readonly Lazy<ImmutableArray<IIncrementalAnalyzer>> _lazyAnalyzers;
                     private readonly AsyncDocumentWorkItemQueue _workItemQueue;
+
+                    private Lazy<ImmutableArray<IIncrementalAnalyzer>> _lazyAnalyzers;
 
                     // whether this processor is running or not
                     private Task _running;
@@ -31,40 +32,28 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         IncrementalAnalyzerProcessor processor,
                         Lazy<ImmutableArray<IIncrementalAnalyzer>> lazyAnalyzers,
                         int backOffTimeSpanInMs,
-                        CancellationToken shutdownToken) :
-                        base(listener, backOffTimeSpanInMs, shutdownToken)
+                        CancellationToken shutdownToken)
+                        : base(listener, backOffTimeSpanInMs, shutdownToken)
                     {
                         _processor = processor;
                         _lazyAnalyzers = lazyAnalyzers;
 
-                        _running = SpecializedTasks.EmptyTask;
-                        _workItemQueue = new AsyncDocumentWorkItemQueue(processor._registration.ProgressReporter);
+                        _running = Task.CompletedTask;
+                        _workItemQueue = new AsyncDocumentWorkItemQueue(processor._registration.ProgressReporter, processor._registration.Workspace);
 
                         Start();
                     }
 
-                    private ImmutableArray<IIncrementalAnalyzer> Analyzers
-                    {
-                        get
-                        {
-                            return _lazyAnalyzers.Value;
-                        }
-                    }
+                    public Task Running => _running;
 
-                    public Task Running
-                    {
-                        get
-                        {
-                            return _running;
-                        }
-                    }
+                    public int WorkItemCount => _workItemQueue.WorkItemCount;
+                    public bool HasAnyWork => _workItemQueue.HasAnyWork;
 
-                    public bool HasAnyWork
+                    public void AddAnalyzer(IIncrementalAnalyzer analyzer)
                     {
-                        get
-                        {
-                            return _workItemQueue.HasAnyWork;
-                        }
+                        var analyzers = _lazyAnalyzers.Value;
+
+                        _lazyAnalyzers = new Lazy<ImmutableArray<IIncrementalAnalyzer>>(() => analyzers.Add(analyzer));
                     }
 
                     public void Enqueue(WorkItem item)
@@ -81,7 +70,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 
                         // check whether given item is for active document, otherwise, nothing to do here
                         if (_processor._documentTracker == null ||
-                            _processor._documentTracker.GetActiveDocument() != item.DocumentId)
+                            _processor._documentTracker.TryGetActiveDocument() != item.DocumentId)
                         {
                             return;
                         }
@@ -92,7 +81,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 
                     private void EnqueueActiveFileItem(WorkItem item)
                     {
-                        this.UpdateLastAccessTime();
+                        UpdateLastAccessTime();
                         var added = _workItemQueue.AddOrReplace(item);
 
                         Logger.Log(FunctionId.WorkCoordinator_ActiveFileEnqueue, s_enqueueLogger, Environment.TickCount, item.DocumentId, !added);
@@ -106,7 +95,7 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 
                     protected override async Task ExecuteAsync()
                     {
-                        if (this.CancellationToken.IsCancellationRequested)
+                        if (CancellationToken.IsCancellationRequested)
                         {
                             return;
                         }
@@ -116,18 +105,14 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         {
                             // mark it as running
                             _running = source.Task;
-
                             // okay, there must be at least one item in the map
-
                             // see whether we have work item for the document
-                            WorkItem workItem;
-                            CancellationTokenSource documentCancellation;
-                            Contract.ThrowIfFalse(GetNextWorkItem(out workItem, out documentCancellation));
+                            Contract.ThrowIfFalse(GetNextWorkItem(out var workItem, out var documentCancellation));
 
                             var solution = _processor.CurrentSolution;
 
                             // okay now we have work to do
-                            await ProcessDocumentAsync(solution, this.Analyzers, workItem, documentCancellation).ConfigureAwait(false);
+                            await ProcessDocumentAsync(solution, _lazyAnalyzers.Value, workItem, documentCancellation).ConfigureAwait(false);
                         }
                         catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
                         {
@@ -140,13 +125,13 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         }
                     }
 
-                    private bool GetNextWorkItem(out WorkItem workItem, out CancellationTokenSource documentCancellation)
+                    private bool GetNextWorkItem(out WorkItem workItem, out CancellationToken cancellationToken)
                     {
                         // GetNextWorkItem since it can't fail. we still return bool to confirm that this never fail.
-                        var documentId = _processor._documentTracker.GetActiveDocument();
+                        var documentId = _processor._documentTracker.TryGetActiveDocument();
                         if (documentId != null)
                         {
-                            if (_workItemQueue.TryTake(documentId, out workItem, out documentCancellation))
+                            if (_workItemQueue.TryTake(documentId, out workItem, out cancellationToken))
                             {
                                 return true;
                             }
@@ -155,13 +140,14 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         return _workItemQueue.TryTakeAnyWork(
                             preferableProjectId: null,
                             dependencyGraph: _processor.DependencyGraph,
+                            analyzerService: _processor.DiagnosticAnalyzerService,
                             workItem: out workItem,
-                            source: out documentCancellation);
+                            cancellationToken: out cancellationToken);
                     }
 
-                    private async Task ProcessDocumentAsync(Solution solution, ImmutableArray<IIncrementalAnalyzer> analyzers, WorkItem workItem, CancellationTokenSource source)
+                    private async Task ProcessDocumentAsync(Solution solution, ImmutableArray<IIncrementalAnalyzer> analyzers, WorkItem workItem, CancellationToken cancellationToken)
                     {
-                        if (this.CancellationToken.IsCancellationRequested)
+                        if (CancellationToken.IsCancellationRequested)
                         {
                             return;
                         }
@@ -171,13 +157,12 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
 
                         try
                         {
-                            using (Logger.LogBlock(FunctionId.WorkCoordinator_ProcessDocumentAsync, source.Token))
+                            using (Logger.LogBlock(FunctionId.WorkCoordinator_ProcessDocumentAsync, w => w.ToString(), workItem, cancellationToken))
                             {
-                                var cancellationToken = source.Token;
                                 var document = solution.GetDocument(documentId);
                                 if (document != null)
                                 {
-                                    await ProcessDocumentAnalyzersAsync(document, analyzers, workItem, cancellationToken).ConfigureAwait(false);
+                                    await _processor.ProcessDocumentAnalyzersAsync(document, analyzers, workItem, cancellationToken).ConfigureAwait(false);
                                 }
 
                                 if (!cancellationToken.IsCancellationRequested)
@@ -194,15 +179,17 @@ namespace Microsoft.CodeAnalysis.SolutionCrawler
                         {
                             // we got cancelled in the middle of processing the document.
                             // let's make sure newly enqueued work item has all the flag needed.
-                            if (!processedEverything)
+                            // Avoid retry attempts after cancellation is requested, since work will not be processed
+                            // after that point.
+                            if (!processedEverything && !CancellationToken.IsCancellationRequested)
                             {
-                                _workItemQueue.AddOrReplace(workItem.Retry(this.Listener.BeginAsyncOperation("ReenqueueWorkItem")));
+                                _workItemQueue.AddOrReplace(workItem.Retry(Listener.BeginAsyncOperation("ReenqueueWorkItem")));
                             }
 
                             SolutionCrawlerLogger.LogProcessActiveFileDocument(_processor._logAggregator, documentId.Id, processedEverything);
 
                             // remove one that is finished running
-                            _workItemQueue.RemoveCancellationSource(workItem.DocumentId);
+                            _workItemQueue.MarkWorkItemDoneFor(workItem.DocumentId);
                         }
                     }
 

@@ -59,6 +59,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public MustOverride ReadOnly Property RaiseMethod As MethodSymbol
 
         ''' <summary>
+        ''' True if the event itself Is excluded from code coverage instrumentation.
+        ''' True for source events marked with <see cref="AttributeDescription.ExcludeFromCodeCoverageAttribute"/>.
+        ''' </summary>
+        Friend Overridable ReadOnly Property IsDirectlyExcludedFromCodeCoverage As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        ''' <summary>
         '''  True if this symbol has a special name (metadata flag SpecialName is set).
         ''' </summary>
         Friend MustOverride ReadOnly Property HasSpecialName As Boolean
@@ -147,20 +157,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     Return invoke.ReturnType
                 Else
                     Return ContainingAssembly.GetSpecialType(SpecialType.System_Void)
-                End If
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Returns the list of custom modifiers, if any, associated with the return type of the event. 
-        ''' </summary>
-        Friend ReadOnly Property DelegateReturnTypeCustomModifiers As ImmutableArray(Of CustomModifier)
-            Get
-                Dim invoke = DelegateInvokeMethod()
-                If invoke IsNot Nothing Then
-                    Return invoke.ReturnTypeCustomModifiers
-                Else
-                    Return ImmutableArray(Of CustomModifier).Empty
                 End If
             End Get
         End Property
@@ -255,9 +251,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        ''' <summary>
+        ''' Is this an event of a tuple type?
+        ''' </summary>
+        Public Overridable ReadOnly Property IsTupleEvent() As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' If this is an event of a tuple type, return corresponding underlying event from the
+        ''' tuple underlying type. Otherwise, Nothing. 
+        ''' </summary>
+        Public Overridable ReadOnly Property TupleUnderlyingEvent() As EventSymbol
+            Get
+                Return Nothing
+            End Get
+        End Property
+
         Private ReadOnly Property IEventSymbol_Type As ITypeSymbol Implements IEventSymbol.Type
             Get
                 Return Me.Type
+            End Get
+        End Property
+
+        Private ReadOnly Property IEventSymbol_NullableAnnotation As NullableAnnotation Implements IEventSymbol.NullableAnnotation
+            Get
+                Return NullableAnnotation.None
             End Get
         End Property
 
@@ -313,7 +334,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return visitor.VisitEvent(Me)
         End Function
 
-        Public NotOverridable Overrides Function Equals(obj As Object) As Boolean
+        Public Overrides Function Equals(obj As Object) As Boolean
             Dim other As EventSymbol = TryCast(obj, EventSymbol)
             If Nothing Is other Then
                 Return False
@@ -323,7 +344,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return True
             End If
 
-            Return Me.ContainingType = other.ContainingType AndAlso Me.OriginalDefinition Is other.OriginalDefinition
+            Return TypeSymbol.Equals(Me.ContainingType, other.ContainingType, TypeCompareKind.ConsiderEverything) AndAlso Me.OriginalDefinition Is other.OriginalDefinition
         End Function
 
         Public Overrides Function GetHashCode() As Integer

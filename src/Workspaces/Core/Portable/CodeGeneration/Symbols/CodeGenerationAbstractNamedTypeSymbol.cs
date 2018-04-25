@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editing;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.CodeGeneration
 {
@@ -12,16 +11,18 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
     {
         public new INamedTypeSymbol OriginalDefinition { get; protected set; }
 
-        internal readonly IList<CodeGenerationAbstractNamedTypeSymbol> TypeMembers;
+        public ImmutableArray<IFieldSymbol> TupleElements { get; protected set; }
+
+        internal readonly ImmutableArray<CodeGenerationAbstractNamedTypeSymbol> TypeMembers;
 
         protected CodeGenerationAbstractNamedTypeSymbol(
             INamedTypeSymbol containingType,
-            IList<AttributeData> attributes,
+            ImmutableArray<AttributeData> attributes,
             Accessibility declaredAccessibility,
             DeclarationModifiers modifiers,
             string name,
             SpecialType specialType,
-            IList<CodeGenerationAbstractNamedTypeSymbol> typeMembers)
+            ImmutableArray<CodeGenerationAbstractNamedTypeSymbol> typeMembers)
             : base(containingType, attributes, declaredAccessibility, modifiers, name, specialType)
         {
             this.TypeMembers = typeMembers;
@@ -32,13 +33,7 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
             }
         }
 
-        public override SymbolKind Kind
-        {
-            get
-            {
-                return SymbolKind.NamedType;
-            }
-        }
+        public override SymbolKind Kind => SymbolKind.NamedType;
 
         public override void Accept(SymbolVisitor visitor)
         {
@@ -57,7 +52,14 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
                 return this;
             }
 
-            return new CodeGenerationConstructedNamedTypeSymbol(this, typeArguments, this.TypeMembers);
+            return new CodeGenerationConstructedNamedTypeSymbol(
+                this, typeArguments.ToImmutableArray(), this.TypeMembers);
+        }
+
+        public INamedTypeSymbol Construct(ImmutableArray<ITypeSymbol> typeArguments, ImmutableArray<NullableAnnotation> typeArgumentNullableAnnotations)
+        {
+            return new CodeGenerationConstructedNamedTypeSymbol(
+                this, typeArguments, this.TypeMembers);
         }
 
         public abstract int Arity { get; }
@@ -74,6 +76,18 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
         public abstract ImmutableArray<IMethodSymbol> StaticConstructors { get; }
         public abstract ImmutableArray<IMethodSymbol> Constructors { get; }
         public abstract ImmutableArray<ITypeSymbol> TypeArguments { get; }
+        public abstract ImmutableArray<NullableAnnotation> TypeArgumentNullableAnnotations { get; }
+
+        public ImmutableArray<CustomModifier> GetTypeArgumentCustomModifiers(int ordinal)
+        {
+            if (ordinal < 0 || ordinal >= Arity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            return ImmutableArray.Create<CustomModifier>();
+        }
+
         public abstract ImmutableArray<ITypeParameterSymbol> TypeParameters { get; }
 
         public override string MetadataName
@@ -86,17 +100,15 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
             }
         }
 
-        public ISymbol AssociatedSymbol
-        {
-            get
-            {
-                return null;
-            }
-        }
+        public ISymbol AssociatedSymbol { get; internal set; }
 
-        public bool MightContainExtensionMethods
-        {
-            get { return false; }
-        }
+        public bool MightContainExtensionMethods => false;
+
+        public bool IsComImport => false;
+
+        public bool IsUnmanagedType => throw new NotImplementedException();
+
+        public bool IsRefLikeType => Modifiers.IsRef;
+
     }
 }

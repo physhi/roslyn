@@ -17,7 +17,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateEnumMember
             // public TypeDeclarationSyntax ContainingTypeDeclaration { get; private set; }
             public INamedTypeSymbol TypeToGenerateIn { get; private set; }
 
-            // Just the name of the method.  i.e. "Foo" in "Foo" or "X.Foo"
+            // Just the name of the method.  i.e. "Goo" in "Goo" or "X.Goo"
             public SyntaxToken IdentifierToken { get; private set; }
             public TSimpleNameSyntax SimpleName { get; private set; }
             public TExpressionSyntax SimpleNameOrMemberAccessExpression { get; private set; }
@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateEnumMember
                 // the latter case, we want to generate a field *unless* there's an existing member
                 // with the same name.  Note: it's ok if there's an existing field with the same
                 // name.
-                var existingMembers = this.TypeToGenerateIn.GetMembers(this.IdentifierToken.ValueText);
+                var existingMembers = TypeToGenerateIn.GetMembers(IdentifierToken.ValueText);
                 if (existingMembers.Any())
                 {
                     // TODO: Code coverage There was an existing member that the new member would
@@ -69,40 +69,37 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateEnumMember
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                this.TypeToGenerateIn = await SymbolFinder.FindSourceDefinitionAsync(this.TypeToGenerateIn, document.Project.Solution, cancellationToken).ConfigureAwait(false) as INamedTypeSymbol;
+                TypeToGenerateIn = await SymbolFinder.FindSourceDefinitionAsync(TypeToGenerateIn, document.Project.Solution, cancellationToken).ConfigureAwait(false) as INamedTypeSymbol;
                 if (!service.ValidateTypeToGenerateIn(
-                    document.Project.Solution, this.TypeToGenerateIn, true, EnumType, cancellationToken))
+                        document.Project.Solution, TypeToGenerateIn, true, EnumType))
                 {
                     return false;
                 }
 
-                return CodeGenerator.CanAdd(document.Project.Solution, this.TypeToGenerateIn, cancellationToken);
+                return CodeGenerator.CanAdd(document.Project.Solution, TypeToGenerateIn, cancellationToken);
             }
 
             private bool TryInitializeIdentifierName(
                 TService service,
-                SemanticDocument document,
+                SemanticDocument semanticDocument,
                 TSimpleNameSyntax identifierName,
                 CancellationToken cancellationToken)
             {
-                this.SimpleName = identifierName;
-
-                SyntaxToken identifierToken;
-                TExpressionSyntax simpleNameOrMemberAccessExpression;
-                if (!service.TryInitializeIdentifierNameState(document, identifierName, cancellationToken,
-                    out identifierToken, out simpleNameOrMemberAccessExpression))
+                SimpleName = identifierName;
+                if (!service.TryInitializeIdentifierNameState(semanticDocument, identifierName, cancellationToken,
+                    out var identifierToken, out var simpleNameOrMemberAccessExpression))
                 {
                     return false;
                 }
 
-                this.IdentifierToken = identifierToken;
-                this.SimpleNameOrMemberAccessExpression = simpleNameOrMemberAccessExpression;
+                IdentifierToken = identifierToken;
+                SimpleNameOrMemberAccessExpression = simpleNameOrMemberAccessExpression;
 
-                var semanticModel = document.SemanticModel;
-                var semanticFacts = document.Project.LanguageServices.GetService<ISemanticFactsService>();
-                var syntaxFacts = document.Project.LanguageServices.GetService<ISyntaxFactsService>();
-                if (semanticFacts.IsWrittenTo(semanticModel, this.SimpleNameOrMemberAccessExpression, cancellationToken) ||
-                    syntaxFacts.IsInNamespaceOrTypeContext(this.SimpleNameOrMemberAccessExpression))
+                var semanticModel = semanticDocument.SemanticModel;
+                var semanticFacts = semanticDocument.Document.GetLanguageService<ISemanticFactsService>();
+                var syntaxFacts = semanticDocument.Document.GetLanguageService<ISyntaxFactsService>();
+                if (semanticFacts.IsWrittenTo(semanticModel, SimpleNameOrMemberAccessExpression, cancellationToken) ||
+                    syntaxFacts.IsInNamespaceOrTypeContext(SimpleNameOrMemberAccessExpression))
                 {
                     return false;
                 }
@@ -116,7 +113,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateEnumMember
                     return false;
                 }
 
-                var semanticInfo = semanticModel.GetSymbolInfo(this.SimpleNameOrMemberAccessExpression, cancellationToken);
+                var semanticInfo = semanticModel.GetSymbolInfo(SimpleNameOrMemberAccessExpression, cancellationToken);
                 if (cancellationToken.IsCancellationRequested)
                 {
                     return false;
@@ -126,15 +123,12 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateEnumMember
                 {
                     return false;
                 }
-
                 // Either we found no matches, or this was ambiguous. Either way, we might be able
                 // to generate a method here.  Determine where the user wants to generate the method
                 // into, and if it's valid then proceed.
-                INamedTypeSymbol typeToGenerateIn;
-                bool isStatic;
                 if (!service.TryDetermineTypeToGenerateIn(
-                    document, containingType, simpleNameOrMemberAccessExpression, cancellationToken,
-                    out typeToGenerateIn, out isStatic))
+                    semanticDocument, containingType, simpleNameOrMemberAccessExpression, cancellationToken,
+                    out var typeToGenerateIn, out var isStatic))
                 {
                     return false;
                 }
@@ -144,7 +138,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateEnumMember
                     return false;
                 }
 
-                this.TypeToGenerateIn = typeToGenerateIn;
+                TypeToGenerateIn = typeToGenerateIn;
                 return true;
             }
         }

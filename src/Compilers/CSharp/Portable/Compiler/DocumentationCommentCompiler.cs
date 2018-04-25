@@ -14,6 +14,7 @@ using System.Xml;
 using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
@@ -88,12 +89,20 @@ namespace Microsoft.CodeAnalysis.CSharp
                     leaveOpen: true); // Don't close caller's stream.
             }
 
-            using (writer)
+            try
             {
-                var compiler = new DocumentationCommentCompiler(assemblyName ?? compilation.SourceAssembly.Name, compilation, writer, filterTree, filterSpanWithinTree,
-                    processIncludes: true, isForSingleSymbol: false, diagnostics: diagnostics, cancellationToken: cancellationToken);
-                compiler.Visit(compilation.SourceAssembly.GlobalNamespace);
-                Debug.Assert(compiler._indentDepth == 0);
+                using (writer)
+                {
+                    var compiler = new DocumentationCommentCompiler(assemblyName ?? compilation.SourceAssembly.Name, compilation, writer, filterTree, filterSpanWithinTree,
+                        processIncludes: true, isForSingleSymbol: false, diagnostics: diagnostics, cancellationToken: cancellationToken);
+                    compiler.Visit(compilation.SourceAssembly.GlobalNamespace);
+                    Debug.Assert(compiler._indentDepth == 0);
+                    writer?.Flush();
+                }
+            }
+            catch (Exception e)
+            {
+                diagnostics.Add(ErrorCode.ERR_DocFileGen, Location.None, e.Message);
             }
 
             if (filterTree != null)
@@ -383,8 +392,6 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             Debug.Assert(!docCommentNodes.IsDefaultOrEmpty);
 
-            bool haveWriter = _writer != null;
-
             bool processedDocComment = false; // Even if there are DocumentationCommentTriviaSyntax, we may not need to process any of them.
 
             ArrayBuilder<CSharpSyntaxNode> includeElementNodesBuilder = null;
@@ -403,13 +410,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                 _cancellationToken.ThrowIfCancellationRequested();
 
                 bool reportDiagnosticsForCurrentTrivia = trivia.SyntaxTree.ReportDocumentationCommentDiagnostics();
-
-                // If we're writing XML or we need to report diagnostics (either in this particular piece of trivia,
-                // or concerning undocumented [type] parameters), then we need to process this trivia node.
-                if (!(haveWriter || reportDiagnosticsForCurrentTrivia || reportParameterOrTypeParameterDiagnostics))
-                {
-                    continue;
-                }
 
                 if (!processedDocComment)
                 {

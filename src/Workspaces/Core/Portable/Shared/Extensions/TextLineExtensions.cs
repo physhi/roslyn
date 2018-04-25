@@ -1,14 +1,29 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
-using Microsoft.CodeAnalysis;
+#nullable enable
+
 using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Shared.Extensions
 {
     internal static class TextLineExtensions
     {
+        public static int? GetLastNonWhitespacePosition(this TextLine line)
+        {
+            var startPosition = line.Start;
+            var text = line.ToString();
+
+            for (var i = text.Length - 1; i >= 0; i--)
+            {
+                if (!char.IsWhiteSpace(text[i]))
+                {
+                    return startPosition + i;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Returns the first non-whitespace position on the given line, or null if 
         /// the line is empty or contains only whitespace.
@@ -42,7 +57,16 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
         /// </summary>
         public static bool IsEmptyOrWhitespace(this TextLine line)
         {
-            return string.IsNullOrWhiteSpace(line.ToString());
+            var text = line.Text;
+            for (var i = line.Span.Start; i < line.Span.End; i++)
+            {
+                if (!char.IsWhiteSpace(text[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public static int GetColumnOfFirstNonWhitespaceCharacterOrEndOfLine(this TextLine line, int tabSize)

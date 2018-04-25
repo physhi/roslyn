@@ -27,10 +27,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             _originalParam = originalParam;
         }
 
-        public override bool IsImplicitlyDeclared
-        {
-            get { return true; }
-        }
+        public override bool IsImplicitlyDeclared => true;
 
         public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
         {
@@ -70,10 +67,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _originalParam.DefaultValueFromAttributes; }
         }
 
-        internal override ParameterSymbol WithCustomModifiersAndParams(TypeSymbol newType, ImmutableArray<CustomModifier> newCustomModifiers, ushort countOfCustomModifiersPrecedingByRef, bool newIsParams)
+        internal override ParameterSymbol WithCustomModifiersAndParams(TypeSymbol newType, ImmutableArray<CustomModifier> newCustomModifiers, ImmutableArray<CustomModifier> newRefCustomModifiers, bool newIsParams)
         {
             return new SourceClonedParameterSymbol(
-                _originalParam.WithCustomModifiersAndParamsCore(newType, newCustomModifiers, countOfCustomModifiersPrecedingByRef, newIsParams),
+                _originalParam.WithCustomModifiersAndParamsCore(newType, newCustomModifiers, newRefCustomModifiers, newIsParams),
                 this.ContainingSymbol,
                 this.Ordinal,
                 _suppressOptional);
@@ -81,9 +78,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         #region Forwarded
 
-        public override TypeSymbol Type
+        public override TypeWithAnnotations TypeWithAnnotations
         {
-            get { return _originalParam.Type; }
+            get { return _originalParam.TypeWithAnnotations; }
         }
 
         public override RefKind RefKind
@@ -116,9 +113,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _originalParam.Name; }
         }
 
-        public override ImmutableArray<CustomModifier> CustomModifiers
+        public override ImmutableArray<CustomModifier> RefCustomModifiers
         {
-            get { return _originalParam.CustomModifiers; }
+            get { return _originalParam.RefCustomModifiers; }
         }
 
         internal override MarshalPseudoCustomAttributeData MarshallingInformation
@@ -149,6 +146,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal override bool IsCallerMemberName
         {
             get { return _originalParam.IsCallerMemberName; }
+        }
+
+        internal override FlowAnalysisAnnotations FlowAnalysisAnnotations
+        {
+            get { return FlowAnalysisAnnotations.None; }
+        }
+
+        internal override ImmutableHashSet<string> NotNullIfParameterNotNull
+        {
+            get { return ImmutableHashSet<string>.Empty; }
         }
 
         #endregion

@@ -13,8 +13,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Preview
     [Export(typeof(IViewTaggerProvider))]
     [TagType(typeof(HighlightTag))]
     [ContentType(ContentTypeNames.RoslynContentType)]
+    [ContentType(ContentTypeNames.XamlContentType)]
     internal class PreviewTaggerProvider : IViewTaggerProvider
     {
+        [ImportingConstructor]
+        public PreviewTaggerProvider()
+        {
+        }
+
         public ITagger<T> CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
         {
             if (PreviewUpdater.TextView == textView)

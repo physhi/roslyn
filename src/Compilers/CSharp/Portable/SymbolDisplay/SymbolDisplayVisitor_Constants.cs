@@ -2,7 +2,6 @@
 
 using System.Diagnostics;
 using System.Reflection;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -14,16 +13,19 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 AddNonNullConstantValue(type, constantValue, preferNumericValueOrExpandedFlagsForEnum);
             }
-            else if (type.IsReferenceType || type.TypeKind == TypeKind.Pointer || type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+            else if (type.IsReferenceType || type.TypeKind == TypeKind.Pointer || ITypeSymbolHelpers.IsNullableType(type))
             {
                 AddKeyword(SyntaxKind.NullKeyword);
             }
             else
             {
                 AddKeyword(SyntaxKind.DefaultKeyword);
-                AddPunctuation(SyntaxKind.OpenParenToken);
-                type.Accept(this.NotFirstVisitor);
-                AddPunctuation(SyntaxKind.CloseParenToken);
+                if (!format.MiscellaneousOptions.IncludesOption(SymbolDisplayMiscellaneousOptions.AllowDefaultLiteral))
+                {
+                    AddPunctuation(SyntaxKind.OpenParenToken);
+                    type.Accept(this.NotFirstVisitor);
+                    AddPunctuation(SyntaxKind.CloseParenToken);
+                }
             }
         }
 

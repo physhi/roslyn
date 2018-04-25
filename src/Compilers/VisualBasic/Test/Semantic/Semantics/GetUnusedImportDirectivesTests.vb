@@ -11,7 +11,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Semantics
 
         <Fact()>
         Public Sub TestLinq()
-            Dim compilation = CreateCompilationWithMscorlibAndReferences(
+            Dim compilation = CreateCompilationWithMscorlib40AndReferences(
 <compilation name="TestLinq">
     <file name="a.vb">
 Imports System.Linq
@@ -36,14 +36,14 @@ Imports System.IO
 
         <Fact()>
         Public Sub TestSpeculativeBindingDoesNotAffectUsedUsings()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation name="TestSpeculativeBindingDoesNotAffectUsedUsings">
     <file name="a.vb">
 Imports System
 
 Public Class Blah
-    Sub Foo()
-        Foo() ' Comment
+    Sub Goo()
+        Goo() ' Comment
     End Sub
 End Class
     </file>
@@ -65,7 +65,7 @@ Imports System
         Public Sub AllAssemblyLevelAttributesMustBeBound()
             Dim snkPath = Temp.CreateFile().WriteAllBytes(TestResources.General.snKey).Path
 
-            Dim ivtCompilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
+            Dim ivtCompilation = CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(
 <compilation name="IVT">
     <file name="ivt.vb"><![CDATA[
 Imports System.Runtime.CompilerServices
@@ -75,7 +75,7 @@ Imports System.Runtime.CompilerServices
 Namespace NamespaceContainingInternalsOnly
     Friend Module Extensions
         <Extension>
-        Sub Foo(x As Integer)
+        Sub Goo(x As Integer)
         End Sub
     End Module
 End Namespace
@@ -88,16 +88,16 @@ Imports System.Reflection
 <Assembly: AssemblyKeyFile("]]><%= snkPath %><![CDATA[")>
 ]]>
     </file>
-</compilation>, additionalRefs:={SystemCoreRef}, options:=TestOptions.ReleaseDll.WithStrongNameProvider(New DesktopStrongNameProvider()))
+</compilation>, references:={SystemCoreRef}, options:=TestOptions.ReleaseDll.WithStrongNameProvider(New DesktopStrongNameProvider()))
 
-            Dim libCompilation = CreateCompilationWithMscorlibAndReferences(
+            Dim libCompilation = CreateCompilationWithMscorlib40AndReferences(
 <compilation name="Lib">
     <file name="a.vb">
 Imports NamespaceContainingInternalsOnly
 
 Public Class C
     Shared Sub F(x As Integer)
-        x.Foo()
+        x.Goo()
     End Sub
 End Class
     </file>
@@ -115,10 +115,10 @@ Imports System.Reflection
             libCompilation.VerifyDiagnostics()
         End Sub
 
-        <WorkItem(546110, "DevDiv")>
+        <WorkItem(546110, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546110")>
         <Fact()>
         Public Sub TestAssemblyImport1()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation name="TestAssemblyImport">
     <file name="a.vb"><![CDATA[
 Imports System.Runtime.CompilerServices
@@ -133,10 +133,10 @@ End Class
             compilation.AssertTheseDiagnostics(<errors></errors>, suppressInfos:=False)
         End Sub
 
-        <WorkItem(546110, "DevDiv")>
+        <WorkItem(546110, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546110")>
         <Fact()>
         Public Sub TestAssemblyImport2()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation name="TestAssemblyImport">
     <file name="a.vb"><![CDATA[
 Imports System.Runtime.CompilerServices
@@ -157,10 +157,10 @@ Imports System.Runtime.CompilerServices
             'Assert.Equal(1, unusedImports.Count)
         End Sub
 
-        <WorkItem(747219, "DevDiv")>
+        <WorkItem(747219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/747219")>
         <Fact()>
         Public Sub SemanticModelCallDoesNotCountsAsUse()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation name="TestAssemblyImport">
     <file name="a.vb"><![CDATA[
 Imports System.Collections
@@ -190,10 +190,10 @@ Imports System.Collections.Generic
                                                </errors>, suppressInfos:=False)
         End Sub
 
-        <WorkItem(747219, "DevDiv")>
+        <WorkItem(747219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/747219")>
         <Fact()>
         Public Sub INF_UnusedImportStatement_Single()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Imports System
@@ -207,10 +207,10 @@ Imports System
                                                </errors>, suppressInfos:=False)
         End Sub
 
-        <WorkItem(747219, "DevDiv")>
+        <WorkItem(747219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/747219")>
         <Fact()>
         Public Sub INF_UnusedImportStatement_Multiple()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Imports System, System.Diagnostics
@@ -224,10 +224,10 @@ Imports System, System.Diagnostics
                                                </errors>, suppressInfos:=False)
         End Sub
 
-        <WorkItem(747219, "DevDiv")>
+        <WorkItem(747219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/747219")>
         <Fact()>
         Public Sub INF_UnusedImportClause_Single()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Imports System, System.Diagnostics
@@ -244,10 +244,10 @@ Imports System, System.Diagnostics
                                                </errors>, suppressInfos:=False)
         End Sub
 
-        <WorkItem(747219, "DevDiv")>
+        <WorkItem(747219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/747219")>
         <Fact()>
         Public Sub INF_UnusedImportClause_Multiple()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
 <compilation>
     <file name="a.vb"><![CDATA[
 Imports System, System.Diagnostics, System.Collections
@@ -270,7 +270,7 @@ Imports System, System.Diagnostics, System.Collections
                                                </errors>, suppressInfos:=False)
         End Sub
 
-        <WorkItem(747219, "DevDiv")>
+        <WorkItem(747219, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/747219")>
         <Fact()>
         Public Sub CrefCountsAsUse()
             Dim source =
@@ -281,19 +281,17 @@ Imports System
 ''' <see cref='Console'/>
 Class A
 End Class
-    ]]></file>
+]]></file>
 </compilation>
 
             ' Without doc comments.
-            CreateCompilationWithMscorlib(source, parseOptions:=New VisualBasicParseOptions(documentationMode:=DocumentationMode.None)).AssertTheseDiagnostics(
-                <errors>
-BC50001: Unused import statement.
-Imports System
-~~~~~~~~~~~~~~
-                </errors>, suppressInfos:=False)
+            CreateCompilationWithMscorlib40(source, parseOptions:=New VisualBasicParseOptions(documentationMode:=DocumentationMode.None)).AssertNoDiagnostics(suppressInfos:=False)
 
-            ' With doc comments.
-            CreateCompilationWithMscorlib(source, parseOptions:=New VisualBasicParseOptions(documentationMode:=DocumentationMode.Diagnose)).AssertTheseDiagnostics(<errors></errors>, suppressInfos:=False)
+            ' With doc comments parsed.
+            CreateCompilationWithMscorlib40(source, parseOptions:=New VisualBasicParseOptions(documentationMode:=DocumentationMode.Parse)).AssertNoDiagnostics(suppressInfos:=False)
+
+            ' With doc comments diagnosed.
+            CreateCompilationWithMscorlib40(source, parseOptions:=New VisualBasicParseOptions(documentationMode:=DocumentationMode.Diagnose)).AssertNoDiagnostics(suppressInfos:=False)
         End Sub
 
         <Fact>
@@ -313,6 +311,89 @@ BC50001: Unused import statement.
 Imports System
 ~~~~~~~~~~~~~~
                 </errors>, suppressInfos:=False)
+        End Sub
+
+        <Fact, WorkItem(18348, "https://github.com/dotnet/roslyn/issues/18348")>
+        Public Sub IncorrectUnusedUsingWhenAttributeOnParameter_01()
+            Dim source =
+<compilation>
+    <file name="a.vb"><![CDATA[
+Imports System.Runtime.InteropServices
+Partial Class Program
+    Private Sub M(<Out> <InAttribute> ByRef x As Integer)
+    End Sub
+End Class
+]]></file>
+    <file name="b.vb"><![CDATA[
+Partial Class Program
+    Partial Private Sub M(ByRef x As Integer)
+    End Sub
+End Class
+]]></file>
+</compilation>
+
+            Dim comp = CreateCompilationWithMscorlib40(source)
+            Dim tree = comp.SyntaxTrees(0)
+            Dim model = comp.GetSemanticModel(tree)
+            Dim diagnostics = model.GetDiagnostics()
+            AssertTheseDiagnostics(diagnostics, <errors></errors>)
+        End Sub
+
+        <Fact, WorkItem(18348, "https://github.com/dotnet/roslyn/issues/18348")>
+        Public Sub IncorrectUnusedUsingWhenAttributeOnParameter_02()
+            Dim source =
+<compilation>
+    <file name="a.vb"><![CDATA[
+Imports System.Runtime.InteropServices
+Partial Class Program
+    Partial Private Sub M(<Out> <InAttribute> ByRef x As Integer)
+    End Sub
+End Class
+]]></file>
+    <file name="b.vb"><![CDATA[
+Partial Class Program
+    Private Sub M(ByRef x As Integer)
+    End Sub
+End Class
+]]></file>
+</compilation>
+
+            Dim comp = CreateCompilationWithMscorlib40(source)
+            Dim tree = comp.SyntaxTrees(0)
+            Dim model = comp.GetSemanticModel(tree)
+            Dim diagnostics = model.GetDiagnostics()
+            AssertTheseDiagnostics(diagnostics, <errors></errors>)
+        End Sub
+
+        <Fact, WorkItem(2773, "https://github.com/dotnet/roslyn/issues/2773")>
+        Public Sub UsageInDocComment()
+            Dim source =
+<compilation>
+    <file name="a.vb"><![CDATA[
+Imports X
+
+''' <summary/>
+Public Class Program
+
+    ''' <summary>
+    ''' <see cref="Q"/>
+    ''' </summary>
+    Public Sub Main()
+    End Sub
+
+End Class
+
+Namespace Global.X
+    ''' <summary/>
+    Public Class Q
+    End Class
+End Namespace
+]]></file>
+</compilation>
+            For Each documentationMode As DocumentationMode In [Enum].GetValues(GetType(DocumentationMode))
+                Dim compilation = CreateCompilationWithMscorlib40(source, parseOptions:=TestOptions.Regular.WithDocumentationMode(documentationMode))
+                compilation.AssertNoDiagnostics(suppressInfos:=False)
+            Next
         End Sub
     End Class
 End Namespace

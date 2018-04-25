@@ -22,7 +22,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim origArgNotNullableType As TypeSymbol = origArgType.GetNullableUnderlyingTypeOrSelf
             Dim origArgUnderlyingType As TypeSymbol = origArgNotNullableType.GetEnumUnderlyingTypeOrSelf
             Dim origArgUnderlyingSpecialType As SpecialType = origArgUnderlyingType.SpecialType
-            Debug.Assert(origArgType = node.Type)
+            Debug.Assert(TypeSymbol.Equals(origArgType, node.Type, TypeCompareKind.ConsiderEverything))
 
             Dim argument As BoundExpression = Visit(origArg)
 
@@ -148,8 +148,10 @@ lNotAndMinus:
                                                              ImmutableArray.Create(Of BoundExpression)(
                                                                  CreateCoalesceLambdaParameter(lambdaParameter)),
                                                              Nothing,
-                                                             True,
-                                                             [call].Type),
+                                                             Nothing,
+                                                             [call].IsLValue,
+                                                             suppressObjectClone:=True,
+                                                             type:=[call].Type),
                                                resultType)
         End Function
 
@@ -233,7 +235,7 @@ lNotAndMinus:
         ''' <summary>
         ''' Get the name of the expression tree function for a particular unary operator
         ''' </summary>
-        Private Function GetUnaryOperatorMethodName(opKind As UnaryOperatorKind, isChecked As Boolean) As String
+        Private Shared Function GetUnaryOperatorMethodName(opKind As UnaryOperatorKind, isChecked As Boolean) As String
             Select Case (opKind And UnaryOperatorKind.OpMask)
                 Case UnaryOperatorKind.Not
                     Return "Not"

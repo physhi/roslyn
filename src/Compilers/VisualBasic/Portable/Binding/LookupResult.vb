@@ -3,6 +3,7 @@
 Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports System.Runtime.CompilerServices
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
@@ -219,7 +220,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     '''    
     '''    Dim result = LookupResult.GetInstance()
     '''  
-    '''    scope.Lookup(result, "foo")
+    '''    scope.Lookup(result, "goo")
     '''    ... use result ...
     '''         
     '''    result.Clear()
@@ -622,7 +623,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' multiple viable results, either produce an result with both symbols if they can overload each other,
         ' or produce an ambiguity error otherwise.
         Public Sub MergeMembersOfTheSameType(other As SingleLookupResult, imported As Boolean)
-            Debug.Assert(Not Me.HasSymbol OrElse other.Symbol Is Nothing OrElse Me.Symbols(0).ContainingType = other.Symbol.ContainingType)
+            Debug.Assert(Not Me.HasSymbol OrElse other.Symbol Is Nothing OrElse TypeSymbol.Equals(Me.Symbols(0).ContainingType, other.Symbol.ContainingType, TypeCompareKind.ConsiderEverything))
             Debug.Assert(Not other.IsAmbiguous)
 
             If Me.IsGoodOrAmbiguous AndAlso other.IsGood Then
@@ -630,9 +631,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 MergeOverloadedOrAmbiguousInTheSameType(other, imported)
             ElseIf other.Kind > Me.Kind Then
                 SetFrom(other)
-            ElseIf Me.Kind <> LookupResultKind.Inaccessible OrElse Me.Kind > other.Kind OrElse
-                Not CanOverload(Me.Symbols(0), other.Symbol) Then
+            ElseIf Me.Kind <> LookupResultKind.Inaccessible OrElse Me.Kind > other.Kind Then
                 Return
+            ElseIf Not CanOverload(Me.Symbols(0), other.Symbol) Then
+                Debug.Assert(Me.Kind = LookupResultKind.Inaccessible)
+                Debug.Assert(Me.Kind = other.Kind)
+                If Me.Symbols.All(Function(candidate, otherSymbol) candidate.DeclaredAccessibility < otherSymbol.DeclaredAccessibility, other.Symbol) Then
+                    SetFrom(other)
+                End If
             Else
                 _symList.Add(other.Symbol)
             End If
@@ -728,8 +734,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             MergeAmbiguous(other, s_ambiguousInTypeError)
         End Sub
 
-        Private Function AreEquivalentEnumConstants(symbol1 As Symbol, symbol2 As Symbol) As Boolean
-            Debug.Assert(symbol1.ContainingType = symbol2.ContainingType)
+        Private Shared Function AreEquivalentEnumConstants(symbol1 As Symbol, symbol2 As Symbol) As Boolean
+            Debug.Assert(TypeSymbol.Equals(symbol1.ContainingType, symbol2.ContainingType, TypeCompareKind.ConsiderEverything))
             If symbol1.Kind <> SymbolKind.Field OrElse symbol2.Kind <> SymbolKind.Field OrElse symbol1.ContainingType.TypeKind <> TypeKind.Enum Then
                 Return False
             End If
@@ -876,7 +882,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return SymbolLocation.FromSourceModule
             End If
 
-            If (options And LookupOptions.IgnoreCorLibraryDuplicatedTypes) <> 0 Then
+            If sourceModule.DeclaringCompilation.Options.IgnoreCorLibraryDuplicatedTypes Then
                 ' Ignore duplicate types from the cor library if necessary.
                 ' (Specifically the framework assemblies loaded at runtime in
                 ' the EE may contain types also available from mscorlib.dll.)

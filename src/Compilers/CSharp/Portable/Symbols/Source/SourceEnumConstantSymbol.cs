@@ -52,14 +52,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override TypeSymbol GetFieldType(ConsList<FieldSymbol> fieldsBeingBound)
+        internal override TypeWithAnnotations GetFieldType(ConsList<FieldSymbol> fieldsBeingBound)
         {
-            return this.ContainingType;
-        }
-
-        public override ImmutableArray<CustomModifier> CustomModifiers
-        {
-            get { return ImmutableArray<CustomModifier>.Empty; }
+            return TypeWithAnnotations.Create(this.ContainingType);
         }
 
         public override Symbol AssociatedSymbol
@@ -115,17 +110,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                         state.NotePartComplete(CompletionPart.Type);
                         break;
 
-                    case CompletionPart.ConstantValue:
-                        GetConstantValue(ConstantFieldsInProgress.Empty, earlyDecodingWellKnownAttributes: false);
+                    case CompletionPart.FixedSize:
+                        Debug.Assert(!this.IsFixedSizeBuffer);
+                        state.NotePartComplete(CompletionPart.FixedSize);
                         break;
 
-                    case CompletionPart.FixedSize:
-                        Debug.Assert(!this.IsFixed);
-                        if (state.NotePartComplete(CompletionPart.FixedSize)) // Not applicable
-                        {
-                            // FixedSize is the last completion part for fields.
-                            DeclaringCompilation.SymbolDeclaredEvent(this);
-                        }
+                    case CompletionPart.ConstantValue:
+                        GetConstantValue(ConstantFieldsInProgress.Empty, earlyDecodingWellKnownAttributes: false);
                         break;
 
                     case CompletionPart.None:

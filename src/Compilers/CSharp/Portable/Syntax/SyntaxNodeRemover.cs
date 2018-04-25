@@ -4,9 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System.Diagnostics;
 
 namespace Microsoft.CodeAnalysis.CSharp.Syntax
 {
@@ -34,7 +33,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
 
             var residualTrivia = remover.ResidualTrivia;
 
-            if (residualTrivia.Count > 0)
+            // the result of the SyntaxRemover will be null when the root node is removed.
+            if (result != null && residualTrivia.Count > 0)
             {
                 result = result.WithTrailingTrivia(result.GetTrailingTrivia().Concat(residualTrivia));
             }
@@ -96,17 +96,22 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
             {
                 if (requiresNewLine)
                 {
-                    this.AddEndOfLine();
+                    this.AddEndOfLine(GetEndOfLine(trivia) ?? SyntaxFactory.CarriageReturnLineFeed);
                 }
 
                 _residualTrivia.Add(trivia);
             }
 
-            private void AddEndOfLine()
+            private void AddEndOfLine(SyntaxTrivia? eolTrivia)
             {
+                if (!eolTrivia.HasValue)
+                {
+                    return;
+                }
+
                 if (_residualTrivia.Count == 0 || !IsEndOfLine(_residualTrivia[_residualTrivia.Count - 1]))
                 {
-                    _residualTrivia.Add(SyntaxFactory.CarriageReturnLineFeed);
+                    _residualTrivia.Add(eolTrivia.Value);
                 }
             }
 
@@ -122,9 +127,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     || trivia.IsDirective;
             }
 
-            private static bool HasEndOfLine(SyntaxTriviaList list)
+            /// <summary>
+            /// Returns the first end of line found in a <see cref="SyntaxTriviaList"/>.
+            /// </summary>
+            private static SyntaxTrivia? GetEndOfLine(SyntaxTriviaList list)
             {
-                return list.Any(t => IsEndOfLine(t));
+                foreach (var trivia in list)
+                {
+                    if (trivia.Kind() == SyntaxKind.EndOfLineTrivia)
+                    {
+                        return trivia;
+                    }
+
+                    if (trivia.IsDirective && trivia.GetStructure() is DirectiveTriviaSyntax directive)
+                    {
+                        return GetEndOfLine(directive.EndOfDirectiveToken.TrailingTrivia);
+                    }
+                }
+
+                return null;
             }
 
             private bool IsForRemoval(SyntaxNode node)
@@ -204,7 +225,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     }
                     else
                     {
-                        var node = (TNode)(SyntaxNode)item.AsNode();
+                        var node = (TNode)item.AsNode();
 
                         if (this.IsForRemoval(node))
                         {
@@ -214,16 +235,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                                 alternate.Add(withSeps, 0, i);
                             }
 
-                            if (alternate.Count > 0 && alternate[alternate.Count - 1].IsToken)
+                            CommonSyntaxNodeRemover.GetSeparatorInfo(
+                                withSeps, i, (int)SyntaxKind.EndOfLineTrivia,
+                                out bool nextTokenIsSeparator, out bool nextSeparatorBelongsToNode);
+
+                            if (!nextSeparatorBelongsToNode &&
+                                alternate.Count > 0 &&
+                                alternate[alternate.Count - 1].IsToken)
                             {
-                                // remove preceding separator if any
                                 var separator = alternate[alternate.Count - 1].AsToken();
                                 this.AddTrivia(separator, node);
                                 alternate.RemoveLast();
                             }
-                            else if (i + 1 < n && withSeps[i + 1].IsToken)
+                            else if (nextTokenIsSeparator)
                             {
-                                // otherwise remove following separator if any
                                 var separator = withSeps[i + 1].AsToken();
                                 this.AddTrivia(node, separator);
                                 removeNextSeparator = true;
@@ -233,11 +258,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                                 this.AddTrivia(node);
                             }
 
-                            visited = default(SyntaxNodeOrToken);
+                            visited = default;
                         }
                         else
                         {
-                            visited = this.VisitListElement((TNode)(SyntaxNode)item.AsNode());
+                            visited = this.VisitListElement((TNode)item.AsNode());
                         }
                     }
 
@@ -267,10 +292,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                 {
                     this.AddResidualTrivia(node.GetLeadingTrivia());
                 }
-                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0
-                    && HasEndOfLine(node.GetLeadingTrivia()))
+                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0)
                 {
-                    this.AddEndOfLine();
+                    this.AddEndOfLine(GetEndOfLine(node.GetLeadingTrivia()));
                 }
 
                 if ((_options & (SyntaxRemoveOptions.KeepDirectives | SyntaxRemoveOptions.KeepUnbalancedDirectives)) != 0)
@@ -282,10 +306,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                 {
                     this.AddResidualTrivia(node.GetTrailingTrivia());
                 }
-                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0
-                    && HasEndOfLine(node.GetTrailingTrivia()))
+                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0)
                 {
-                    this.AddEndOfLine();
+                    this.AddEndOfLine(GetEndOfLine(node.GetTrailingTrivia()));
                 }
 
                 if ((_options & SyntaxRemoveOptions.AddElasticMarker) != 0)
@@ -302,12 +325,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     this.AddResidualTrivia(token.TrailingTrivia);
                     this.AddResidualTrivia(node.GetLeadingTrivia());
                 }
-                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0
-                    && (HasEndOfLine(token.LeadingTrivia) ||
-                        HasEndOfLine(token.TrailingTrivia) ||
-                        HasEndOfLine(node.GetLeadingTrivia())))
+                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0)
                 {
-                    this.AddEndOfLine();
+                    // For retrieving an EOL we don't need to check the node leading trivia as
+                    // it can be always retrieved from the token trailing trivia, if one exists.
+                    var eol = GetEndOfLine(token.LeadingTrivia) ??
+                              GetEndOfLine(token.TrailingTrivia);
+                    this.AddEndOfLine(eol);
                 }
 
                 if ((_options & (SyntaxRemoveOptions.KeepDirectives | SyntaxRemoveOptions.KeepUnbalancedDirectives)) != 0)
@@ -321,10 +345,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                 {
                     this.AddResidualTrivia(node.GetTrailingTrivia());
                 }
-                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0
-                    && HasEndOfLine(node.GetTrailingTrivia()))
+                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0)
                 {
-                    this.AddEndOfLine();
+                    this.AddEndOfLine(GetEndOfLine(node.GetTrailingTrivia()));
                 }
 
                 if ((_options & SyntaxRemoveOptions.AddElasticMarker) != 0)
@@ -339,10 +362,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                 {
                     this.AddResidualTrivia(node.GetLeadingTrivia());
                 }
-                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0
-                    && HasEndOfLine(node.GetLeadingTrivia()))
+                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0)
                 {
-                    this.AddEndOfLine();
+                    this.AddEndOfLine(GetEndOfLine(node.GetLeadingTrivia()));
                 }
 
                 if ((_options & (SyntaxRemoveOptions.KeepDirectives | SyntaxRemoveOptions.KeepUnbalancedDirectives)) != 0)
@@ -358,12 +380,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     this.AddResidualTrivia(token.LeadingTrivia);
                     this.AddResidualTrivia(token.TrailingTrivia);
                 }
-                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0
-                    && (HasEndOfLine(node.GetTrailingTrivia()) ||
-                        HasEndOfLine(token.LeadingTrivia) ||
-                        HasEndOfLine(token.TrailingTrivia)))
+                else if ((_options & SyntaxRemoveOptions.KeepEndOfLine) != 0)
                 {
-                    this.AddEndOfLine();
+                    // For retrieving an EOL we don't need to check the token leading trivia as
+                    // it can be always retrieved from the node trailing trivia, if one exists.
+                    var eol = GetEndOfLine(node.GetTrailingTrivia()) ??
+                              GetEndOfLine(token.TrailingTrivia);
+                    this.AddEndOfLine(eol);
                 }
 
                 if ((_options & SyntaxRemoveOptions.AddElasticMarker) != 0)

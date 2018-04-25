@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
@@ -144,9 +144,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
                 ' it's only legal to have one name in the variable declarator for for and foreach loops.
                 tokens.Add(DirectCast(controlVariable, VariableDeclaratorSyntax).Names.First().Identifier)
             Else
-                Dim semanticModel = _newSolution.GetDocument(controlVariable.SyntaxTree).GetSemanticModelAsync(_cancellationToken).Result
-                Dim identifierToken = DirectCast(controlVariable, IdentifierNameSyntax).Identifier
-                Dim symbol = semanticModel.GetSymbolInfo(identifierToken).Symbol
+                Dim semanticModel = _newSolution.GetDocument(controlVariable.SyntaxTree).GetSemanticModelAsync(_cancellationToken).WaitAndGetResult_CanCallOnBackground(_cancellationToken)
+                Dim symbol = semanticModel.GetSymbolInfo(controlVariable).Symbol
 
                 ' if it is a field we don't care
                 If symbol IsNot Nothing AndAlso symbol.IsKind(SymbolKind.Local) Then
@@ -155,7 +154,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
                     ' is this local declared in the for or for each loop?
                     ' if not it was already added to the tracker before.
                     If local.IsFor OrElse local.IsForEach Then
-                        tokens.Add(identifierToken)
+                        If controlVariable.Kind = SyntaxKind.IdentifierName Then
+                            tokens.Add(DirectCast(controlVariable, IdentifierNameSyntax).Identifier)
+                        Else
+                            Debug.Fail($"Unexpected control variable kind '{controlVariable.Kind}'")
+                        End If
                     End If
                 End If
             End If
@@ -183,7 +186,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
         Public Overrides Sub VisitCatchBlock(node As CatchBlockSyntax)
             Dim tokens As New List(Of SyntaxToken)
 
-            Dim semanticModel = _newSolution.GetDocument(node.SyntaxTree).GetSemanticModelAsync(_cancellationToken).Result
+            Dim semanticModel = _newSolution.GetDocument(node.SyntaxTree).GetSemanticModelAsync(_cancellationToken).WaitAndGetResult_CanCallOnBackground(_cancellationToken)
             Dim identifierToken = node.CatchStatement.IdentifierName?.Identifier
 
             If identifierToken.HasValue Then

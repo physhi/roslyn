@@ -9,6 +9,11 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
     [ExportWorkspaceServiceFactory(typeof(ICodeRefactoringHelpersService), ServiceLayer.Default), Shared]
     internal class ServicesLayerCodeActionHelpersService : IWorkspaceServiceFactory
     {
+        [ImportingConstructor]
+        public ServicesLayerCodeActionHelpersService()
+        {
+        }
+
         public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
         {
             return new CodeActionHelpersService();
@@ -16,13 +21,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
 
         private class CodeActionHelpersService : ICodeRefactoringHelpersService
         {
-            public bool ActiveInlineRenameSession
-            {
-                get
-                {
-                    return false;
-                }
-            }
+            public bool ActiveInlineRenameSession => false;
         }
     }
 }

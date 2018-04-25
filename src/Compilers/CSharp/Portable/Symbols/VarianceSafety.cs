@@ -94,7 +94,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             IsVarianceUnsafe(
                 method.ReturnType,
                 requireOutputSafety: true,
-                requireInputSafety: false,
+                requireInputSafety: method.RefKind != RefKind.None,
                 context: method,
                 locationProvider: returnTypeLocationProvider,
                 locationArg: method,
@@ -115,7 +115,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 IsVarianceUnsafe(
                     property.Type,
                     requireOutputSafety: hasGetter,
-                    requireInputSafety: hasSetter,
+                    requireInputSafety: hasSetter || !(property.GetMethod?.RefKind == RefKind.None),
                     context: property,
                     locationProvider: p =>
                         {
@@ -173,9 +173,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             foreach (TypeParameterSymbol typeParameter in typeParameters)
             {
-                foreach (TypeSymbol constraintType in typeParameter.ConstraintTypesNoUseSiteDiagnostics)
+                foreach (TypeWithAnnotations constraintType in typeParameter.ConstraintTypesNoUseSiteDiagnostics)
                 {
-                    IsVarianceUnsafe(constraintType,
+                    IsVarianceUnsafe(constraintType.Type,
                         requireOutputSafety: false,
                         requireInputSafety: true,
                         context: context,
@@ -246,8 +246,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     return IsVarianceUnsafe(((ArrayTypeSymbol)type).ElementType, requireOutputSafety, requireInputSafety, context, locationProvider, locationArg, diagnostics);
                 case SymbolKind.ErrorType:
                 case SymbolKind.NamedType:
+                    var namedType = (NamedTypeSymbol)type.TupleUnderlyingTypeOrSelf();
                     // 3) (see IsVarianceUnsafe(NamedTypeSymbol))
-                    return IsVarianceUnsafe((NamedTypeSymbol)type, requireOutputSafety, requireInputSafety, context, locationProvider, locationArg, diagnostics);
+                    return IsVarianceUnsafe(namedType, requireOutputSafety, requireInputSafety, context, locationProvider, locationArg, diagnostics);
                 default:
                     return false;
             }
@@ -296,7 +297,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 for (int i = 0; i < namedType.Arity; i++)
                 {
                     TypeParameterSymbol typeParam = namedType.TypeParameters[i];
-                    TypeSymbol typeArg = namedType.TypeArgumentsNoUseSiteDiagnostics[i];
+                    TypeSymbol typeArg = namedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[i].Type;
 
                     bool requireOut;
                     bool requireIn;

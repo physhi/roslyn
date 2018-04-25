@@ -11,6 +11,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
@@ -116,7 +117,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // Native compiler doesn't generate a use-site error if it is not found, we do the same.
                 var wellKnownType = compilation.GetWellKnownType(WellKnownType.System_Security_Permissions_SecurityAttribute);
                 HashSet<DiagnosticInfo> useSiteDiagnostics = null;
-                _lazyIsSecurityAttribute = AttributeClass.IsDerivedFrom(wellKnownType, ignoreDynamic: false, useSiteDiagnostics: ref useSiteDiagnostics).ToThreeState();
+                _lazyIsSecurityAttribute = AttributeClass.IsDerivedFrom(wellKnownType, TypeCompareKind.ConsiderEverything, useSiteDiagnostics: ref useSiteDiagnostics).ToThreeState();
             }
 
             return _lazyIsSecurityAttribute.Value();
@@ -453,7 +454,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             if (members.Length == 1 && members[0].Kind == SymbolKind.Property)
             {
                 var property = (PropertySymbol)members[0];
-                if ((object)property.Type != null && property.Type.SpecialType == SpecialType.System_String &&
+                if (property.TypeWithAnnotations.HasType && property.Type.SpecialType == SpecialType.System_String &&
                     property.DeclaredAccessibility == Accessibility.Public && property.GetMemberArity() == 0 &&
                     (object)property.SetMethod != null && property.SetMethod.DeclaredAccessibility == Accessibility.Public)
                 {
@@ -478,8 +479,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             switch (interfaceType)
             {
                 case ClassInterfaceType.None:
-                case ClassInterfaceType.AutoDispatch:
-                case ClassInterfaceType.AutoDual:
+                case Cci.Constants.ClassInterfaceType_AutoDispatch:
+                case Cci.Constants.ClassInterfaceType_AutoDual:
                     break;
 
                 default:
@@ -503,8 +504,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             switch (interfaceType)
             {
-                case ComInterfaceType.InterfaceIsDual:
-                case ComInterfaceType.InterfaceIsIDispatch:
+                case Cci.Constants.ComInterfaceType_InterfaceIsDual:
+                case Cci.Constants.ComInterfaceType_InterfaceIsIDispatch:
                 case ComInterfaceType.InterfaceIsIInspectable:
                 case ComInterfaceType.InterfaceIsIUnknown:
                     break;
@@ -649,7 +650,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                 case SymbolKind.Property:
                     if (IsTargetAttribute(target, AttributeDescription.IndexerNameAttribute) ||
-                        IsTargetAttribute(target, AttributeDescription.SpecialNameAttribute))
+                        IsTargetAttribute(target, AttributeDescription.SpecialNameAttribute) ||
+                        IsTargetAttribute(target, AttributeDescription.DisallowNullAttribute) ||
+                        IsTargetAttribute(target, AttributeDescription.AllowNullAttribute) ||
+                        IsTargetAttribute(target, AttributeDescription.MaybeNullAttribute) ||
+                        IsTargetAttribute(target, AttributeDescription.NotNullAttribute))
                     {
                         return false;
                     }
@@ -680,6 +685,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             Debug.Assert(attribute is SourceAttributeData);
             return ((SourceAttributeData)attribute).GetAttributeArgumentSyntax(parameterIndex, attributeSyntax);
+        }
+
+        internal static string DecodeNotNullIfNotNullAttribute(this CSharpAttributeData attribute)
+        {
+            var arguments = attribute.CommonConstructorArguments;
+            return arguments.Length == 1 && arguments[0].TryDecodeValue(SpecialType.System_String, out string value) ? value : null;
         }
 
         internal static Location GetAttributeArgumentSyntaxLocation(this AttributeData attribute, int parameterIndex, AttributeSyntax attributeSyntaxOpt)

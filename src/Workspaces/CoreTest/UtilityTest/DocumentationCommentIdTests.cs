@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         private CSharpCompilation CreateCSharpCompilation(string sourceText)
         {
             var syntaxTree = SyntaxFactory.ParseSyntaxTree(sourceText);
-            return CSharpCompilation.Create("foo.exe").AddReferences(TestReferences.NetFx.v4_0_30319.mscorlib).AddSyntaxTrees(syntaxTree);
+            return CSharpCompilation.Create("goo.exe").AddReferences(TestReferences.NetFx.v4_0_30319.mscorlib).AddSyntaxTrees(syntaxTree);
         }
 
         private void CheckDeclarationId(string expectedId, INamespaceOrTypeSymbol symbol, Compilation compilation)
@@ -32,8 +32,8 @@ namespace Microsoft.CodeAnalysis.UnitTests
             where TSymbol : ISymbol
         {
             var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(expectedId, compilation);
-            Assert.Equal(true, symbol is TSymbol);
-            Assert.Equal(true, test((TSymbol)symbol));
+            Assert.True(symbol is TSymbol);
+            Assert.True(test((TSymbol)symbol));
 
             return (TSymbol)symbol;
         }

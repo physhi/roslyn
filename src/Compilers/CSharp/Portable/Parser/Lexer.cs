@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.Syntax.InternalSyntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
@@ -76,6 +77,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
         private DirectiveStack _directives;
         private readonly LexerCache _cache;
         private readonly bool _allowPreprocessorDirectives;
+        private readonly bool _interpolationFollowedByColon;
         private DocumentationCommentParser _xmlParser;
         private int _badTokenCount; // cumulative count of bad tokens produced
 
@@ -100,7 +102,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             internal bool IsVerbatim;
         }
 
-        public Lexer(SourceText text, CSharpParseOptions options, bool allowPreprocessorDirectives = true)
+        public Lexer(SourceText text, CSharpParseOptions options, bool allowPreprocessorDirectives = true, bool interpolationFollowedByColon = false)
             : base(text)
         {
             Debug.Assert(options != null);
@@ -111,6 +113,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             _cache = new LexerCache();
             _createQuickTokenFunction = this.CreateQuickToken;
             _allowPreprocessorDirectives = allowPreprocessorDirectives;
+            _interpolationFollowedByColon = interpolationFollowedByColon;
         }
 
         public override void Dispose()
@@ -138,6 +141,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
         public DirectiveStack Directives
         {
             get { return _directives; }
+        }
+
+        /// <summary>
+        /// The lexer is for the contents of an interpolation that is followed by a colon that signals the start of the format string.
+        /// </summary>
+        public bool InterpolationFollowedByColon
+        {
+            get
+            {
+                return _interpolationFollowedByColon;
+            }
         }
 
         public void Reset(int position, DirectiveStack directives)
@@ -303,22 +317,24 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
         {
             _leadingTriviaCache.Clear();
             this.LexSyntaxTrivia(afterFirstToken: TextWindow.Position > 0, isTrailing: false, triviaList: ref _leadingTriviaCache);
-            return new SyntaxTriviaList(default(Microsoft.CodeAnalysis.SyntaxToken), SyntaxList.List(_leadingTriviaCache), 0, 0);
+            return new SyntaxTriviaList(default(Microsoft.CodeAnalysis.SyntaxToken),
+                _leadingTriviaCache.ToListNode(), position: 0, index: 0);
         }
 
         internal SyntaxTriviaList LexSyntaxTrailingTrivia()
         {
             _trailingTriviaCache.Clear();
             this.LexSyntaxTrivia(afterFirstToken: true, isTrailing: true, triviaList: ref _trailingTriviaCache);
-            return new SyntaxTriviaList(default(Microsoft.CodeAnalysis.SyntaxToken), SyntaxList.List(_trailingTriviaCache), 0, 0);
+            return new SyntaxTriviaList(default(Microsoft.CodeAnalysis.SyntaxToken),
+                _trailingTriviaCache.ToListNode(), position: 0, index: 0);
         }
 
         private SyntaxToken Create(ref TokenInfo info, SyntaxListBuilder leading, SyntaxListBuilder trailing, SyntaxDiagnosticInfo[] errors)
         {
             Debug.Assert(info.Kind != SyntaxKind.IdentifierToken || info.StringValue != null);
 
-            var leadingNode = SyntaxList.List(leading);
-            var trailingNode = SyntaxList.List(trailing);
+            var leadingNode = leading?.ToListNode();
+            var trailingNode = trailing?.ToListNode();
 
             SyntaxToken token;
             if (info.RequiresTextForXmlEntity)
@@ -412,6 +428,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             char character;
             char surrogateCharacter = SlidingTextWindow.InvalidCharacter;
             bool isEscaped = false;
+            int startingPosition = TextWindow.Position;
 
             // Start scanning the token
             character = TextWindow.PeekChar();
@@ -440,7 +457,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     if (!this.ScanNumericLiteral(ref info))
                     {
                         TextWindow.AdvanceChar();
-                        info.Kind = SyntaxKind.DotToken;
+                        if (TextWindow.PeekChar() == '.')
+                        {
+                            TextWindow.AdvanceChar();
+                            if (TextWindow.PeekChar() == '.')
+                            {
+                                // Triple-dot: explicitly reject this, to allow triple-dot
+                                // to be added to the language without a breaking change.
+                                // (without this, 0...2 would parse as (0)..(.2), i.e. a range from 0 to 0.2)
+                                this.AddError(ErrorCode.ERR_TripleDotNotAllowed);
+                            }
+
+                            info.Kind = SyntaxKind.DotDotToken;
+                        }
+                        else
+                        {
+                            info.Kind = SyntaxKind.DotToken;
+                        }
                     }
 
                     break;
@@ -556,7 +589,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     if (TextWindow.PeekChar() == '?')
                     {
                         TextWindow.AdvanceChar();
-                        info.Kind = SyntaxKind.QuestionQuestionToken;
+
+                        if (TextWindow.PeekChar() == '=')
+                        {
+                            TextWindow.AdvanceChar();
+                            info.Kind = SyntaxKind.QuestionQuestionEqualsToken;
+                        }
+                        else
+                        {
+                            info.Kind = SyntaxKind.QuestionQuestionToken;
+                        }
                     }
                     else
                     {
@@ -720,6 +762,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     {
                         this.ScanVerbatimStringLiteral(ref info);
                     }
+                    else if (TextWindow.PeekChar(1) == '$' && TextWindow.PeekChar(2) == '"')
+                    {
+                        this.ScanInterpolatedStringLiteral(isVerbatim: true, ref info);
+                        CheckFeatureAvailability(MessageID.IDS_FeatureAltInterpolatedVerbatimStrings);
+                        break;
+                    }
                     else if (!this.ScanIdentifierOrKeyword(ref info))
                     {
                         TextWindow.AdvanceChar();
@@ -732,13 +780,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 case '$':
                     if (TextWindow.PeekChar(1) == '"')
                     {
-                        this.ScanInterpolatedStringLiteral(false, ref info);
+                        this.ScanInterpolatedStringLiteral(isVerbatim: false, ref info);
                         CheckFeatureAvailability(MessageID.IDS_FeatureInterpolatedStrings);
                         break;
                     }
                     else if (TextWindow.PeekChar(1) == '@' && TextWindow.PeekChar(2) == '"')
                     {
-                        this.ScanInterpolatedStringLiteral(true, ref info);
+                        this.ScanInterpolatedStringLiteral(isVerbatim: true, ref info);
                         CheckFeatureAvailability(MessageID.IDS_FeatureInterpolatedStrings);
                         break;
                     }
@@ -874,10 +922,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     if (_badTokenCount++ > 200)
                     {
                         // If we get too many characters that we cannot make sense of, absorb the rest of the input.
-                        int position = TextWindow.Position - 1;
                         int end = TextWindow.Text.Length;
-                        int width = end - position;
-                        info.Text = TextWindow.Text.ToString(new TextSpan(position, width));
+                        int width = end - startingPosition;
+                        info.Text = TextWindow.Text.ToString(new TextSpan(startingPosition, width));
                         TextWindow.Reset(end);
                     }
                     else
@@ -892,20 +939,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
         private void CheckFeatureAvailability(MessageID feature)
         {
-            if (feature.RequiredFeature() != null)
+            var info = feature.GetFeatureAvailabilityDiagnosticInfoOpt(Options);
+            if (info != null)
             {
-                if (!this.Options.IsFeatureEnabled(feature))
-                {
-                    this.AddError(ErrorCode.ERR_FeatureIsExperimental, feature.Localize());
-                }
-                return;
+                AddError(info.Code, info.Arguments);
             }
-
-            LanguageVersion availableVersion = this.Options.LanguageVersion;
-            var requiredVersion = feature.RequiredVersion();
-            if (availableVersion >= requiredVersion) return;
-            var featureName = feature.Localize();
-            this.AddError(availableVersion.GetErrorCode(), featureName, requiredVersion.Localize());
         }
 
         private bool ScanInteger()
@@ -920,11 +958,56 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             return start < TextWindow.Position;
         }
 
+        // Allows underscores in integers, except at beginning for decimal and end
+        private void ScanNumericLiteralSingleInteger(ref bool underscoreInWrongPlace, ref bool usedUnderscore, ref bool firstCharWasUnderscore, bool isHex, bool isBinary)
+        {
+            if (TextWindow.PeekChar() == '_')
+            {
+                if (isHex || isBinary)
+                {
+                    firstCharWasUnderscore = true;
+                }
+                else
+                {
+                    underscoreInWrongPlace = true;
+                }
+            }
+
+            bool lastCharWasUnderscore = false;
+            while (true)
+            {
+                char ch = TextWindow.PeekChar();
+                if (ch == '_')
+                {
+                    usedUnderscore = true;
+                    lastCharWasUnderscore = true;
+                }
+                else if (!(isHex ? SyntaxFacts.IsHexDigit(ch) :
+                           isBinary ? SyntaxFacts.IsBinaryDigit(ch) :
+                           SyntaxFacts.IsDecDigit(ch)))
+                {
+                    break;
+                }
+                else
+                {
+                    _builder.Append(ch);
+                    lastCharWasUnderscore = false;
+                }
+                TextWindow.AdvanceChar();
+            }
+
+            if (lastCharWasUnderscore)
+            {
+                underscoreInWrongPlace = true;
+            }
+        }
+
         private bool ScanNumericLiteral(ref TokenInfo info)
         {
             int start = TextWindow.Position;
             char ch;
             bool isHex = false;
+            bool isBinary = false;
             bool hasDecimal = false;
             bool hasExponent = false;
             info.Text = null;
@@ -932,23 +1015,32 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             _builder.Clear();
             bool hasUSuffix = false;
             bool hasLSuffix = false;
+            bool underscoreInWrongPlace = false;
+            bool usedUnderscore = false;
+            bool firstCharWasUnderscore = false;
 
             ch = TextWindow.PeekChar();
-            if (ch == '0' && ((ch = TextWindow.PeekChar(1)) == 'x' || ch == 'X'))
+            if (ch == '0')
             {
-                TextWindow.AdvanceChar(2);
-                isHex = true;
+                ch = TextWindow.PeekChar(1);
+                if (ch == 'x' || ch == 'X')
+                {
+                    TextWindow.AdvanceChar(2);
+                    isHex = true;
+                }
+                else if (ch == 'b' || ch == 'B')
+                {
+                    CheckFeatureAvailability(MessageID.IDS_FeatureBinaryLiteral);
+                    TextWindow.AdvanceChar(2);
+                    isBinary = true;
+                }
             }
 
-            if (isHex)
+            if (isHex || isBinary)
             {
                 // It's OK if it has no digits after the '0x' -- we'll catch it in ScanNumericLiteral
                 // and give a proper error then.
-                while (SyntaxFacts.IsHexDigit(ch = TextWindow.PeekChar()))
-                {
-                    _builder.Append(ch);
-                    TextWindow.AdvanceChar();
-                }
+                ScanNumericLiteralSingleInteger(ref underscoreInWrongPlace, ref usedUnderscore, ref firstCharWasUnderscore, isHex, isBinary);
 
                 if ((ch = TextWindow.PeekChar()) == 'L' || ch == 'l')
                 {
@@ -978,11 +1070,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             }
             else
             {
-                while ((ch = TextWindow.PeekChar()) >= '0' && ch <= '9')
-                {
-                    _builder.Append(ch);
-                    TextWindow.AdvanceChar();
-                }
+                ScanNumericLiteralSingleInteger(ref underscoreInWrongPlace, ref usedUnderscore, ref firstCharWasUnderscore, isHex: false, isBinary: false);
 
                 if (this.ModeIs(LexerMode.DebuggerSyntax) && TextWindow.PeekChar() == '#')
                 {
@@ -1003,16 +1091,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                         _builder.Append(ch);
                         TextWindow.AdvanceChar();
 
-                        while ((ch = TextWindow.PeekChar()) >= '0' && ch <= '9')
-                        {
-                            _builder.Append(ch);
-                            TextWindow.AdvanceChar();
-                        }
+                        ScanNumericLiteralSingleInteger(ref underscoreInWrongPlace, ref usedUnderscore, ref firstCharWasUnderscore, isHex: false, isBinary: false);
                     }
                     else if (_builder.Length == 0)
                     {
                         // we only have the dot so far.. (no preceding number or following number)
-                        info.Kind = SyntaxKind.DotToken;
                         TextWindow.Reset(start);
                         return false;
                     }
@@ -1029,7 +1112,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                         TextWindow.AdvanceChar();
                     }
 
-                    if (!((ch = TextWindow.PeekChar()) >= '0' && ch <= '9'))
+                    if (!(((ch = TextWindow.PeekChar()) >= '0' && ch <= '9') || ch == '_'))
                     {
                         // use this for now (CS0595), cant use CS0594 as we dont know 'type'
                         this.AddError(MakeError(ErrorCode.ERR_InvalidReal));
@@ -1038,11 +1121,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     }
                     else
                     {
-                        while ((ch = TextWindow.PeekChar()) >= '0' && ch <= '9')
-                        {
-                            _builder.Append(ch);
-                            TextWindow.AdvanceChar();
-                        }
+                        ScanNumericLiteralSingleInteger(ref underscoreInWrongPlace, ref usedUnderscore, ref firstCharWasUnderscore, isHex: false, isBinary: false);
                     }
                 }
 
@@ -1110,6 +1189,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 }
             }
 
+            if (underscoreInWrongPlace)
+            {
+                this.AddError(MakeError(start, TextWindow.Position - start, ErrorCode.ERR_InvalidNumber));
+            }
+            else if (firstCharWasUnderscore)
+            {
+                CheckFeatureAvailability(MessageID.IDS_FeatureLeadingDigitSeparator);
+            }
+            else if (usedUnderscore)
+            {
+                CheckFeatureAvailability(MessageID.IDS_FeatureDigitSeparator);
+            }
+
             info.Kind = SyntaxKind.NumericLiteralToken;
             info.Text = TextWindow.GetText(true);
             Debug.Assert(info.Text != null);
@@ -1129,12 +1221,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 default:
                     if (string.IsNullOrEmpty(valueText))
                     {
-                        this.AddError(MakeError(ErrorCode.ERR_InvalidNumber));
+                        if (!underscoreInWrongPlace)
+                        {
+                            this.AddError(MakeError(ErrorCode.ERR_InvalidNumber));
+                        }
                         val = 0; //safe default
                     }
                     else
                     {
-                        val = this.GetValueUInt64(valueText, isHex);
+                        val = this.GetValueUInt64(valueText, isHex, isBinary);
                     }
 
                     // 2.4.4.2 Integer literals
@@ -1230,6 +1325,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             return true;
         }
 
+        // TODO: Change to Int64.TryParse when it supports NumberStyles.AllowBinarySpecifier (inline this method into GetValueUInt32/64)
+        private static bool TryParseBinaryUInt64(string text, out ulong value)
+        {
+            value = 0;
+            foreach (char c in text)
+            {
+                // if uppermost bit is set, then the next bitshift will overflow
+                if ((value & 0x8000000000000000) != 0)
+                {
+                    return false;
+                }
+                // We shouldn't ever get a string that's nonbinary (see ScanNumericLiteral),
+                // so don't explicitly check for it (there's a debug assert in SyntaxFacts)
+                var bit = (ulong)SyntaxFacts.BinaryValue(c);
+                value = (value << 1) | bit;
+            }
+            return true;
+        }
+
         //used in directives
         private int GetValueInt32(string text, bool isHex)
         {
@@ -1244,10 +1358,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
         }
 
         //used for all non-directive integer literals (cast to desired type afterward)
-        private ulong GetValueUInt64(string text, bool isHex)
+        private ulong GetValueUInt64(string text, bool isHex, bool isBinary)
         {
             ulong result;
-            if (!UInt64.TryParse(text, isHex ? NumberStyles.AllowHexSpecifier : NumberStyles.None, CultureInfo.InvariantCulture, out result))
+            if (isBinary)
+            {
+                if (!TryParseBinaryUInt64(text, out result))
+                {
+                    this.AddError(MakeError(ErrorCode.ERR_IntOverflow));
+                }
+            }
+            else if (!UInt64.TryParse(text, isHex ? NumberStyles.AllowHexSpecifier : NumberStyles.None, CultureInfo.InvariantCulture, out result))
             {
                 //we've already lexed the literal, so the error must be from overflow
                 this.AddError(MakeError(ErrorCode.ERR_IntOverflow));
@@ -1549,7 +1670,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 char surrogateCharacter = SlidingTextWindow.InvalidCharacter;
                 bool isEscaped = false;
                 char ch = TextWindow.PeekChar();
-            top:
+top:
                 switch (ch)
                 {
                     case '\\':
@@ -1748,7 +1869,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 }
             }
 
-        LoopExit:
+LoopExit:
             var width = TextWindow.Width; // exact size of input characters
             if (_identLen > 0)
             {
@@ -1776,13 +1897,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                         goto Fail;
                     }
                     // Parse hex value to check for overflow.
-                    this.GetValueUInt64(valueText, isHex: true);
+                    this.GetValueUInt64(valueText, isHex: true, isBinary: false);
                 }
 
                 return true;
             }
 
-        Fail:
+Fail:
             info.Text = null;
             info.StringValue = null;
             TextWindow.Reset(start);
@@ -1854,7 +1975,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 // pairs aren't separately valid).
 
                 bool isEscaped = false;
-            top:
+top:
                 switch (consumedChar)
                 {
                     case '\\':
@@ -2015,7 +2136,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 }
             }
 
-        LoopExit:
+LoopExit:
             if (_identLen > 0)
             {
                 // NOTE: If we don't intern the string value, then we won't get a hit
@@ -2212,10 +2333,158 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                         {
                             return;
                         }
+
+                    // Note: we specifically do not look for the >>>>>>> pattern as the start of
+                    // a conflict marker trivia.  That's because *technically* (albeit unlikely)
+                    // >>>>>>> could be the end of a very generic construct.  So, instead, we only
+                    // recognize >>>>>>> as we are scanning the trivia after a ======= marker 
+                    // (which can never be part of legal code).
+                    // case '>':
+                    case '=':
+                    case '<':
+                        if (!isTrailing)
+                        {
+                            if (IsConflictMarkerTrivia())
+                            {
+                                this.LexConflictMarkerTrivia(ref triviaList);
+                                break;
+                            }
+                        }
+
+                        return;
+
                     default:
                         return;
                 }
             }
+        }
+
+        // All conflict markers consist of the same character repeated seven times.  If it is
+        // a <<<<<<< or >>>>>>> marker then it is also followed by a space.
+        private static readonly int s_conflictMarkerLength = "<<<<<<<".Length;
+
+        private bool IsConflictMarkerTrivia()
+        {
+            var position = TextWindow.Position;
+            var text = TextWindow.Text;
+            if (position == 0 || SyntaxFacts.IsNewLine(text[position - 1]))
+            {
+                var firstCh = text[position];
+                Debug.Assert(firstCh == '<' || firstCh == '=' || firstCh == '>');
+
+                if ((position + s_conflictMarkerLength) <= text.Length)
+                {
+                    for (int i = 0, n = s_conflictMarkerLength; i < n; i++)
+                    {
+                        if (text[position + i] != firstCh)
+                        {
+                            return false;
+                        }
+                    }
+
+                    if (firstCh == '=')
+                    {
+                        return true;
+                    }
+
+                    return (position + s_conflictMarkerLength) < text.Length &&
+                        text[position + s_conflictMarkerLength] == ' ';
+                }
+            }
+
+            return false;
+        }
+
+        private void LexConflictMarkerTrivia(ref SyntaxListBuilder triviaList)
+        {
+            this.Start();
+
+            this.AddError(TextWindow.Position, s_conflictMarkerLength,
+                ErrorCode.ERR_Merge_conflict_marker_encountered);
+
+            var startCh = this.TextWindow.PeekChar();
+
+            // First create a trivia from the start of this merge conflict marker to the
+            // end of line/file (whichever comes first).
+            LexConflictMarkerHeader(ref triviaList);
+
+            // Now add the newlines as the next trivia.
+            LexConflictMarkerEndOfLine(ref triviaList);
+
+            // Now, if it was an ======= marker, then also created a DisabledText trivia for
+            // the contents of the file after it, up until the next >>>>>>> marker we see.
+            if (startCh == '=')
+            {
+                LexConflictMarkerDisabledText(ref triviaList);
+            }
+        }
+
+        private SyntaxListBuilder LexConflictMarkerDisabledText(ref SyntaxListBuilder triviaList)
+        {
+            // Consume everything from the start of the mid-conflict marker to the start of the next
+            // end-conflict marker.
+            this.Start();
+
+            var hitEndConflictMarker = false;
+            while (true)
+            {
+                var ch = this.TextWindow.PeekChar();
+                if (ch == SlidingTextWindow.InvalidCharacter)
+                {
+                    break;
+                }
+
+                // If we hit the end-conflict marker, then lex it out at this point.
+                if (ch == '>' && IsConflictMarkerTrivia())
+                {
+                    hitEndConflictMarker = true;
+                    break;
+                }
+
+                this.TextWindow.AdvanceChar();
+            }
+
+            if (this.TextWindow.Width > 0)
+            {
+                this.AddTrivia(SyntaxFactory.DisabledText(TextWindow.GetText(false)), ref triviaList);
+            }
+
+            if (hitEndConflictMarker)
+            {
+                LexConflictMarkerTrivia(ref triviaList);
+            }
+
+            return triviaList;
+        }
+
+        private void LexConflictMarkerEndOfLine(ref SyntaxListBuilder triviaList)
+        {
+            this.Start();
+            while (SyntaxFacts.IsNewLine(this.TextWindow.PeekChar()))
+            {
+                this.TextWindow.AdvanceChar();
+            }
+
+            if (this.TextWindow.Width > 0)
+            {
+                this.AddTrivia(SyntaxFactory.EndOfLine(TextWindow.GetText(false)), ref triviaList);
+            }
+        }
+
+        private void LexConflictMarkerHeader(ref SyntaxListBuilder triviaList)
+        {
+            while (true)
+            {
+                var ch = this.TextWindow.PeekChar();
+                if (ch == SlidingTextWindow.InvalidCharacter || SyntaxFacts.IsNewLine(ch))
+                {
+                    break;
+                }
+
+                this.TextWindow.AdvanceChar();
+            }
+
+            this.AddTrivia(SyntaxFactory.ConflictMarker(TextWindow.GetText(false)), ref triviaList);
         }
 
         private void AddTrivia(CSharpSyntaxNode trivia, ref SyntaxListBuilder list)
@@ -2324,7 +2593,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
             int hashCode = Hash.FnvOffsetBias;  // FNV base
             bool onlySpaces = true;
 
-        top:
+top:
             char ch = TextWindow.PeekChar();
 
             switch (ch)
@@ -2840,10 +3109,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
                 case '\r':
                 case '\n':
-                    this.ScanEndOfLine();
-                    info.StringValue = info.Text = TextWindow.GetText(false);
-                    info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
-                    this.MutateLocation(XmlDocCommentLocation.Exterior);
+                    ScanXmlTextLiteralNewLineToken(ref info);
                     break;
 
                 case SlidingTextWindow.InvalidCharacter:
@@ -2868,6 +3134,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
             Debug.Assert(info.Kind != SyntaxKind.None || info.Text != null);
             return info.Kind != SyntaxKind.None;
+        }
+
+        private void ScanXmlTextLiteralNewLineToken(ref TokenInfo info)
+        {
+            this.ScanEndOfLine();
+            info.StringValue = info.Text = TextWindow.GetText(intern: false);
+            info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
+            this.MutateLocation(XmlDocCommentLocation.Exterior);
         }
 
         private void ScanXmlTagStart(ref TokenInfo info)
@@ -3069,7 +3343,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
             if (error != null)
             {
-                this.AddError(error.Value, errorArgs ?? SpecializedCollections.EmptyArray<object>());
+                this.AddError(error.Value, errorArgs ?? Array.Empty<object>());
             }
         }
 
@@ -3396,10 +3670,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
                 case '\r':
                 case '\n':
-                    this.ScanEndOfLine();
-                    info.StringValue = info.Text = TextWindow.GetText(false);
-                    info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
-                    this.MutateLocation(XmlDocCommentLocation.Exterior);
+                    ScanXmlTextLiteralNewLineToken(ref info);
                     break;
 
                 case SlidingTextWindow.InvalidCharacter:
@@ -3625,10 +3896,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                 case '\r':
                 case '\n':
                     TextWindow.Reset(beforeConsumed);
-                    this.ScanEndOfLine();
-                    info.StringValue = info.Text = TextWindow.GetText(intern: false);
-                    info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
-                    this.MutateLocation(XmlDocCommentLocation.Exterior);
+                    ScanXmlTextLiteralNewLineToken(ref info);
                     break;
 
                 case '&':
@@ -3689,7 +3957,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
                     info.Kind = SyntaxKind.CommaToken;
                     break;
                 case '.':
-                    info.Kind = SyntaxKind.DotToken;
+                    if (AdvanceIfMatches('.'))
+                    {
+                        if (TextWindow.PeekChar() == '.')
+                        {
+                            // See documentation in ScanSyntaxToken
+                            this.AddCrefError(ErrorCode.ERR_UnexpectedCharacter, ".");
+                        }
+
+                        info.Kind = SyntaxKind.DotDotToken;
+                    }
+                    else
+                    {
+                        info.Kind = SyntaxKind.DotToken;
+                    }
                     break;
                 case '?':
                     info.Kind = SyntaxKind.QuestionToken;
@@ -3992,10 +4273,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
                 case '\r':
                 case '\n':
-                    this.ScanEndOfLine();
-                    info.StringValue = info.Text = TextWindow.GetText(false);
-                    info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
-                    this.MutateLocation(XmlDocCommentLocation.Exterior);
+                    ScanXmlTextLiteralNewLineToken(ref info);
                     break;
 
                 case SlidingTextWindow.InvalidCharacter:
@@ -4126,10 +4404,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
                 case '\r':
                 case '\n':
-                    this.ScanEndOfLine();
-                    info.StringValue = info.Text = TextWindow.GetText(false);
-                    info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
-                    this.MutateLocation(XmlDocCommentLocation.Exterior);
+                    ScanXmlTextLiteralNewLineToken(ref info);
                     break;
 
                 case SlidingTextWindow.InvalidCharacter:
@@ -4251,10 +4526,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 
                 case '\r':
                 case '\n':
-                    this.ScanEndOfLine();
-                    info.StringValue = info.Text = TextWindow.GetText(false);
-                    info.Kind = SyntaxKind.XmlTextLiteralNewLineToken;
-                    this.MutateLocation(XmlDocCommentLocation.Exterior);
+                    ScanXmlTextLiteralNewLineToken(ref info);
                     break;
 
                 case SlidingTextWindow.InvalidCharacter:

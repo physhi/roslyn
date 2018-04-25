@@ -1,10 +1,11 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting.UnitTests;
 using Xunit;
 using VB = Microsoft.CodeAnalysis.VisualBasic;
@@ -13,13 +14,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.UnitTests
 {
     public class ObjectFormatterTests : ObjectFormatterTestBase
     {
+        private static readonly ObjectFormatter s_formatter = new TestCSharpObjectFormatter();
+
         [Fact]
         public void DebuggerProxy_FrameworkTypes_ArrayList()
         {
-            var obj = new ArrayList { 1, 2, true, "foo" };
-            var str = CSharpObjectFormatter.Instance.FormatObject(obj, s_inline);
+            var obj = new ArrayList { 1, 2, true, "goo" };
+            var str = s_formatter.FormatObject(obj, SingleLineOptions);
 
-            Assert.Equal("ArrayList(4) { 1, 2, true, \"foo\" }", str);
+            Assert.Equal("ArrayList(4) { 1, 2, true, \"goo\" }", str);
         }
 
         [Fact]
@@ -30,7 +33,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.UnitTests
                 { new byte[] { 1, 2 }, new[] { 1,2,3 } },
             };
 
-            var str = CSharpObjectFormatter.Instance.FormatObject(obj, s_memberList);
+            var str = s_formatter.FormatObject(obj, SeparateLinesOptions);
 
             AssertMembers(str, "Hashtable(1)",
                 "{ byte[2] { 1, 2 }, int[3] { 1, 2, 3 } }"
@@ -45,7 +48,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.UnitTests
             obj.Enqueue(2);
             obj.Enqueue(3);
 
-            var str = CSharpObjectFormatter.Instance.FormatObject(obj, s_inline);
+            var str = s_formatter.FormatObject(obj, SingleLineOptions);
             Assert.Equal("Queue(3) { 1, 2, 3 }", str);
         }
 
@@ -57,7 +60,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.UnitTests
             obj.Push(2);
             obj.Push(3);
 
-            var str = CSharpObjectFormatter.Instance.FormatObject(obj, s_inline);
+            var str = s_formatter.FormatObject(obj, SingleLineOptions);
             Assert.Equal("Stack(3) { 3, 2, 1 }", str);
         }
 
@@ -69,13 +72,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.UnitTests
             obj.Add(1, 5);
             obj.Add(2, 6);
 
-            var str = CSharpObjectFormatter.Instance.FormatObject(obj, s_inline);
+            var str = s_formatter.FormatObject(obj, SingleLineOptions);
             Assert.Equal("SortedList(3) { { 1, 5 }, { 2, 6 }, { 3, 4 } }", str);
 
             obj = new SortedList();
             obj.Add(new[] { 3 }, new int[] { 4 });
 
-            str = CSharpObjectFormatter.Instance.FormatObject(obj, s_inline);
+            str = s_formatter.FormatObject(obj, SingleLineOptions);
             Assert.Equal("SortedList(1) { { int[1] { 3 }, int[1] { 4 } } }", str);
         }
 
@@ -93,7 +96,7 @@ Class C
 End Class
 ";
             var compilation = VB.VisualBasicCompilation.Create(
-                "foo",
+                "goo",
                 new[] { VB.VisualBasicSyntaxTree.ParseText(source) },
                 new[] { MetadataReference.CreateFromAssemblyInternal(typeof(object).GetTypeInfo().Assembly) },
                 new VB.VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Debug));
@@ -108,7 +111,7 @@ End Class
             var c = a.GetType("C");
             var obj = Activator.CreateInstance(c);
 
-            var str = CSharpObjectFormatter.Instance.FormatObject(obj, s_memberList);
+            var str = s_formatter.FormatObject(obj, SeparateLinesOptions);
             AssertMembers(str, "C",
                 "A: 0",
                 "WE: null"

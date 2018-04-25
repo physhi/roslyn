@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -9,19 +10,22 @@ namespace Microsoft.CodeAnalysis
     {
         public const int MaxUncheckedRecursionDepth = 20;
 
+        /// <summary>
+        ///     Ensures that the remaining stack space is large enough to execute
+        ///     the average function.
+        /// </summary>
+        /// <param name="recursionDepth">how many times the calling function has recursed</param>
+        /// <exception cref="InsufficientExecutionStackException">
+        ///     The available stack space is insufficient to execute
+        ///     the average function.
+        /// </exception>
+        [DebuggerStepThrough]
         public static void EnsureSufficientExecutionStack(int recursionDepth)
         {
             if (recursionDepth > MaxUncheckedRecursionDepth)
             {
-                Roslyn.Utilities.PortableShim.RuntimeHelpers.EnsureSufficientExecutionStack();
+                RuntimeHelpers.EnsureSufficientExecutionStack();
             }
-        }
-
-        // TODO (DevDiv workitem 966425): Replace exception name test with a type test once the type 
-        // is available in the PCL
-        public static bool IsInsufficientExecutionStackException(Exception ex)
-        {
-            return ex.GetType().Name == "InsufficientExecutionStackException";
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Runtime;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Roslyn.Utilities;
@@ -33,20 +33,30 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
                 {
                     if (root != null)
                     {
-                        using (var key = root.OpenSubKey("Performance"))
+                        using var key = root.OpenSubKey("Performance");
+                        const string name = "SustainedLowLatencyDuration";
+                        if (key != null && key.GetValue(name) != null && key.GetValueKind(name) == Microsoft.Win32.RegistryValueKind.DWord)
                         {
-                            const string name = "SustainedLowLatencyDuration";
-                            if (key != null && key.GetValue(name) != null && key.GetValueKind(name) == Microsoft.Win32.RegistryValueKind.DWord)
-                            {
-                                s_delayMilliseconds = (int)key.GetValue(name, s_delayMilliseconds);
-                                return;
-                            }
+                            s_delayMilliseconds = (int)key.GetValue(name, s_delayMilliseconds);
+                            return;
                         }
                     }
                 }
 
                 s_delayMilliseconds = DefaultDelayMilliseconds;
             });
+        }
+
+        /// <summary>
+        /// Turn off low latency GC mode.
+        /// 
+        /// if there is a pending low latency mode request, Latency mode will go back to its original status as
+        /// pending request timeout. once it goes back to its original status, it will not go back to low latency mode again.
+        /// </summary>
+        internal static void TurnOffLowLatencyMode()
+        {
+            // set delay to 0 to turn off the use of sustained low latency
+            s_delayMilliseconds = 0;
         }
 
         /// <summary>
@@ -73,7 +83,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
 
                 // Restore the LatencyMode a short duration after the
                 // last request to UseLowLatencyModeForProcessingUserInput.
-                currentDelay = new ResettableDelay(s_delayMilliseconds);
+                currentDelay = new ResettableDelay(s_delayMilliseconds, AsynchronousOperationListenerProvider.NullListener);
                 currentDelay.Task.SafeContinueWith(_ => RestoreGCLatencyMode(currentMode), TaskScheduler.Default);
                 s_delay = currentDelay;
             }
@@ -84,14 +94,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
             }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.GC.Collect", Justification = "We are using GCCollectionMode.Optimized and this is called on a threadpool thread.")]
         private static void RestoreGCLatencyMode(GCLatencyMode originalMode)
         {
             GCSettings.LatencyMode = originalMode;
             s_delay = null;
-
-            // hint to the GC that if it postponed a gen 2 collection, now might be a good time to do it.
-            GC.Collect(2, GCCollectionMode.Optimized);
         }
     }
 }

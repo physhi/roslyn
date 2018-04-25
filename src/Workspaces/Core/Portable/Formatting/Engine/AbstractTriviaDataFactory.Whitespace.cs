@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -20,8 +19,8 @@ namespace Microsoft.CodeAnalysis.Formatting
         {
             private readonly bool _elastic;
 
-            public Whitespace(OptionSet optionSet, int space, bool elastic, string language) :
-                this(optionSet, lineBreaks: 0, indentation: space, elastic: elastic, language: language)
+            public Whitespace(OptionSet optionSet, int space, bool elastic, string language)
+                : this(optionSet, lineBreaks: 0, indentation: space, elastic: elastic, language: language)
             {
                 Contract.ThrowIfFalse(space >= 0);
             }
@@ -37,23 +36,11 @@ namespace Microsoft.CodeAnalysis.Formatting
                 this.Spaces = indentation;
             }
 
-            public override bool TreatAsElastic
-            {
-                get { return _elastic; }
-            }
+            public override bool TreatAsElastic => _elastic;
 
-            public override bool IsWhitespaceOnlyTrivia
-            {
-                get { return true; }
-            }
+            public override bool IsWhitespaceOnlyTrivia => true;
 
-            public override bool ContainsChanges
-            {
-                get
-                {
-                    return false;
-                }
-            }
+            public override bool ContainsChanges => false;
 
             public override TriviaData WithSpace(int space, FormattingContext context, ChainedFormattingRules formattingRules)
             {
@@ -91,7 +78,7 @@ namespace Microsoft.CodeAnalysis.Formatting
             public override void Format(
                 FormattingContext context,
                 ChainedFormattingRules formattingRules,
-                Action<int, TriviaData> formattingResultApplier,
+                Action<int, TokenStream, TriviaData> formattingResultApplier,
                 CancellationToken cancellationToken,
                 int tokenPairIndex = TokenPairIndexNotNeeded)
             {

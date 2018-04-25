@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -41,7 +41,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Debugging
 
             var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
             var snapshot = text.FindCorrespondingEditorTextSnapshot();
-            locationName = locationName ?? string.Empty;
+            locationName ??= string.Empty;
 
             // Get the prior values we've computed.
             var locationToExpressionsMap = snapshot != null

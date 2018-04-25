@@ -1,17 +1,13 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
-using Microsoft.CodeAnalysis.Collections;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
-using System.Collections.Generic;
+
+using static System.Linq.ImmutableArrayExtensions;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
 {
@@ -31,10 +27,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// <summary>
         /// Returns a constructed named type symbol if 'type' is generic, otherwise just returns 'type'
         /// </summary>
-        public static NamedTypeSymbol ConstructIfGeneric(this NamedTypeSymbol type, ImmutableArray<TypeWithModifiers> typeArguments)
+        public static NamedTypeSymbol ConstructIfGeneric(this NamedTypeSymbol type, ImmutableArray<TypeWithAnnotations> typeArguments)
         {
             Debug.Assert(type.TypeParameters.IsEmpty == (typeArguments.Length == 0));
-            return type.TypeParameters.IsEmpty ? type : type.Construct(typeArguments, unbound:false);
+            return type.TypeParameters.IsEmpty ? type : type.Construct(typeArguments, unbound: false);
         }
 
         public static bool IsNestedType(this Symbol symbol)
@@ -42,24 +38,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return symbol is NamedTypeSymbol && (object)symbol.ContainingType != null;
         }
 
-        public static bool Any<T>(this ImmutableArray<T> array, SymbolKind kind)
-            where T : Symbol
-        {
-            for (int i = 0, n = array.Length; i < n; i++)
-            {
-                var item = array[i];
-                if ((object)item != null && item.Kind == kind)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         /// <summary>
         /// Returns true if the members of superType are accessible from subType due to inheritance.
         /// </summary>
-        public static bool IsAccessibleViaInheritance(this TypeSymbol superType, TypeSymbol subType, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
+        public static bool IsAccessibleViaInheritance(this NamedTypeSymbol superType, NamedTypeSymbol subType, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
         {
             // NOTE: we don't use strict inheritance.  Instead we ignore constructed generic types
             // and only consider the unconstructed types.  Ecma-334, 4th edition contained the
@@ -72,14 +54,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             //       class type constructed from G or a class type derived from a class type
             //       constructed from G.
             // This text is missing in the current version of the spec, but we believe this is accidental.
-            var originalSuperType = superType.OriginalDefinition;
-            for (TypeSymbol current = subType;
+            NamedTypeSymbol originalSuperType = superType.OriginalDefinition;
+            for (NamedTypeSymbol current = subType;
                 (object)current != null;
-                current = (current.Kind == SymbolKind.TypeParameter) ? ((TypeParameterSymbol)current).EffectiveBaseClass(ref useSiteDiagnostics) : current.BaseTypeWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics))
+                current = current.BaseTypeWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics))
             {
                 if (ReferenceEquals(current.OriginalDefinition, originalSuperType))
                 {
                     return true;
+                }
+            }
+
+            if (originalSuperType.IsInterface)
+            {
+                foreach (NamedTypeSymbol current in subType.AllInterfacesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics))
+                {
+                    if (ReferenceEquals(current.OriginalDefinition, originalSuperType))
+                    {
+                        return true;
+                    }
                 }
             }
 
@@ -89,6 +82,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         }
 
         public static bool IsNoMoreVisibleThan(this Symbol symbol, TypeSymbol type, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
+        {
+            return type.IsAtLeastAsVisibleAs(symbol, ref useSiteDiagnostics);
+        }
+
+        public static bool IsNoMoreVisibleThan(this Symbol symbol, TypeWithAnnotations type, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
         {
             return type.IsAtLeastAsVisibleAs(symbol, ref useSiteDiagnostics);
         }
@@ -123,7 +121,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             while ((object)containingMember != null && containingMember.Kind == SymbolKind.Method)
             {
                 MethodSymbol method = (MethodSymbol)containingMember;
-                if (method.MethodKind != MethodKind.AnonymousFunction) break;
+                if (method.MethodKind != MethodKind.AnonymousFunction && method.MethodKind != MethodKind.LocalFunction) break;
                 containingMember = containingMember.ContainingSymbol;
             }
 
@@ -143,7 +141,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                         MethodSymbol method = (MethodSymbol)symbol;
 
                         // skip lambdas:
-                        if (method.MethodKind == MethodKind.AnonymousFunction)
+                        if (method.MethodKind == MethodKind.AnonymousFunction || method.MethodKind == MethodKind.LocalFunction)
                         {
                             symbol = method.ContainingSymbol;
                             continue;
@@ -262,6 +260,26 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
+        /// <summary>
+        /// Does the top level type containing this symbol have 'Microsoft.CodeAnalysis.Embedded' attribute?
+        /// </summary>
+        public static bool IsHiddenByCodeAnalysisEmbeddedAttribute(this Symbol symbol)
+        {
+            // Only upper-level types should be checked 
+            var upperLevelType = symbol.Kind == SymbolKind.NamedType ? (NamedTypeSymbol)symbol : symbol.ContainingType;
+            if ((object)upperLevelType == null)
+            {
+                return false;
+            }
+
+            while ((object)upperLevelType.ContainingType != null)
+            {
+                upperLevelType = upperLevelType.ContainingType;
+            }
+
+            return upperLevelType.HasCodeAnalysisEmbeddedAttribute;
+        }
+
         public static bool MustCallMethodsDirectly(this Symbol symbol)
         {
             switch (symbol.Kind)
@@ -327,6 +345,83 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
 
             return csSymbol;
+        }
+
+        internal static TypeWithAnnotations GetTypeOrReturnType(this Symbol symbol)
+        {
+            RefKind refKind;
+            TypeWithAnnotations returnType;
+            ImmutableArray<CustomModifier> customModifiers_Ignored;
+            GetTypeOrReturnType(symbol, out refKind, out returnType, out customModifiers_Ignored);
+            return returnType;
+        }
+
+        internal static void GetTypeOrReturnType(this Symbol symbol, out RefKind refKind, out TypeWithAnnotations returnType,
+                                                 out ImmutableArray<CustomModifier> refCustomModifiers)
+        {
+            switch (symbol.Kind)
+            {
+                case SymbolKind.Field:
+                    FieldSymbol field = (FieldSymbol)symbol;
+                    refKind = RefKind.None;
+                    returnType = field.TypeWithAnnotations;
+                    refCustomModifiers = ImmutableArray<CustomModifier>.Empty;
+                    break;
+                case SymbolKind.Method:
+                    MethodSymbol method = (MethodSymbol)symbol;
+                    refKind = method.RefKind;
+                    returnType = method.ReturnTypeWithAnnotations;
+                    refCustomModifiers = method.RefCustomModifiers;
+                    break;
+                case SymbolKind.Property:
+                    PropertySymbol property = (PropertySymbol)symbol;
+                    refKind = property.RefKind;
+                    returnType = property.TypeWithAnnotations;
+                    refCustomModifiers = property.RefCustomModifiers;
+                    break;
+                case SymbolKind.Event:
+                    EventSymbol @event = (EventSymbol)symbol;
+                    refKind = RefKind.None;
+                    returnType = @event.TypeWithAnnotations;
+                    refCustomModifiers = ImmutableArray<CustomModifier>.Empty;
+                    break;
+                case SymbolKind.Local:
+                    LocalSymbol local = (LocalSymbol)symbol;
+                    refKind = local.RefKind;
+                    returnType = local.TypeWithAnnotations;
+                    refCustomModifiers = ImmutableArray<CustomModifier>.Empty;
+                    break;
+                case SymbolKind.Parameter:
+                    ParameterSymbol parameter = (ParameterSymbol)symbol;
+                    refKind = parameter.RefKind;
+                    returnType = parameter.TypeWithAnnotations;
+                    refCustomModifiers = parameter.RefCustomModifiers;
+                    break;
+                case SymbolKind.ErrorType:
+                    refKind = RefKind.None;
+                    returnType = TypeWithAnnotations.Create((TypeSymbol)symbol);
+                    refCustomModifiers = ImmutableArray<CustomModifier>.Empty;
+                    break;
+                default:
+                    throw ExceptionUtilities.UnexpectedValue(symbol.Kind);
+            }
+        }
+
+        internal static bool IsImplementableInterfaceMember(this Symbol symbol)
+        {
+            return !symbol.IsStatic && !symbol.IsSealed && (symbol.IsAbstract || symbol.IsVirtual) && (symbol.ContainingType?.IsInterface ?? false);
+        }
+
+        internal static bool RequiresInstanceReceiver(this Symbol symbol)
+        {
+            return symbol.Kind switch
+            {
+                SymbolKind.Method => ((MethodSymbol)symbol).RequiresInstanceReceiver,
+                SymbolKind.Property => ((PropertySymbol)symbol).RequiresInstanceReceiver,
+                SymbolKind.Field => ((FieldSymbol)symbol).RequiresInstanceReceiver,
+                SymbolKind.Event => ((EventSymbol)symbol).RequiresInstanceReceiver,
+                _ => throw new ArgumentException("only methods, properties, fields and events can take a receiver", nameof(symbol)),
+            };
         }
     }
 }

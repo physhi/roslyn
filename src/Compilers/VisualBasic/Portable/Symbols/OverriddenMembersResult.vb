@@ -2,10 +2,7 @@
 
 Imports System.Collections.Generic
 Imports System.Collections.Immutable
-Imports System.Threading
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
@@ -92,8 +89,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Dim overriddenByDefinitionContainingTypeDefinition As NamedTypeSymbol = overriddenByDefinitionContaining.OriginalDefinition
                 Dim baseType As NamedTypeSymbol = substitutedOverridingMember.ContainingType.BaseTypeNoUseSiteDiagnostics
                 While baseType IsNot Nothing
-                    If baseType.OriginalDefinition = overriddenByDefinitionContainingTypeDefinition Then
-                        If baseType = overriddenByDefinitionContaining Then
+                    If TypeSymbol.Equals(baseType.OriginalDefinition, overriddenByDefinitionContainingTypeDefinition, TypeCompareKind.ConsiderEverything) Then
+                        If TypeSymbol.Equals(baseType, overriddenByDefinitionContaining, TypeCompareKind.ConsiderEverything) Then
                             Return overriddenByDefinitionMember
                         End If
 
@@ -110,7 +107,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         End Function
 
         ''' <summary>
-        ''' It Is Not suitable to call this method on a <see cref="OverriddenMembersResult"/> object
+        ''' It is not suitable to call this method on a <see cref="OverriddenMembersResult"/> object
         ''' associated with a member within substituted type, <see cref="GetOverriddenMember(TSymbol, TSymbol)"/>
         ''' should be used instead.
         ''' </summary>

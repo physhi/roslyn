@@ -69,7 +69,7 @@ End Module
       <compilation name="TestBreakStatement">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
         while true 
 [|
@@ -105,7 +105,7 @@ end class
       <compilation name="TestContinueStatement">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
         while true 
 [|
@@ -141,7 +141,7 @@ end class
       <compilation name="TestLoopWithConstantBooleanFalse">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
 [|
         while false  
@@ -171,7 +171,7 @@ end class
       <compilation name="TestLoopWithConstantBooleanTrue">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
 [|
         while true 
@@ -202,7 +202,7 @@ end sub
       <compilation name="TestLoopWithConstantBooleanXor">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x
 [|
         while true xor false 
@@ -233,7 +233,7 @@ end class
       <compilation name="TestLoopWithConstantBooleanNew">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
 
         dim x as integer
 [|
@@ -265,7 +265,7 @@ end class
       <compilation name="TestLoopWithAssignmentInBody">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as boolean
 [|
         while not x
@@ -291,14 +291,14 @@ end class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <Fact(), WorkItem(538421, "DevDiv")>
+        <Fact(), WorkItem(538421, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538421")>
         Public Sub TestLoopWithConstantEnumEquality()
             Dim analysisResults = CompileAndAnalyzeControlFlow(
       <compilation name="TestLoopWithConstantEnumEquality">
           <file name="a.b">
 Imports System
 Class C
-    Shared Sub Foo()
+    Shared Sub Goo()
 [|
         While DayOfWeek.Sunday = 0
         End While
@@ -317,7 +317,7 @@ End Class
       <compilation name="TestLoopWithConstantNaNComparison">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
 [|
         while not 0 > double.NaN
@@ -348,7 +348,7 @@ end class
       <compilation name="TestLoopWithConstantNaNComparison2">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
 [|
         while double.NaN &lt;&gt; double.NaN
@@ -379,7 +379,7 @@ end class
       <compilation name="TestLoopWithConstantStringEquality">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
 [|
         while """" = """" + nothing
@@ -410,7 +410,7 @@ end class
       <compilation name="TestLoopWithEmptyBlockAfterIt">
           <file name="a.b">
 class C
-    shared sub Foo()
+    shared sub Goo()
         dim x as integer
 [|
         while true 
@@ -583,7 +583,7 @@ end class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(539303, "DevDiv")>
+        <WorkItem(539303, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539303")>
         <Fact()>
         Public Sub DoLoopWithContinue()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
@@ -622,7 +622,7 @@ End Class
             Assert.Equal("Me, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(539303, "DevDiv")>
+        <WorkItem(539303, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539303")>
         <Fact()>
         Public Sub DoLoopWithGoto()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
@@ -697,7 +697,7 @@ Class A
 
 #Region "For, For Each"
 
-        <WorkItem(542234, "DevDiv")>
+        <WorkItem(542234, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542234")>
         <Fact()>
         Public Sub TestVariablesDeclaredInForLoop()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -719,7 +719,7 @@ end class</file>\n</compilation>)
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
         End Sub
 
-        <WorkItem(542234, "DevDiv")>
+        <WorkItem(542234, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542234")>
         <Fact()>
         Public Sub TestVariablesDeclaredInForeachLoop()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -753,7 +753,7 @@ end class
 Option Infer On
 
 Class C1
-  public shared function foo() as Integer()
+  public shared function goo() as Integer()
     return new Integer() {1,2,3}
   end function
 End Class
@@ -1250,7 +1250,7 @@ End Class
             Assert.Equal("X, Z, Y", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
         End Sub
 
-        <WorkItem(542112, "DevDiv")>
+        <WorkItem(542112, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542112")>
         <Fact()>
         Public Sub ForEachExitPoints_Failure()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
@@ -1348,10 +1348,10 @@ End Module
             Assert.Equal(True, flow.VariablesDeclared.Any(Function(s) s.Name = "s"))
         End Sub
 
-        <WorkItem(543462, "DevDiv")>
+        <WorkItem(543462, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543462")>
         <Fact()>
         Public Sub NextStatementSyntaxInForEach()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -1454,7 +1454,7 @@ End Module
 
         End Sub
 
-        <Fact, WorkItem(543399, "DevDiv")>
+        <Fact, WorkItem(543399, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543399")>
         Public Sub GotoLabelName()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
    <compilation>
@@ -1510,7 +1510,7 @@ end class
             Assert.Equal(1, analysis.ExitPoints.Count())
         End Sub
 
-        <WorkItem(539295, "DevDiv")>
+        <WorkItem(539295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539295")>
         <Fact()>
         Public Sub TestReturnStatements03()
             Dim analysis = CompileAndAnalyzeControlFlow(
@@ -1533,7 +1533,7 @@ end class
             Assert.True(analysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(539295, "DevDiv")>
+        <WorkItem(539295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539295")>
         <Fact()>
         Public Sub TestReturnStatements03a()
             Dim analysis = CompileAndAnalyzeControlFlow(
@@ -1556,7 +1556,7 @@ end class
             Assert.False(analysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(539295, "DevDiv")>
+        <WorkItem(539295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539295")>
         <Fact()>
         Public Sub TestReturnStatements04()
             Dim analysis = CompileAndAnalyzeControlFlow(
@@ -1615,7 +1615,7 @@ end module
       <compilation name="TestReturnStatementWithParenthesizedExpression">
           <file name="a.b">
 module C
-    function Foo() as integer
+    function Goo() as integer
         dim x as integer = 1, y as integer = x
         [|
         return (y) + 1
@@ -1645,7 +1645,7 @@ end module
       <compilation name="TestReturnStatementWithExpression">
           <file name="a.b">
 module C
-    function Foo() as integer
+    function Goo() as integer
         dim x as integer = 0
 [|
         x = 1

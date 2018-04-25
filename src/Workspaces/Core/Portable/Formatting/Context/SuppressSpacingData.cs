@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Formatting
@@ -10,13 +9,11 @@ namespace Microsoft.CodeAnalysis.Formatting
     /// </summary>
     internal class SuppressSpacingData
     {
-        public SuppressSpacingData(TextSpan textSpan, bool noSpacing)
+        public SuppressSpacingData(TextSpan textSpan)
         {
             this.TextSpan = textSpan;
-            this.NoSpacing = noSpacing;
         }
 
         public TextSpan TextSpan { get; }
-        public bool NoSpacing { get; }
     }
 }

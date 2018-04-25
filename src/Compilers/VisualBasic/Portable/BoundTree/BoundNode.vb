@@ -6,10 +6,9 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
     Partial Friend MustInherit Class BoundNode
-
         Private ReadOnly _kind As BoundKind
         Private _attributes As BoundNodeAttributes
-        Private ReadOnly _syntax As VisualBasicSyntaxNode
+        Private ReadOnly _syntax As SyntaxNode
 
         <Flags()>
         Private Enum BoundNodeAttributes As Byte
@@ -24,18 +23,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 #End If
         End Enum
 
-        Public Sub New(kind As BoundKind, syntax As VisualBasicSyntaxNode)
+        Public Sub New(kind As BoundKind, syntax As SyntaxNode)
             ValidateLocationInformation(kind, syntax)
 
             _kind = kind
             _syntax = syntax
         End Sub
 
-        Public Sub New(kind As BoundKind, syntax As VisualBasicSyntaxNode, hasErrors As Boolean)
+        Public Sub New(kind As BoundKind, syntax As SyntaxNode, hasErrors As Boolean)
             MyClass.New(kind, syntax)
 
             If hasErrors Then
                 _attributes = BoundNodeAttributes.HasErrors
+            End If
+        End Sub
+
+        Protected Sub CopyAttributes(node As BoundNode)
+            If node.WasCompilerGenerated Then
+                Me.SetWasCompilerGenerated()
             End If
         End Sub
 
@@ -82,7 +87,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
-        Public ReadOnly Property Syntax As VisualBasicSyntaxNode
+        Public ReadOnly Property Syntax As SyntaxNode
             Get
                 Return _syntax
             End Get
@@ -94,7 +99,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Get
         End Property
 
-        Public Overridable Function Accept(visitor As BoundTreeVisitor) As BoundNode
+        Public Overridable Overloads Function Accept(visitor As BoundTreeVisitor) As BoundNode
             Throw ExceptionUtilities.Unreachable
         End Function
 

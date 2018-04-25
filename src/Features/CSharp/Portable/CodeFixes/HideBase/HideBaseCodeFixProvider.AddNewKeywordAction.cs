@@ -2,8 +2,7 @@
 
 using System.Threading.Tasks;
 using System.Threading;
-using Microsoft.CodeAnalysis.Formatting;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Editing;
 
 namespace Microsoft.CodeAnalysis.CSharp.CodeFixes.HideBase
 {
@@ -11,16 +10,10 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeFixes.HideBase
     {
         private class AddNewKeywordAction : CodeActions.CodeAction
         {
-            private Document _document;
-            private SyntaxNode _node;
+            private readonly Document _document;
+            private readonly SyntaxNode _node;
 
-            public override string Title
-            {
-                get
-                {
-                    return CSharpFeaturesResources.HideBase;
-                }
-            }
+            public override string Title => CSharpFeaturesResources.Hide_base_member;
 
             public AddNewKeywordAction(Document document, SyntaxNode node)
             {
@@ -32,38 +25,16 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeFixes.HideBase
             {
                 var root = await _document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
-                var newNode = GetNewNode(_document, _node, cancellationToken);
+                var newNode = GetNewNode(_node);
                 var newRoot = root.ReplaceNode(_node, newNode);
 
                 return _document.WithSyntaxRoot(newRoot);
             }
 
-            private SyntaxNode GetNewNode(Document document, SyntaxNode node, CancellationToken cancellationToken)
+            private SyntaxNode GetNewNode(SyntaxNode node)
             {
-                SyntaxNode newNode = null;
-
-                var propertyStatement = node as PropertyDeclarationSyntax;
-                if (propertyStatement != null)
-                {
-                    newNode = propertyStatement.AddModifiers(SyntaxFactory.Token(SyntaxKind.NewKeyword)) as SyntaxNode;
-                }
-
-                var methodStatement = node as MethodDeclarationSyntax;
-                if (methodStatement != null)
-                {
-                    newNode = methodStatement.AddModifiers(SyntaxFactory.Token(SyntaxKind.NewKeyword));
-                }
-
-                var fieldDeclaration = node as FieldDeclarationSyntax;
-                if (fieldDeclaration != null)
-                {
-                    newNode = fieldDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.NewKeyword));
-                }
-
-                //Make sure we preserve any trivia from the original node
-                newNode = newNode.WithTriviaFrom(node);
-
-                return newNode.WithAdditionalAnnotations(Formatter.Annotation);
+                var generator = SyntaxGenerator.GetGenerator(_document);
+                return generator.WithModifiers(node, generator.GetModifiers(node).WithIsNew(true));
             }
         }
     }

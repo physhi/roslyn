@@ -45,27 +45,11 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             }
         }
 
-        internal override ImmutableArray<TypeSymbol> TypeArgumentsNoUseSiteDiagnostics
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
         {
             get
             {
-                return ImmutableArray.Create<TypeSymbol>();
-            }
-        }
-
-        internal override bool HasTypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        internal override ImmutableArray<ImmutableArray<CustomModifier>> TypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return ImmutableArray<ImmutableArray<CustomModifier>>.Empty;
+                return ImmutableArray.Create<TypeWithAnnotations>();
             }
         }
 
@@ -197,6 +181,22 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             }
         }
 
+        public sealed override bool IsRefLikeType
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public sealed override bool IsReadOnly
+        {
+            get
+            {
+                return false;
+            }
+        }
+
         public override bool IsAbstract
         {
             get
@@ -221,12 +221,9 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             }
         }
 
-        internal override NamedTypeSymbol BaseTypeNoUseSiteDiagnostics
-        {
-            get { throw new NotImplementedException(); }
-        }
+        internal override NamedTypeSymbol BaseTypeNoUseSiteDiagnostics => throw new NotImplementedException();
 
-        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<Symbol> basesBeingResolved)
+        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<TypeSymbol> basesBeingResolved)
         {
             throw new NotImplementedException();
         }
@@ -236,23 +233,19 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             throw new NotImplementedException();
         }
 
-        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<Symbol> basesBeingResolved)
+        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<TypeSymbol> basesBeingResolved)
         {
             throw new NotImplementedException();
         }
 
-        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<Symbol> basesBeingResolved)
+        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<TypeSymbol> basesBeingResolved)
         {
             throw new NotImplementedException();
         }
 
-        internal sealed override bool IsManagedType
-        {
-            get
-            {
-                return true;
-            }
-        }
+        internal override bool HasCodeAnalysisEmbeddedAttribute => false;
+
+        internal sealed override ManagedKind ManagedKind => ManagedKind.Managed;
 
         internal override bool ShouldAddWinRTMembers
         {
@@ -287,7 +280,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             get { return DefaultMarshallingCharSet; }
         }
 
-        internal override bool IsSerializable
+        public override bool IsSerializable
         {
             get { return false; }
         }

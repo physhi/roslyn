@@ -3,6 +3,7 @@
 Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.CodeGen
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
@@ -38,7 +39,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Protected MustOverride ReadOnly Property TypeMap As TypeSubstitution
 
-        Friend MustOverride Function FramePointer(syntax As VisualBasicSyntaxNode, frameClass As NamedTypeSymbol) As BoundExpression
+        Friend MustOverride Function FramePointer(syntax As SyntaxNode, frameClass As NamedTypeSymbol) As BoundExpression
 
         ''' <summary>
         ''' The method (e.g. lambda) which is currently being rewritten. If we are 
@@ -117,10 +118,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return node.Update(rewrittenPropertySymbol,
                                Nothing,
                                node.AccessKind,
-                               node.IsWriteable,
-                               rewrittenReceiver,
-                               newArguments.AsImmutableOrNull,
-                               VisitType(node.Type))
+                               isWriteable:=node.IsWriteable,
+                               isLValue:=node.IsLValue,
+                               receiverOpt:=rewrittenReceiver,
+                               arguments:=newArguments.AsImmutableOrNull,
+                               defaultArguments:=node.DefaultArguments,
+                               type:=VisitType(node.Type))
         End Function
 
         Public Overrides Function VisitCall(node As BoundCall) As BoundNode
@@ -139,9 +142,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                Nothing,
                                rewrittenReceiverOpt,
                                arguments,
+                               node.DefaultArguments,
                                node.ConstantValueOpt,
-                               node.SuppressObjectClone,
-                               type)
+                               isLValue:=node.IsLValue,
+                               suppressObjectClone:=node.SuppressObjectClone,
+                               type:=type)
         End Function
 
         Private Function ShouldRewriteMethodSymbol(originalReceiver As BoundExpression, rewrittenReceiverOpt As BoundExpression, newMethod As MethodSymbol) As Boolean
@@ -233,6 +238,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     rewritten = node.Update(
                         newConstructor,
                         rewritten.Arguments,
+                        rewritten.DefaultArguments,
                         rewritten.InitializerOpt,
                         rewritten.Type)
                 End If
@@ -341,7 +347,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each v In node.Locals
                 If Me.PreserveOriginalLocals OrElse Not Me.Proxies.ContainsKey(v) Then
                     Dim vType = VisitType(v.Type)
-                    If vType = v.Type Then
+                    If TypeSymbol.Equals(vType, v.Type, TypeCompareKind.ConsiderEverything) Then
 
                         Dim replacement As LocalSymbol = Nothing
                         Dim wasReplaced As Boolean = False
@@ -420,7 +426,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return RewriteBlock(node, prologue, newLocals)
         End Function
 
-        Protected Function CreateReplacementLocalOrReturnSelf(
+        Protected Shared Function CreateReplacementLocalOrReturnSelf(
             originalLocal As LocalSymbol,
             newType As TypeSymbol,
             Optional onlyReplaceIfFunctionValue As Boolean = False,
@@ -454,7 +460,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             For Each v In origLocals
                 If Not Me.Proxies.ContainsKey(v) Then
                     Dim vType = VisitType(v.Type)
-                    If vType = v.Type Then
+                    If TypeSymbol.Equals(vType, v.Type, TypeCompareKind.ConsiderEverything) Then
                         newLocals.Add(v)
                     Else
                         Dim replacement = CreateReplacementLocalOrReturnSelf(v, vType)

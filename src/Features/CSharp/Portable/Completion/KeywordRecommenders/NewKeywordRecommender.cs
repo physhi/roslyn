@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -50,7 +50,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
         protected override bool IsValidContext(int position, CSharpSyntaxContext context, CancellationToken cancellationToken)
         {
             return
-                IsNewConstraintContext(context, cancellationToken) ||
+                IsNewConstraintContext(context) ||
                 context.IsAnyExpressionContext ||
                 context.IsStatementContext ||
                 context.IsGlobalStatementContext ||
@@ -83,15 +83,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.KeywordRecommenders
                     cancellationToken: cancellationToken);
         }
 
-        private static bool IsNewConstraintContext(CSharpSyntaxContext context, CancellationToken cancellationToken)
+        private static bool IsNewConstraintContext(CSharpSyntaxContext context)
         {
             // cases:
             //    where T : |
             //    where T : class, |
-            //    where T : Foo, |
+            //    where T : Goo, |
             // note: 'new()' can't come after a 'struct' constraint.
 
-            if (context.SyntaxTree.IsTypeParameterConstraintStartContext(context.Position, context.LeftToken, cancellationToken))
+            if (context.SyntaxTree.IsTypeParameterConstraintStartContext(context.Position, context.LeftToken))
             {
                 return true;
             }

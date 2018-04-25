@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslyn.Utilities;
+using System;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -18,14 +19,14 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// This is a clone of the Dev10 logic for reporting query errors.
         /// </summary>
         internal void ReportQueryLookupFailed(
-            CSharpSyntaxNode queryClause,
+            SyntaxNode queryClause,
             BoundExpression instanceArgument,
             string name,
             ImmutableArray<Symbol> symbols,
             DiagnosticBag diagnostics)
         {
             FromClauseSyntax fromClause = null;
-            for (CSharpSyntaxNode node = queryClause; ; node = node.Parent)
+            for (SyntaxNode node = queryClause; ; node = node.Parent)
             {
                 var e = node as QueryExpressionSyntax;
                 if (e != null)
@@ -41,7 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 // CS1979: Query expressions over source type 'dynamic' or with a join sequence of type 'dynamic' are not allowed
                 diagnostics.Add(
-                    new DiagnosticInfoWithSymbols(ErrorCode.ERR_BadDynamicQuery, SpecializedCollections.EmptyObjects, symbols),
+                    new DiagnosticInfoWithSymbols(ErrorCode.ERR_BadDynamicQuery, Array.Empty<object>(), symbols),
                     new SourceLocation(queryClause));
             }
             else if (ImplementsStandardQueryInterface(instanceArgument.Type, name, ref useSiteDiagnostics))
@@ -83,8 +84,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             var originalType = instanceType.OriginalDefinition;
             var ienumerable_t = Compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T);
             var iqueryable_t = Compilation.GetWellKnownType(WellKnownType.System_Linq_IQueryable_T);
-            bool isIenumerable = originalType == ienumerable_t || HasUniqueInterface(instanceType, ienumerable_t, ref nonUnique, ref useSiteDiagnostics);
-            bool isQueryable = originalType == iqueryable_t || HasUniqueInterface(instanceType, iqueryable_t, ref nonUnique, ref useSiteDiagnostics);
+            bool isIenumerable = TypeSymbol.Equals(originalType, ienumerable_t, TypeCompareKind.ConsiderEverything2) || HasUniqueInterface(instanceType, ienumerable_t, ref nonUnique, ref useSiteDiagnostics);
+            bool isQueryable = TypeSymbol.Equals(originalType, iqueryable_t, TypeCompareKind.ConsiderEverything2) || HasUniqueInterface(instanceType, iqueryable_t, ref nonUnique, ref useSiteDiagnostics);
             return isIenumerable != isQueryable && !nonUnique;
         }
 
@@ -99,13 +100,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             TypeSymbol candidate = null;
             foreach (var i in instanceType.AllInterfacesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics))
             {
-                if (i.OriginalDefinition == interfaceType)
+                if (TypeSymbol.Equals(i.OriginalDefinition, interfaceType, TypeCompareKind.ConsiderEverything2))
                 {
                     if ((object)candidate == null)
                     {
                         candidate = i;
                     }
-                    else if (candidate != i)
+                    else if (!TypeSymbol.Equals(candidate, i, TypeCompareKind.ConsiderEverything2))
                     {
                         nonUnique = true;
                         return false; // not unique
@@ -121,8 +122,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             var originalType = instanceType.OriginalDefinition;
             var ienumerable = Compilation.GetSpecialType(SpecialType.System_Collections_IEnumerable);
             var iqueryable = Compilation.GetWellKnownType(WellKnownType.System_Linq_IQueryable);
-            bool isIenumerable = originalType == ienumerable || HasUniqueInterface(instanceType, ienumerable, ref useSiteDiagnostics);
-            bool isQueryable = originalType == iqueryable || HasUniqueInterface(instanceType, iqueryable, ref useSiteDiagnostics);
+            bool isIenumerable = TypeSymbol.Equals(originalType, ienumerable, TypeCompareKind.ConsiderEverything2) || HasUniqueInterface(instanceType, ienumerable, ref useSiteDiagnostics);
+            bool isQueryable = TypeSymbol.Equals(originalType, iqueryable, TypeCompareKind.ConsiderEverything2) || HasUniqueInterface(instanceType, iqueryable, ref useSiteDiagnostics);
             return isIenumerable != isQueryable;
         }
 
@@ -132,7 +133,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 if (parent.Kind() == SyntaxKind.JoinClause)
                 {
-                    var join = parent as JoinClauseSyntax;
+                    var join = (JoinClauseSyntax)parent;
                     if (join.LeftExpression.Span.Contains(node.Span) && join.Identifier.ValueText == node.Identifier.ValueText) return true;
                 }
             }
@@ -148,7 +149,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 if (parent.Kind() == SyntaxKind.JoinClause)
                 {
-                    var join = parent as JoinClauseSyntax;
+                    var join = (JoinClauseSyntax)parent;
                     if (join.RightExpression.Span.Contains(node.Span)) return true;
                 }
             }

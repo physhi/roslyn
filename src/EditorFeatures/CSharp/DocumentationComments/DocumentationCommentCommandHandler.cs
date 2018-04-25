@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
@@ -6,19 +6,22 @@ using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editor.Host;
 using Microsoft.CodeAnalysis.Editor.Implementation.DocumentationComments;
 using Microsoft.CodeAnalysis.Shared.Extensions;
-using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Commanding;
+using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
 {
-    [ExportCommandHandler(PredefinedCommandHandlerNames.DocumentationComments, ContentTypeNames.CSharpContentType)]
+    [Export(typeof(ICommandHandler))]
+    [ContentType(ContentTypeNames.CSharpContentType)]
+    [Name(PredefinedCommandHandlerNames.DocumentationComments)]
     [Order(After = PredefinedCommandHandlerNames.Rename)]
+    [Order(After = PredefinedCompletionNames.CompletionCommandHandler)]
     internal class DocumentationCommentCommandHandler
         : AbstractDocumentationCommentCommandHandler<DocumentationCommentTriviaSyntax, MemberDeclarationSyntax>
     {
@@ -26,16 +29,12 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
         public DocumentationCommentCommandHandler(
             IWaitIndicator waitIndicator,
             ITextUndoHistoryRegistry undoHistoryRegistry,
-            IEditorOperationsFactoryService editorOperationsFactoryService,
-            IAsyncCompletionService completionService) :
-            base(waitIndicator, undoHistoryRegistry, editorOperationsFactoryService, completionService)
+            IEditorOperationsFactoryService editorOperationsFactoryService)
+            : base(waitIndicator, undoHistoryRegistry, editorOperationsFactoryService)
         {
         }
 
-        protected override string ExteriorTriviaText
-        {
-            get { return "///"; }
-        }
+        protected override string ExteriorTriviaText => "///";
 
         protected override MemberDeclarationSyntax GetContainingMember(
             SyntaxTree syntaxTree, int position, CancellationToken cancellationToken)
@@ -102,11 +101,12 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
 
         protected override List<string> GetDocumentationCommentStubLines(MemberDeclarationSyntax member)
         {
-            var list = new List<string>();
-
-            list.Add("/// <summary>");
-            list.Add("/// ");
-            list.Add("/// </summary>");
+            var list = new List<string>
+            {
+                "/// <summary>",
+                "/// ",
+                "/// </summary>"
+            };
 
             var typeParameterList = member.GetTypeParameterList();
             if (typeParameterList != null)
@@ -147,7 +147,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
         {
             if (position >= syntaxTree.GetText(cancellationToken).Length)
             {
-                return default(SyntaxToken);
+                return default;
             }
 
             return syntaxTree.GetRoot(cancellationToken).FindTokenOnRightOfPosition(
@@ -159,11 +159,11 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
         {
             if (position < 1)
             {
-                return default(SyntaxToken);
+                return default;
             }
 
             return syntaxTree.GetRoot(cancellationToken).FindTokenOnLeftOfPosition(
-                position - 1, includeDirectives: true, includeDocumentationComments: true);
+                position - 1, includeDirectives: true, includeDocumentationComments: true, includeSkipped: true);
         }
 
         protected override bool IsDocCommentNewLine(SyntaxToken token)
@@ -193,8 +193,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
                 return false;
             }
 
-            var xmlText = documentationComment.Content[0] as XmlTextSyntax;
-            if (xmlText == null)
+            if (!(documentationComment.Content[0] is XmlTextSyntax xmlText))
             {
                 return false;
             }
@@ -257,8 +256,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
                 return false;
             }
 
-            var xmlText = documentationComment.Content.LastOrDefault() as XmlTextSyntax;
-            if (xmlText == null)
+            if (!(documentationComment.Content.LastOrDefault() is XmlTextSyntax xmlText))
             {
                 return false;
             }
@@ -289,5 +287,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.DocumentationComments
         {
             get { return true; }
         }
+
+        internal override bool HasSkippedTrailingTrivia(SyntaxToken token) => token.TrailingTrivia.Any(t => t.Kind() == SyntaxKind.SkippedTokensTrivia);
     }
 }

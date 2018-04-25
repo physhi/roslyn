@@ -3,7 +3,7 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
-using Microsoft.VisualStudio.LanguageServices.Implementation.Venus;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectBrowser
@@ -49,22 +49,22 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
 
         public static string GetProjectDisplayName(this Project project)
         {
-            var workspace = project.Solution.Workspace as VisualStudioWorkspaceImpl;
-            if (workspace != null)
+            if (project.Solution.Workspace is VisualStudioWorkspaceImpl workspace)
             {
                 var hierarchy = workspace.GetHierarchy(project.Id);
                 if (hierarchy != null)
                 {
-                    var solution = workspace.GetVsService<SVsSolution, IVsSolution3>();
+                    var solution = (IVsSolution3)ServiceProvider.GlobalProvider.GetService(typeof(SVsSolution));
                     if (solution != null)
                     {
-                        string name;
-                        if (ErrorHandler.Succeeded(solution.GetUniqueUINameOfProject(hierarchy, out name)) && name != null)
+                        if (ErrorHandler.Succeeded(solution.GetUniqueUINameOfProject(hierarchy, out var name)) && name != null)
                         {
                             return name;
                         }
                     }
                 }
+
+                return project.Name;
             }
 
             return project.Name;
@@ -72,15 +72,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
 
         public static bool IsVenus(this Project project)
         {
-            var workspace = project.Solution.Workspace as VisualStudioWorkspaceImpl;
-            if (workspace == null)
+            if (!(project.Solution.Workspace is VisualStudioWorkspaceImpl workspace))
             {
                 return false;
             }
 
             foreach (var documentId in project.DocumentIds)
             {
-                if (workspace.GetHostDocument(documentId) is ContainedDocument)
+                if (workspace.TryGetContainedDocument(documentId) != null)
                 {
                     return true;
                 }
@@ -97,8 +96,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
         {
             var result = project.Name;
 
-            var workspace = project.Solution.Workspace as VisualStudioWorkspace;
-            if (workspace == null)
+            if (!(project.Solution.Workspace is VisualStudioWorkspace workspace))
             {
                 return result;
             }
@@ -114,15 +112,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
                 return result;
             }
 
-            IVsHierarchy parentHierarchy;
-            if (hierarchy.TryGetParentHierarchy(out parentHierarchy) && !(parentHierarchy is IVsSolution))
+            if (hierarchy.TryGetParentHierarchy(out var parentHierarchy) && !(parentHierarchy is IVsSolution))
             {
                 var builder = new StringBuilder(result);
 
                 while (parentHierarchy != null && !(parentHierarchy is IVsSolution))
                 {
-                    string parentName;
-                    if (parentHierarchy.TryGetName(out parentName))
+                    if (parentHierarchy.TryGetName(out var parentName))
                     {
                         builder.Insert(0, parentName + "\\");
                     }

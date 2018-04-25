@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.Extensions;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -39,28 +40,23 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
 
         private IEnumerable<Lazy<CodeRefactoringProvider, OrderableLanguageMetadata>> DistributeLanguages(IEnumerable<Lazy<CodeRefactoringProvider, CodeChangeProviderMetadata>> providers)
         {
-            foreach (Lazy<CodeRefactoringProvider, CodeChangeProviderMetadata> provider in providers)
+            foreach (var provider in providers)
             {
-                foreach (string language in provider.Metadata.Languages)
+                foreach (var language in provider.Metadata.Languages)
                 {
-                    OrderableLanguageMetadata orderable = new OrderableLanguageMetadata(null, language);
+                    var orderable = new OrderableLanguageMetadata(
+                        provider.Metadata.Name, language, provider.Metadata.AfterTyped, provider.Metadata.BeforeTyped);
                     yield return new Lazy<CodeRefactoringProvider, OrderableLanguageMetadata>(() => provider.Value, orderable);
                 }
             }
         }
 
         private ImmutableDictionary<string, Lazy<IEnumerable<CodeRefactoringProvider>>> LanguageToProvidersMap
-        {
-            get
-            {
-                return _lazyLanguageToProvidersMap.Value;
-            }
-        }
+            => _lazyLanguageToProvidersMap.Value;
 
         private IEnumerable<CodeRefactoringProvider> GetProviders(Document document)
         {
-            Lazy<IEnumerable<CodeRefactoringProvider>> lazyProviders;
-            if (this.LanguageToProvidersMap.TryGetValue(document.Project.Language, out lazyProviders))
+            if (LanguageToProvidersMap.TryGetValue(document.Project.Language, out var lazyProviders))
             {
                 return lazyProviders.Value;
             }
@@ -77,12 +73,12 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
         {
             var extensionManager = document.Project.Solution.Workspace.Services.GetService<IExtensionManager>();
 
-            foreach (var provider in this.GetProviders(document))
+            foreach (var provider in GetProviders(document))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var refactoring = await GetRefactoringFromProviderAsync(
-                    document, state, provider, extensionManager, cancellationToken).ConfigureAwait(false);
+                    document, state, provider, extensionManager, isBlocking: false, cancellationToken).ConfigureAwait(false);
 
                 if (refactoring != null)
                 {
@@ -93,9 +89,18 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
             return false;
         }
 
-        public async Task<IEnumerable<CodeRefactoring>> GetRefactoringsAsync(
+        public Task<ImmutableArray<CodeRefactoring>> GetRefactoringsAsync(
             Document document,
             TextSpan state,
+            CancellationToken cancellationToken)
+        {
+            return ((ICodeRefactoringService)this).GetRefactoringsAsync(document, state, isBlocking: false, cancellationToken);
+        }
+
+        async Task<ImmutableArray<CodeRefactoring>> ICodeRefactoringService.GetRefactoringsAsync(
+            Document document,
+            TextSpan state,
+            bool isBlocking,
             CancellationToken cancellationToken)
         {
             using (Logger.LogBlock(FunctionId.Refactoring_CodeRefactoringService_GetRefactoringsAsync, cancellationToken))
@@ -103,14 +108,14 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
                 var extensionManager = document.Project.Solution.Workspace.Services.GetService<IExtensionManager>();
                 var tasks = new List<Task<CodeRefactoring>>();
 
-                foreach (var provider in this.GetProviders(document))
+                foreach (var provider in GetProviders(document))
                 {
                     tasks.Add(Task.Run(
-                        async () => await GetRefactoringFromProviderAsync(document, state, provider, extensionManager, cancellationToken).ConfigureAwait(false), cancellationToken));
+                        () => GetRefactoringFromProviderAsync(document, state, provider, extensionManager, isBlocking, cancellationToken), cancellationToken));
                 }
 
                 var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-                return results.WhereNotNull();
+                return results.WhereNotNull().ToImmutableArray();
             }
         }
 
@@ -119,6 +124,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
             TextSpan state,
             CodeRefactoringProvider provider,
             IExtensionManager extensionManager,
+            bool isBlocking,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -129,26 +135,31 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
 
             try
             {
-                var actions = new List<CodeAction>();
+                var actions = ArrayBuilder<(CodeAction action, TextSpan? applicableToSpan)>.GetInstance();
                 var context = new CodeRefactoringContext(document, state,
 
                     // TODO: Can we share code between similar lambdas that we pass to this API in BatchFixAllProvider.cs, CodeFixService.cs and CodeRefactoringService.cs?
-                    (a) =>
+                    (action, applicableToSpan) =>
                     {
                         // Serialize access for thread safety - we don't know what thread the refactoring provider will call this delegate from.
                         lock (actions)
                         {
-                            actions.Add(a);
+                            actions.Add((action, applicableToSpan));
                         }
                     },
+                    isBlocking,
                     cancellationToken);
 
-                var task = provider.ComputeRefactoringsAsync(context) ?? SpecializedTasks.EmptyTask;
+                var task = provider.ComputeRefactoringsAsync(context) ?? Task.CompletedTask;
                 await task.ConfigureAwait(false);
-                if (actions.Count > 0)
-                {
-                    return new CodeRefactoring(provider, actions);
-                }
+
+                var result = actions.Count > 0
+                    ? new CodeRefactoring(provider, actions.ToImmutable())
+                    : null;
+
+                actions.Free();
+
+                return result;
             }
             catch (OperationCanceledException)
             {

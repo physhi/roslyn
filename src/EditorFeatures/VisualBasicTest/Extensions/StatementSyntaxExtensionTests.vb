@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Microsoft.CodeAnalysis.VisualBasic.Extensions
@@ -156,7 +156,7 @@ End Property</String>.Value
 
         <Fact>
         Public Sub SubBlockWithPublicModifier()
-            Dim code = <String>Sub Foo
+            Dim code = <String>Sub Goo
 End Sub</String>.Value
             Dim node = SyntaxFactory.ParseCompilationUnit(code).DescendantNodes.OfType(Of MethodBlockSyntax).First()
             TestStatementDeclarationWithPublicModifier(node)
@@ -205,7 +205,7 @@ End Class</String>.Value
             VerifyTokenName(Of SubNewStatementSyntax)(code, "")
         End Sub
 
-        <Fact, WorkItem(552823)>
+        <Fact, WorkItem(552823, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/552823")>
         Public Sub TestIsInStatementBlockOfKindForBrokenCode()
             Dim code = <String>End Sub
 End Module

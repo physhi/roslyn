@@ -27,7 +27,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
             var declaration = GenerateNamespaceDeclaration(service, @namespace, options, cancellationToken);
             if (!(declaration is NamespaceDeclarationSyntax))
             {
-                throw new ArgumentException(CSharpWorkspaceResources.NamespaceCanNotBeAddedIn);
+                throw new ArgumentException(CSharpWorkspaceResources.Namespace_can_not_be_added_in_this_destination);
             }
 
             var members = Insert(destination.Members, (NamespaceDeclarationSyntax)declaration, options, availableIndices);
@@ -45,7 +45,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
             var declaration = GenerateNamespaceDeclaration(service, @namespace, options, cancellationToken);
             if (!(declaration is NamespaceDeclarationSyntax))
             {
-                throw new ArgumentException(CSharpWorkspaceResources.NamespaceCanNotBeAddedIn);
+                throw new ArgumentException(CSharpWorkspaceResources.Namespace_can_not_be_added_in_this_destination);
             }
 
             var members = Insert(destination.Members, (NamespaceDeclarationSyntax)declaration, options, availableIndices);
@@ -58,11 +58,8 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
             CodeGenerationOptions options,
             CancellationToken cancellationToken)
         {
-            options = options ?? CodeGenerationOptions.Default;
-
-            string name;
-            INamespaceSymbol innermostNamespace;
-            GetNameAndInnermostNamespace(@namespace, options, out name, out innermostNamespace);
+            options ??= CodeGenerationOptions.Default;
+            GetNameAndInnermostNamespace(@namespace, options, out var name, out var innermostNamespace);
 
             var declaration = GetDeclarationSyntaxWithoutMembers(@namespace, innermostNamespace, name, options);
 
@@ -70,7 +67,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
                     ? service.AddMembers(declaration, innermostNamespace.GetMembers(), options, cancellationToken)
                     : declaration;
 
-            return AddCleanupAnnotationsTo(declaration);
+            return AddFormatterAndCodeGeneratorAnnotationsTo(declaration);
         }
 
         public static SyntaxNode UpdateCompilationUnitOrNamespaceDeclaration(
@@ -82,7 +79,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
         {
             declaration = RemoveAllMembers(declaration);
             declaration = service.AddMembers(declaration, newMembers, options, cancellationToken);
-            return AddCleanupAnnotationsTo(declaration);
+            return AddFormatterAndCodeGeneratorAnnotationsTo(declaration);
         }
 
         private static SyntaxNode GenerateNamespaceDeclarationWorker(
@@ -115,19 +112,12 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
         }
 
         private static SyntaxNode RemoveAllMembers(SyntaxNode declaration)
-        {
-            switch (declaration.Kind())
+            => declaration.Kind() switch
             {
-                case SyntaxKind.CompilationUnit:
-                    return ((CompilationUnitSyntax)declaration).WithMembers(default(SyntaxList<MemberDeclarationSyntax>));
-
-                case SyntaxKind.NamespaceDeclaration:
-                    return ((NamespaceDeclarationSyntax)declaration).WithMembers(default(SyntaxList<MemberDeclarationSyntax>));
-
-                default:
-                    return declaration;
-            }
-        }
+                SyntaxKind.CompilationUnit => ((CompilationUnitSyntax)declaration).WithMembers(default),
+                SyntaxKind.NamespaceDeclaration => ((NamespaceDeclarationSyntax)declaration).WithMembers(default),
+                _ => declaration,
+            };
 
         private static SyntaxList<UsingDirectiveSyntax> GenerateUsingDirectives(INamespaceSymbol innermostNamespace)
         {
@@ -142,9 +132,8 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
 
         private static UsingDirectiveSyntax GenerateUsingDirective(ISymbol symbol)
         {
-            if (symbol is IAliasSymbol)
+            if (symbol is IAliasSymbol alias)
             {
-                var alias = (IAliasSymbol)symbol;
                 var name = GenerateName(alias.Target);
                 if (name != null)
                 {
@@ -153,9 +142,9 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
                         name);
                 }
             }
-            else if (symbol is INamespaceOrTypeSymbol)
+            else if (symbol is INamespaceOrTypeSymbol namespaceOrType)
             {
-                var name = GenerateName((INamespaceOrTypeSymbol)symbol);
+                var name = GenerateName(namespaceOrType);
                 if (name != null)
                 {
                     return SyntaxFactory.UsingDirective(name);
@@ -167,9 +156,9 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGeneration
 
         private static NameSyntax GenerateName(INamespaceOrTypeSymbol symbol)
         {
-            if (symbol is ITypeSymbol)
+            if (symbol is ITypeSymbol type)
             {
-                return ((ITypeSymbol)symbol).GenerateTypeSyntax() as NameSyntax;
+                return type.GenerateTypeSyntax() as NameSyntax;
             }
             else
             {

@@ -2,13 +2,14 @@
 
 using System;
 using System.Threading;
-using Microsoft.CodeAnalysis.Editor.Commands;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Options;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
@@ -20,13 +21,12 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
             return nextHandler();
         }
 
-        public void ExecuteCommand(PasteCommandArgs args, Action nextHandler)
+        public void ExecuteCommand(PasteCommandArgs args, Action nextHandler, CommandExecutionContext context)
         {
-            _waitIndicator.Wait(
-                title: EditorFeaturesResources.FormatPaste,
-                message: EditorFeaturesResources.FormattingPastedText,
-                allowCancel: true,
-                action: c => ExecuteCommandWorker(args, nextHandler, c.CancellationToken));
+            using (context.OperationContext.AddScope(allowCancellation: true, EditorFeaturesResources.Formatting_pasted_text))
+            {
+                ExecuteCommandWorker(args, nextHandler, context.OperationContext.UserCancellationToken);
+            }
         }
 
         private void ExecuteCommandWorker(PasteCommandArgs args, Action nextHandler, CancellationToken cancellationToken)
@@ -40,7 +40,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
                 return;
             }
 
-            if (!args.SubjectBuffer.GetOption(FeatureOnOffOptions.FormatOnPaste) ||
+            if (!args.SubjectBuffer.GetFeatureOnOffOption(FeatureOnOffOptions.FormatOnPaste) ||
                 !caretPosition.HasValue)
             {
                 return;

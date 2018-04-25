@@ -5,6 +5,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -24,8 +25,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             SyntaxToken token2,
             string originalString,
             int lineBreaks,
-            int spaces) :
-            base(context, formattingRules, token1, token2, originalString, lineBreaks, spaces)
+            int spaces)
+            : base(context, formattingRules, token1, token2, originalString, lineBreaks, spaces)
         {
         }
 
@@ -61,7 +62,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 
         protected override SyntaxTrivia CreateEndOfLine()
         {
-            if (_newLine == default(SyntaxTrivia))
+            if (_newLine == default)
             {
                 var text = this.Context.OptionSet.GetOption(FormattingOptions.NewLine, LanguageNames.CSharp);
                 _newLine = SyntaxFactory.EndOfLine(text);
@@ -125,8 +126,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             // comments case
             if (trivia2.IsRegularOrDocComment())
             {
-                // start of new comments group
-                if (!trivia1.IsRegularComment() || existingWhitespaceBetween.Lines > 1)
+                // Start of new comments group.
+                //
+                // 1. Comment groups must contain the same kind of comments
+                // 2. Every block comment is a group of its own
+                if (!trivia1.IsKind(trivia2.Kind()) || trivia2.IsMultiLineComment() || trivia2.IsMultiLineDocComment() || existingWhitespaceBetween.Lines > 1)
                 {
                     if (this.FormattingRules.GetAdjustNewLinesOperation(this.Token1, this.Token2) != null)
                     {
@@ -180,7 +184,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 
         private bool TryFormatMultiLineCommentTrivia(LineColumn lineColumn, SyntaxTrivia trivia, out SyntaxTrivia result)
         {
-            result = default(SyntaxTrivia);
+            result = default;
 
             if (trivia.Kind() != SyntaxKind.MultiLineCommentTrivia)
             {
@@ -218,8 +222,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 return FormatStructuredTrivia(lineColumn, trivia, changes, cancellationToken);
             }
 
-            var newComment = default(SyntaxTrivia);
-            if (TryFormatMultiLineCommentTrivia(lineColumn, trivia, out newComment))
+            if (TryFormatMultiLineCommentTrivia(lineColumn, trivia, out var newComment))
             {
                 changes.Add(newComment);
                 return GetLineColumnDelta(lineColumn, newComment);
@@ -237,8 +240,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 return FormatStructuredTrivia(lineColumn, trivia, changes, cancellationToken);
             }
 
-            var newComment = default(SyntaxTrivia);
-            if (TryFormatMultiLineCommentTrivia(lineColumn, trivia, out newComment))
+            if (TryFormatMultiLineCommentTrivia(lineColumn, trivia, out var newComment))
             {
                 changes.Add(new TextChange(trivia.FullSpan, newComment.ToFullString()));
                 return GetLineColumnDelta(lineColumn, newComment);

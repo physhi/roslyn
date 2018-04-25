@@ -2,10 +2,10 @@
 
 Imports System.Collections.Immutable
 Imports System.Reflection.Metadata
-Imports System.Reflection.Metadata.Ecma335
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Emit
+Imports Microsoft.CodeAnalysis.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
@@ -16,28 +16,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
     ''' one assembly has changed between the two compilations.
     ''' </summary>
     Friend NotInheritable Class VisualBasicDefinitionMap
-        Inherits DefinitionMap(Of VisualBasicSymbolMatcher)
+        Inherits DefinitionMap
 
         Private ReadOnly _metadataDecoder As MetadataDecoder
 
-        Public Sub New([module] As PEModule,
-                       edits As IEnumerable(Of SemanticEdit),
+        Public Sub New(edits As IEnumerable(Of SemanticEdit),
                        metadataDecoder As MetadataDecoder,
                        mapToMetadata As VisualBasicSymbolMatcher,
                        mapToPrevious As VisualBasicSymbolMatcher)
 
-            MyBase.New([module], edits, mapToMetadata, mapToPrevious)
+            MyBase.New(edits, mapToMetadata, mapToPrevious)
 
             Debug.Assert(metadataDecoder IsNot Nothing)
-            Me._metadataDecoder = metadataDecoder
+            _metadataDecoder = metadataDecoder
         End Sub
 
-        Friend Function TryGetAnonymousTypeName(template As NamedTypeSymbol, <Out> ByRef name As String, <Out> ByRef index As Integer) As Boolean
-            Return Me.mapToPrevious.TryGetAnonymousTypeName(template, name, index)
+        Friend Overrides ReadOnly Property MessageProvider As CommonMessageProvider
+            Get
+                Return VisualBasic.MessageProvider.Instance
+            End Get
+        End Property
+
+        Protected Overrides Function GetLambdaSyntaxFacts() As LambdaSyntaxFacts
+            Return VisualBasicLambdaSyntaxFacts.Instance
+        End Function
+
+        Friend Function TryGetAnonymousTypeName(template As IAnonymousTypeTemplateSymbolInternal, <Out> ByRef name As String, <Out> ByRef index As Integer) As Boolean
+            Return mapToPrevious.TryGetAnonymousTypeName(template, name, index)
         End Function
 
         Friend Overrides Function TryGetTypeHandle(def As Cci.ITypeDefinition, <Out> ByRef handle As TypeDefinitionHandle) As Boolean
-            Dim other = TryCast(Me.mapToMetadata.MapDefinition(def), PENamedTypeSymbol)
+            Dim other = TryCast(mapToMetadata.MapDefinition(def), PENamedTypeSymbol)
             If other IsNot Nothing Then
                 handle = other.Handle
                 Return True
@@ -48,7 +57,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Function
 
         Friend Overrides Function TryGetEventHandle(def As Cci.IEventDefinition, <Out> ByRef handle As EventDefinitionHandle) As Boolean
-            Dim other = TryCast(Me.mapToMetadata.MapDefinition(def), PEEventSymbol)
+            Dim other = TryCast(mapToMetadata.MapDefinition(def), PEEventSymbol)
             If other IsNot Nothing Then
                 handle = other.Handle
                 Return True
@@ -59,7 +68,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Function
 
         Friend Overrides Function TryGetFieldHandle(def As Cci.IFieldDefinition, <Out> ByRef handle As FieldDefinitionHandle) As Boolean
-            Dim other = TryCast(Me.mapToMetadata.MapDefinition(def), PEFieldSymbol)
+            Dim other = TryCast(mapToMetadata.MapDefinition(def), PEFieldSymbol)
             If other IsNot Nothing Then
                 handle = other.Handle
                 Return True
@@ -70,7 +79,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Function
 
         Friend Overrides Function TryGetMethodHandle(def As Cci.IMethodDefinition, <Out> ByRef handle As MethodDefinitionHandle) As Boolean
-            Dim other = TryCast(Me.mapToMetadata.MapDefinition(def), PEMethodSymbol)
+            Dim other = TryCast(mapToMetadata.MapDefinition(def), PEMethodSymbol)
             If other IsNot Nothing Then
                 handle = other.Handle
                 Return True
@@ -81,7 +90,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         End Function
 
         Friend Overrides Function TryGetPropertyHandle(def As Cci.IPropertyDefinition, <Out> ByRef handle As PropertyDefinitionHandle) As Boolean
-            Dim other = TryCast(Me.mapToMetadata.MapDefinition(def), PEPropertySymbol)
+            Dim other = TryCast(mapToMetadata.MapDefinition(def), PEPropertySymbol)
             If other IsNot Nothing Then
                 handle = other.Handle
                 Return True
@@ -159,14 +168,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             awaiterSlotCount = maxAwaiterSlotIndex + 1
         End Sub
 
-        Protected Overrides Function TryGetLocalSlotMapFromMetadata(handle As MethodDefinitionHandle, debugInfo As EditAndContinueMethodDebugInformation) As ImmutableArray(Of EncLocalInfo)
-            Dim slotMetadata As ImmutableArray(Of LocalInfo(Of TypeSymbol)) = Nothing
-            If Not _metadataDecoder.TryGetLocals(handle, slotMetadata) Then
-                Return Nothing
-            End If
+        Protected Overrides Function GetLocalSlotMapFromMetadata(handle As StandaloneSignatureHandle, debugInfo As EditAndContinueMethodDebugInformation) As ImmutableArray(Of EncLocalInfo)
+            Debug.Assert(Not handle.IsNil)
 
-            Dim result = CreateLocalSlotMap(debugInfo, slotMetadata)
-            Debug.Assert(result.Length = slotMetadata.Length)
+            Dim localInfos = _metadataDecoder.GetLocalsOrThrow(handle)
+            Dim result = CreateLocalSlotMap(debugInfo, localInfos)
+            Debug.Assert(result.Length = localInfos.Length)
             Return result
         End Function
 

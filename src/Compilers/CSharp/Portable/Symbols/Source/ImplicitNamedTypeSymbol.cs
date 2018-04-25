@@ -4,13 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
@@ -48,13 +42,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return NoLocation.Singleton;
         }
 
+        /// <summary>
+        /// Returns null for a submission class.
+        /// This ensures that a submission class does not inherit methods such as ToString or GetHashCode.
+        /// </summary>
         internal override NamedTypeSymbol BaseTypeNoUseSiteDiagnostics
-        {
-            get
-            {
-                return (this.TypeKind == TypeKind.Submission) ? null : this.DeclaringCompilation.GetSpecialType(Microsoft.CodeAnalysis.SpecialType.System_Object);
-            }
-        }
+            => IsScriptClass ? null : this.DeclaringCompilation.GetSpecialType(Microsoft.CodeAnalysis.SpecialType.System_Object);
 
         protected override void CheckBase(DiagnosticBag diagnostics)
         {
@@ -67,17 +60,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<Symbol> basesBeingResolved)
+        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<TypeSymbol> basesBeingResolved)
         {
             return BaseTypeNoUseSiteDiagnostics;
         }
 
-        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<Symbol> basesBeingResolved)
+        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<TypeSymbol> basesBeingResolved)
         {
             return ImmutableArray<NamedTypeSymbol>.Empty;
         }
 
-        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<Symbol> basesBeingResolved)
+        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<TypeSymbol> basesBeingResolved)
         {
             return ImmutableArray<NamedTypeSymbol>.Empty;
         }
@@ -92,25 +85,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return ImmutableArray<TypeParameterSymbol>.Empty; }
         }
 
-        internal override ImmutableArray<TypeSymbol> TypeArgumentsNoUseSiteDiagnostics
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
         {
-            get { return ImmutableArray<TypeSymbol>.Empty; }
-        }
-
-        internal override bool HasTypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        internal override ImmutableArray<ImmutableArray<CustomModifier>> TypeArgumentsCustomModifiers
-        {
-            get
-            {
-                return ImmutableArray<ImmutableArray<CustomModifier>>.Empty;
-            }
+            get { return ImmutableArray<TypeWithAnnotations>.Empty; }
         }
 
         internal override bool IsComImport
@@ -138,7 +115,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return false; }
         }
 
-        internal sealed override bool IsSerializable
+        public sealed override bool IsSerializable
         {
             get { return false; }
         }
@@ -177,5 +154,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get { return null; }
         }
+
+        internal override bool HasCodeAnalysisEmbeddedAttribute => false;
     }
 }

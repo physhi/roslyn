@@ -3,6 +3,7 @@
 Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -233,11 +234,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return ImmutableArray(Of NamedTypeSymbol).Empty
         End Function
 
-        Friend Overrides Function MakeDeclaredBase(basesBeingResolved As ConsList(Of Symbol), diagnostics As DiagnosticBag) As NamedTypeSymbol
+        Friend Overrides Function MakeDeclaredBase(basesBeingResolved As BasesBeingResolved, diagnostics As DiagnosticBag) As NamedTypeSymbol
             Return _containingType.ContainingAssembly.GetSpecialType(Microsoft.CodeAnalysis.SpecialType.System_MulticastDelegate)
         End Function
 
-        Friend Overrides Function MakeDeclaredInterfaces(basesBeingResolved As ConsList(Of Symbol), diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
+        Friend Overrides Function MakeDeclaredInterfaces(basesBeingResolved As BasesBeingResolved, diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
             Return ImmutableArray(Of NamedTypeSymbol).Empty
         End Function
 
@@ -259,7 +260,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Friend Overrides ReadOnly Property HasEmbeddedAttribute As Boolean
+        Friend Overrides ReadOnly Property HasCodeAnalysisEmbeddedAttribute As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property HasVisualBasicEmbeddedAttribute As Boolean
             Get
                 Return False
             End Get
@@ -325,7 +332,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
-        Friend Overrides ReadOnly Property IsSerializable As Boolean
+        Public Overrides ReadOnly Property IsSerializable As Boolean
             Get
                 Return False
             End Get
@@ -431,6 +438,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Return Nothing
             End Get
         End Property
+
+        Friend Overrides Function GetSynthesizedWithEventsOverrides() As IEnumerable(Of PropertySymbol)
+            Return SpecializedCollections.EmptyEnumerable(Of PropertySymbol)()
+        End Function
     End Class
 End Namespace
 

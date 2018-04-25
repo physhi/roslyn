@@ -2,14 +2,11 @@
 
 ////#define TRACKDEPTH
 
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Shared.Extensions;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Shared.Utilities
@@ -94,7 +91,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                     return false;
                 }
 
-                for (int i = 0; i < x.Length; i++)
+                for (var i = 0; i < x.Length; i++)
                 {
                     if (!AreEquivalent(x[i], y[i], equivalentTypesWithDifferingAssemblies))
                     {
@@ -107,7 +104,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             private bool AreEquivalentWorker(ISymbol x, ISymbol y, SymbolKind k, Dictionary<INamedTypeSymbol, INamedTypeSymbol> equivalentTypesWithDifferingAssemblies)
             {
-                Contract.Requires(x.Kind == y.Kind && x.Kind == k);
+                Debug.Assert(x.Kind == y.Kind && x.Kind == k);
                 switch (k)
                 {
                     case SymbolKind.ArrayType:
@@ -214,8 +211,11 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                 }
                 else
                 {
-                    if (x.MethodKind == MethodKind.AnonymousFunction)
+                    if (x.MethodKind == MethodKind.AnonymousFunction ||
+                        x.MethodKind == MethodKind.LocalFunction)
                     {
+                        // Treat local and anonymous functions just like we do ILocalSymbols.  
+                        // They're only equivalent if they have the same location.
                         return HaveSameLocation(x, y);
                     }
 
@@ -268,6 +268,13 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
                 if ((kind1 == MethodKind.Ordinary && kind2.IsPropertyAccessor()) ||
                     (kind1.IsPropertyAccessor() && kind2 == MethodKind.Ordinary))
+                {
+                    return true;
+                }
+
+                // User-defined and Built-in operators are comparable
+                if ((kind1 == MethodKind.BuiltinOperator && kind2 == MethodKind.UserDefinedOperator) ||
+                    (kind1 == MethodKind.UserDefinedOperator && kind2 == MethodKind.BuiltinOperator))
                 {
                     return true;
                 }
@@ -339,6 +346,32 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
             {
                 Debug.Assert(GetTypeKind(x) == GetTypeKind(y));
 
+                if (x.IsTupleType || y.IsTupleType)
+                {
+                    if (x.IsTupleType != y.IsTupleType)
+                    {
+                        return false;
+                    }
+
+                    var xElements = x.TupleElements;
+                    var yElements = y.TupleElements;
+
+                    if (xElements.Length != yElements.Length)
+                    {
+                        return false;
+                    }
+
+                    for (var i = 0; i < xElements.Length; i++)
+                    {
+                        if (!AreEquivalent(xElements[i].Type, yElements[i].Type, equivalentTypesWithDifferingAssemblies))
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+
                 if (x.IsDefinition != y.IsDefinition ||
                     IsConstructedFromSelf(x) != IsConstructedFromSelf(y) ||
                     x.Arity != y.Arity ||
@@ -395,7 +428,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                     return false;
                 }
 
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     if (!_symbolEquivalenceComparer.ParameterEquivalenceComparer.Equals(xParameters[i], yParameters[i], equivalentTypesWithDifferingAssemblies, compareParameterName, isParameterNameCaseSensitive))
                     {
@@ -414,13 +447,13 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             private bool TypeArgumentsAreEquivalent(ImmutableArray<ITypeSymbol> xTypeArguments, ImmutableArray<ITypeSymbol> yTypeArguments, Dictionary<INamedTypeSymbol, INamedTypeSymbol> equivalentTypesWithDifferingAssemblies)
             {
-                int count = xTypeArguments.Length;
+                var count = xTypeArguments.Length;
                 if (yTypeArguments.Length != count)
                 {
                     return false;
                 }
 
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     if (!AreEquivalent(xTypeArguments[i], yTypeArguments[i], equivalentTypesWithDifferingAssemblies))
                     {
@@ -532,11 +565,11 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
 
             private bool TypeParametersAreEquivalent(ITypeParameterSymbol x, ITypeParameterSymbol y, Dictionary<INamedTypeSymbol, INamedTypeSymbol> equivalentTypesWithDifferingAssemblies)
             {
-                Contract.Requires(
+                Debug.Assert(
                     (x.TypeParameterKind == TypeParameterKind.Method && IsConstructedFromSelf(x.DeclaringMethod)) ||
                     (x.TypeParameterKind == TypeParameterKind.Type && IsConstructedFromSelf(x.ContainingType)) ||
                     x.TypeParameterKind == TypeParameterKind.Cref);
-                Contract.Requires(
+                Debug.Assert(
                     (y.TypeParameterKind == TypeParameterKind.Method && IsConstructedFromSelf(y.DeclaringMethod)) ||
                     (y.TypeParameterKind == TypeParameterKind.Type && IsConstructedFromSelf(y.ContainingType)) ||
                     y.TypeParameterKind == TypeParameterKind.Cref);

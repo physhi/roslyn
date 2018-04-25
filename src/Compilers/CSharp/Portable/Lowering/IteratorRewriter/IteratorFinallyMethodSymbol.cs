@@ -29,7 +29,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public IteratorFinallyMethodSymbol(IteratorStateMachine stateMachineType, string name)
         {
-            Debug.Assert(stateMachineType != null);
+            Debug.Assert((object)stateMachineType != null);
             Debug.Assert(name != null);
 
             _stateMachineType = stateMachineType;
@@ -132,14 +132,23 @@ namespace Microsoft.CodeAnalysis.CSharp
             get { return false; }
         }
 
-        public override TypeSymbol ReturnType
+        public override RefKind RefKind
         {
-            get { return ContainingAssembly.GetSpecialType(SpecialType.System_Void); }
+            get { return RefKind.None; }
         }
 
-        public override ImmutableArray<TypeSymbol> TypeArguments
+        public override TypeWithAnnotations ReturnTypeWithAnnotations
         {
-            get { return ImmutableArray<TypeSymbol>.Empty; }
+            get { return TypeWithAnnotations.Create(ContainingAssembly.GetSpecialType(SpecialType.System_Void)); }
+        }
+
+        public override FlowAnalysisAnnotations ReturnTypeFlowAnalysisAnnotations => FlowAnalysisAnnotations.None;
+
+        public override ImmutableHashSet<string> ReturnNotNullIfParameterNotNull => ImmutableHashSet<string>.Empty;
+
+        public override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotations
+        {
+            get { return ImmutableArray<TypeWithAnnotations>.Empty; }
         }
 
         public override ImmutableArray<TypeParameterSymbol> TypeParameters
@@ -157,7 +166,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             get { return ImmutableArray<MethodSymbol>.Empty; }
         }
 
-        public override ImmutableArray<CustomModifier> ReturnTypeCustomModifiers
+        public override ImmutableArray<CustomModifier> RefCustomModifiers
         {
             get { return ImmutableArray<CustomModifier>.Empty; }
         }

@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -27,8 +26,8 @@ namespace Microsoft.CodeAnalysis.Formatting
             _language = language;
         }
 
-        protected OptionSet OptionSet { get { return _optionSet; } }
-        protected string Language { get { return _language; } }
+        protected OptionSet OptionSet => _optionSet;
+        protected string Language => _language;
 
         public int LineBreaks { get; protected set; }
         public int Spaces { get; protected set; }
@@ -50,7 +49,7 @@ namespace Microsoft.CodeAnalysis.Formatting
         public abstract void Format(
             FormattingContext context,
             ChainedFormattingRules formattingRules,
-            Action<int, TriviaData> formattingResultApplier,
+            Action<int, TokenStream, TriviaData> formattingResultApplier,
             CancellationToken cancellationToken,
             int tokenPairIndex = TokenPairIndexNotNeeded);
     }

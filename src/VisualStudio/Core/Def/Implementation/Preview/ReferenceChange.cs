@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -80,11 +81,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Preview
             var displayText = GetDisplayText();
             if (IsAddedReference)
             {
-                pbstrText = ServicesVSResources.PreviewChangesAddedPrefix + displayText;
+                pbstrText = ServicesVSResources.bracket_plus_bracket + displayText;
             }
             else
             {
-                pbstrText = ServicesVSResources.PreviewChangesDeletedPrefix + displayText;
+                pbstrText = ServicesVSResources.bracket_bracket + displayText;
             }
 
             tto = VSTREETEXTOPTIONS.TTO_DEFAULT;
@@ -100,7 +101,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Preview
 
         public sealed override int OnRequestSource(object pIUnknownTextView)
         {
-            if (pIUnknownTextView != null && Children.Changes != null && Children.Changes.Length > 0)
+            // When adding a project reference `Children` can be null, so check before looking at `Changes`
+            if (pIUnknownTextView != null && Children?.Changes != null && Children.Changes.Length > 0)
             {
                 engine.SetTextView(pIUnknownTextView);
                 UpdatePreview();

@@ -7,6 +7,7 @@ Imports System.Globalization
 Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Collections
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -114,9 +115,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
-        Friend Overrides ReadOnly Property HasEmbeddedAttribute As Boolean
+        Friend Overrides ReadOnly Property HasCodeAnalysisEmbeddedAttribute As Boolean
             Get
-                Return _underlyingType.HasEmbeddedAttribute
+                Return _underlyingType.HasCodeAnalysisEmbeddedAttribute
+            End Get
+        End Property
+
+        Friend Overrides ReadOnly Property HasVisualBasicEmbeddedAttribute As Boolean
+            Get
+                Return _underlyingType.HasVisualBasicEmbeddedAttribute
             End Get
         End Property
 
@@ -213,8 +220,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
         ''' <summary>
         ''' Make sure we retarget methods when underlying type checks their viability.
         ''' </summary>
-        Friend Overrides Function AddExtensionMethodLookupSymbolsInfoViabilityCheck(method As MethodSymbol, options As LookupOptions, originalBinder As Binder) As Boolean
-            Return MyBase.AddExtensionMethodLookupSymbolsInfoViabilityCheck(RetargetingTranslator.Retarget(method), options, originalBinder)
+        Friend Overrides Function AddExtensionMethodLookupSymbolsInfoViabilityCheck(method As MethodSymbol, options As LookupOptions, nameSet As LookupSymbolsInfo, originalBinder As Binder) As Boolean
+            Return MyBase.AddExtensionMethodLookupSymbolsInfoViabilityCheck(RetargetingTranslator.Retarget(method), options, nameSet, originalBinder)
         End Function
 
         Friend Overrides Sub AddExtensionMethodLookupSymbolsInfo(nameSet As LookupSymbolsInfo,
@@ -248,7 +255,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
-        Friend Overrides ReadOnly Property IsSerializable As Boolean
+        Public Overrides ReadOnly Property IsSerializable As Boolean
             Get
                 Return _underlyingType.IsSerializable
             End Get
@@ -346,7 +353,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             End Get
         End Property
 
-        Friend Overrides Function MakeDeclaredBase(basesBeingResolved As ConsList(Of Symbol), diagnostics As DiagnosticBag) As NamedTypeSymbol
+        Friend Overrides Function MakeDeclaredBase(basesBeingResolved As BasesBeingResolved, diagnostics As DiagnosticBag) As NamedTypeSymbol
             Dim underlyingBase = _underlyingType.GetDeclaredBase(basesBeingResolved)
 
             Return If(underlyingBase IsNot Nothing,
@@ -358,7 +365,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
             Return RetargetingTranslator.Retarget(_underlyingType.GetInterfacesToEmit())
         End Function
 
-        Friend Overrides Function MakeDeclaredInterfaces(basesBeingResolved As ConsList(Of Symbol), diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
+        Friend Overrides Function MakeDeclaredInterfaces(basesBeingResolved As BasesBeingResolved, diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
             Dim underlyingBaseInterfaces = _underlyingType.GetDeclaredInterfacesNoUseSiteDiagnostics(basesBeingResolved)
 
             Return RetargetingTranslator.Retarget(underlyingBaseInterfaces)
@@ -521,6 +528,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Retargeting
 
         Public Overrides Function GetDocumentationCommentXml(Optional preferredCulture As CultureInfo = Nothing, Optional expandIncludes As Boolean = False, Optional cancellationToken As CancellationToken = Nothing) As String
             Return _underlyingType.GetDocumentationCommentXml(preferredCulture, expandIncludes, cancellationToken)
+        End Function
+
+        Friend Overrides Iterator Function GetSynthesizedWithEventsOverrides() As IEnumerable(Of PropertySymbol)
+            For Each underlying As PropertySymbol In _underlyingType.GetSynthesizedWithEventsOverrides()
+                Yield RetargetingTranslator.Retarget(underlying)
+            Next
         End Function
     End Class
 End Namespace

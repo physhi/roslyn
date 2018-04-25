@@ -127,6 +127,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End Function
 
             Public Overrides Function VisitNamedType(symbol As NamedTypeSymbol, builder As StringBuilder) As Object
+                If symbol.IsTupleType Then
+                    Return VisitNamedType(DirectCast(symbol, TupleTypeSymbol).UnderlyingNamedType, builder)
+                End If
+
                 If symbol.ContainingSymbol IsNot Nothing AndAlso symbol.ContainingSymbol.Name.Length <> 0 Then
                     Visit(symbol.ContainingSymbol, builder)
                     builder.Append("."c)
@@ -137,7 +141,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If symbol.Arity <> 0 Then
                     ' Special case: dev11 treats types instances of the declaring type in the parameter list
                     ' (And return type, for conversions) as constructed with its own type parameters.
-                    If Not _inParameterOrReturnType AndAlso symbol = symbol.ConstructedFrom Then
+                    If Not _inParameterOrReturnType AndAlso TypeSymbol.Equals(symbol, symbol.ConstructedFrom, TypeCompareKind.ConsiderEverything) Then
                         builder.Append(MetadataHelpers.GenericTypeNameManglingChar)
                         builder.Append(symbol.Arity)
                     Else

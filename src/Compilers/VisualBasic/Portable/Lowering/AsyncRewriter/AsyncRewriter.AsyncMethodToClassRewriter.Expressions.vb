@@ -7,6 +7,7 @@ Imports System.Threading
 Imports Microsoft.Cci
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Collections
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -34,7 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
 
                 Dim spillSeq = DirectCast(valueOpt, BoundSpillSequence)
-                Debug.Assert(rewrittenType = spillSeq.Type)
+                Debug.Assert(TypeSymbol.Equals(rewrittenType, spillSeq.Type, TypeCompareKind.ConsiderEverything))
 
                 Return node.Update(
                     node.Locals.Concat(spillSeq.Locals),
@@ -105,9 +106,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                      rewritten.MethodGroupOpt,
                                                                      result.ReceiverOpt,
                                                                      result.Arguments,
+                                                                     rewritten.DefaultArguments,
                                                                      rewritten.ConstantValueOpt,
-                                                                     rewritten.SuppressObjectClone,
-                                                                     rewritten.Type))
+                                                                     isLValue:=rewritten.IsLValue,
+                                                                     suppressObjectClone:=rewritten.SuppressObjectClone,
+                                                                     type:=rewritten.Type))
             End Function
 
             Public Overrides Function VisitObjectCreationExpression(node As BoundObjectCreationExpression) As BoundNode
@@ -125,6 +128,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return builder.BuildSequenceAndFree(Me.F,
                                                     rewritten.Update(rewritten.ConstructorOpt,
                                                                      arguments,
+                                                                     rewritten.DefaultArguments,
                                                                      rewritten.InitializerOpt,
                                                                      rewritten.Type))
             End Function
@@ -362,8 +366,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Public Overrides Function VisitConversion(node As BoundConversion) As BoundNode
                 Dim rewritten = DirectCast(MyBase.VisitConversion(node), BoundConversion)
                 Dim operand As BoundExpression = rewritten.Operand
-                Debug.Assert(rewritten.RelaxationReceiverPlaceholderOpt Is Nothing)
-                Debug.Assert(rewritten.RelaxationLambdaOpt Is Nothing)
+                Debug.Assert(rewritten.ExtendedInfoOpt Is Nothing)
 
                 If Not NeedsSpill(operand) Then
                     Return rewritten
@@ -378,9 +381,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                   rewritten.Checked,
                                                                   rewritten.ExplicitCastInCode,
                                                                   rewritten.ConstantValueOpt,
-                                                                  rewritten.ConstructorOpt,
-                                                                  rewritten.RelaxationLambdaOpt,
-                                                                  rewritten.RelaxationReceiverPlaceholderOpt,
+                                                                  rewritten.ExtendedInfoOpt,
                                                                   rewritten.Type))
             End Function
 

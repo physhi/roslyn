@@ -14,16 +14,19 @@ namespace Microsoft.CodeAnalysis.CSharp
             Debug.Assert(node != null);
 
             var rewrittenBody = (BoundStatement)Visit(node.Body);
+            return MakeLabeledStatement(node, rewrittenBody);
+        }
 
+        private BoundStatement MakeLabeledStatement(BoundLabeledStatement node, BoundStatement rewrittenBody)
+        {
             BoundStatement labelStatement = new BoundLabelStatement(node.Syntax, node.Label);
 
-            if (this.GenerateDebugInfo)
+            if (this.Instrument)
             {
                 var labeledSyntax = node.Syntax as LabeledStatementSyntax;
                 if (labeledSyntax != null)
                 {
-                    var span = TextSpan.FromBounds(labeledSyntax.Identifier.SpanStart, labeledSyntax.ColonToken.Span.End);
-                    labelStatement = _factory.SequencePointWithSpan(labeledSyntax, span, labelStatement);
+                    labelStatement = _instrumenter.InstrumentLabelStatement(node, labelStatement);
                 }
             }
 

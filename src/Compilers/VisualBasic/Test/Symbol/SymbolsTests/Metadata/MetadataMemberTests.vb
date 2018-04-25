@@ -1,5 +1,4 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
-
+﻿
 Imports CompilationCreationTestHelpers
 Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.Test.Utilities
@@ -139,10 +138,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols.Metadata
 } // end of class Interface
 ]]>.Value
 
-        <WorkItem(527152, "DevDiv")>
+        <WorkItem(527152, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527152")>
         <Fact>
         Public Sub MetadataMethodSymbolCtor01()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="MT">
     <file name="a.vb">
 Public Class A
@@ -181,10 +180,10 @@ End Class
             CompilationUtils.AssertNoDeclarationDiagnostics(compilation)
         End Sub
 
-        <WorkItem(537334, "DevDiv")>
+        <WorkItem(537334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537334")>
         <Fact>
         Public Sub MetadataMethodSymbol01()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="MT">
     <file name="a.vb">
 Public Class A
@@ -236,11 +235,11 @@ End Class
             CompilationUtils.AssertNoDeclarationDiagnostics(compilation)
         End Sub
 
-        <WorkItem(527150, "DevDiv")>
-        <WorkItem(537337, "DevDiv")>
+        <WorkItem(527150, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527150")>
+        <WorkItem(537337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537337")>
         <Fact>
         Public Sub MetadataParameterSymbol01()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="MT">
     <file name="a.vb">
 Public Class A
@@ -303,7 +302,7 @@ End Class
 
         <Fact>
         Public Sub MetadataMethodSymbolGen02()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="MT">
     <file name="a.vb">
 Public Class A
@@ -353,10 +352,10 @@ End Class
             CompilationUtils.AssertNoDeclarationDiagnostics(compilation)
         End Sub
 
-        <WorkItem(537335, "DevDiv")>
+        <WorkItem(537335, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537335")>
         <Fact>
         Public Sub MetadataParameterSymbolGen02()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="MT">
     <file name="a.vb">
 Public Class A
@@ -433,9 +432,9 @@ End Class
       IL_0000:  ldc.i4.s   23
       IL_0002:  stsfld     int32 C3::bar
       IL_0007:  ret
-    } // end of method foo::.cctor
+    } // end of method goo::.cctor
 
-  } // end of class foo
+  } // end of class goo
 
 .class public auto ansi beforefieldinit C1
        extends [mscorlib]System.Object
@@ -674,7 +673,7 @@ MyConstC2=nullref
 
         <Fact>
         Public Sub AccessorWithImportedGenericType()
-            Dim comp0 = CreateCompilationWithMscorlib(
+            Dim comp0 = CreateCompilationWithMscorlib40(
 <compilation name="GT">
     <file name="a.vb">
 Public Class MC(Of T)
@@ -683,7 +682,7 @@ public delegate Sub MD(Of T)(T t)
     </file>
 </compilation>)
 
-            Dim comp1 = CreateCompilationWithMscorlibAndReferences(
+            Dim comp1 = CreateCompilationWithMscorlib40AndReferences(
     <compilation name="MT">
         <file name="b.vb">
 Public Class G(Of T)
@@ -713,7 +712,7 @@ End Class
 
             Dim mtdata = DirectCast(comp1, Compilation).EmitToArray(options:=New EmitOptions(metadataOnly:=True))
             Dim mtref = MetadataReference.CreateFromImage(mtdata)
-            Dim comp2 = CreateCompilationWithMscorlibAndReferences(
+            Dim comp2 = CreateCompilationWithMscorlib40AndReferences(
     <compilation name="App">
         <file name="c.vb">
         </file>
@@ -738,7 +737,7 @@ End Class
         End Sub
 
         ' TODO: Update this test if we decide to include gaps in the symbol table for NoPIA (DevDiv #17472).
-        <Fact, WorkItem(546951, "DevDiv")>
+        <Fact, WorkItem(546951, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546951")>
         Public Sub VTableGapsNotInSymbolTable()
             Dim vb = <compilation name="MT">
                          <file name="a.vb">
@@ -767,7 +766,7 @@ End Class
             Assert.Null(propWithoutSetter.SetMethod)
         End Sub
 
-        <Fact, WorkItem(546951, "DevDiv")>
+        <Fact, WorkItem(546951, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546951")>
         Public Sub CallVTableGap()
             Dim vb = <compilation name="MT">
                          <file name="a.vb">
@@ -802,7 +801,7 @@ End Module
                 Diagnostic(ERRID.ERR_NoSetProperty1, "c.SetterIsGap = x").WithArguments("SetterIsGap"))
         End Sub
 
-        <Fact, WorkItem(546951, "DevDiv")>
+        <Fact, WorkItem(546951, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546951")>
         Public Sub ImplementVTableGap()
             Dim vb = <compilation name="MT">
                          <file name="a.vb">
@@ -854,7 +853,7 @@ End Class
                 Diagnostic(ERRID.ERR_IdentNotMemberOfInterface4, "[Interface].BothAccessorsAreGaps").WithArguments("BothAccessorsAreGaps", "BothAccessorsAreGaps", "property", "[Interface]"))
         End Sub
 
-        <Fact, WorkItem(1094411, "DevDiv")>
+        <Fact, WorkItem(1094411, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1094411")>
         Public Sub Bug1094411_01()
             Dim source1 =
 <compilation>
@@ -871,7 +870,7 @@ End Class
 
             Dim members = {"F", "P", "E", "M"}
 
-            Dim comp1 = CreateCompilationWithMscorlib(source1, options:=TestOptions.ReleaseDll)
+            Dim comp1 = CreateCompilationWithMscorlib40(source1, options:=TestOptions.ReleaseDll)
 
             Dim test1 = comp1.GetTypeByMetadataName("Test")
             Dim memberNames1 = New HashSet(Of String)(test1.MemberNames)
@@ -880,7 +879,7 @@ End Class
                 Assert.True(memberNames1.Contains(m), m)
             Next
 
-            Dim comp2 = CreateCompilationWithMscorlibAndReferences(<compilation><file name="a.vb"/></compilation>, {comp1.EmitToImageReference()})
+            Dim comp2 = CreateCompilationWithMscorlib40AndReferences(<compilation><file name="a.vb"/></compilation>, {comp1.EmitToImageReference()})
 
             Dim test2 = comp2.GetTypeByMetadataName("Test")
             Dim memberNames2 = New HashSet(Of String)(test2.MemberNames)
@@ -890,7 +889,7 @@ End Class
             Next
         End Sub
 
-        <Fact, WorkItem(1094411, "DevDiv")>
+        <Fact, WorkItem(1094411, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1094411")>
         Public Sub Bug1094411_02()
             Dim source1 =
 <compilation>
@@ -907,7 +906,7 @@ End Class
 
             Dim members = {"F", "P", "E", "M"}
 
-            Dim comp1 = CreateCompilationWithMscorlib(source1, options:=TestOptions.ReleaseDll)
+            Dim comp1 = CreateCompilationWithMscorlib40(source1, options:=TestOptions.ReleaseDll)
 
             Dim test1 = comp1.GetTypeByMetadataName("Test")
             test1.GetMembers()
@@ -917,7 +916,7 @@ End Class
                 Assert.True(memberNames1.Contains(m), m)
             Next
 
-            Dim comp2 = CreateCompilationWithMscorlibAndReferences(<compilation><file name="a.vb"/></compilation>, {comp1.EmitToImageReference()})
+            Dim comp2 = CreateCompilationWithMscorlib40AndReferences(<compilation><file name="a.vb"/></compilation>, {comp1.EmitToImageReference()})
 
             Dim test2 = comp2.GetTypeByMetadataName("Test")
             test2.GetMembers()
@@ -926,6 +925,145 @@ End Class
             For Each m In members
                 Assert.True(memberNames2.Contains(m), m)
             Next
+        End Sub
+
+        <Fact>
+        Public Sub TestMetadataImportOptions_01()
+            Dim expectedDiagnostics =
+<expected>
+BC2014: the value '255' is invalid for option 'MetadataImportOptions'
+</expected>
+
+            Dim options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+
+            Assert.Equal(MetadataImportOptions.Public, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = options.WithMetadataImportOptions(MetadataImportOptions.Internal)
+            Assert.Equal(MetadataImportOptions.Internal, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = options.WithMetadataImportOptions(MetadataImportOptions.All)
+            Assert.Equal(MetadataImportOptions.All, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = options.WithMetadataImportOptions(MetadataImportOptions.Public)
+            Assert.Equal(MetadataImportOptions.Public, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = options.WithMetadataImportOptions(CType(Byte.MaxValue, MetadataImportOptions))
+            Assert.Equal(CType(Byte.MaxValue, MetadataImportOptions), options.MetadataImportOptions)
+            AssertTheseDiagnostics(options.Errors, expectedDiagnostics)
+
+            Dim commonOptions = DirectCast(options, CompilationOptions)
+
+            commonOptions = commonOptions.WithMetadataImportOptions(MetadataImportOptions.Internal)
+            Assert.Equal(MetadataImportOptions.Internal, DirectCast(commonOptions, VisualBasicCompilationOptions).MetadataImportOptions)
+            commonOptions.Errors.Verify()
+            commonOptions = commonOptions.WithMetadataImportOptions(MetadataImportOptions.All)
+            Assert.Equal(MetadataImportOptions.All, DirectCast(commonOptions, VisualBasicCompilationOptions).MetadataImportOptions)
+            commonOptions.Errors.Verify()
+            commonOptions = commonOptions.WithMetadataImportOptions(MetadataImportOptions.Public)
+            Assert.Equal(MetadataImportOptions.Public, DirectCast(commonOptions, VisualBasicCompilationOptions).MetadataImportOptions)
+            commonOptions.Errors.Verify()
+            commonOptions = commonOptions.WithMetadataImportOptions(CType(Byte.MaxValue, MetadataImportOptions))
+            Assert.Equal(CType(Byte.MaxValue, MetadataImportOptions), DirectCast(commonOptions, VisualBasicCompilationOptions).MetadataImportOptions)
+            AssertTheseDiagnostics(commonOptions.Errors, expectedDiagnostics)
+
+            Dim compilation0 = CreateCompilationWithMscorlib40(
+<compilation>
+    <file name="a.vb">
+Public Class C
+    Public Property P1 As Integer
+    Friend Property P2 As Integer
+    Private Property P3 As Integer
+End Class
+    </file>
+</compilation>, options:=TestOptions.DebugDll)
+
+            options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+            Dim compilation = CreateCompilationWithMscorlib40("", options:=options, references:={compilation0.EmitToImageReference()})
+            Dim c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.Empty(c.GetMembers("P2"))
+            Assert.Empty(c.GetMembers("P3"))
+            CompileAndVerify(compilation)
+
+            compilation = compilation.WithOptions(options.WithMetadataImportOptions(MetadataImportOptions.Internal))
+            c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.NotEmpty(c.GetMembers("P2"))
+            Assert.Empty(c.GetMembers("P3"))
+            CompileAndVerify(compilation)
+
+            compilation = compilation.WithOptions(options.WithMetadataImportOptions(MetadataImportOptions.All))
+            c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.NotEmpty(c.GetMembers("P2"))
+            Assert.NotEmpty(c.GetMembers("P3"))
+            CompileAndVerify(compilation)
+
+            compilation = compilation.WithOptions(options.WithMetadataImportOptions(CType(Byte.MaxValue, MetadataImportOptions)))
+            c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.NotEmpty(c.GetMembers("P2"))
+            Assert.Empty(c.GetMembers("P3"))
+            compilation.AssertTheseEmitDiagnostics(expectedDiagnostics)
+            compilation.AssertTheseDiagnostics(expectedDiagnostics)
+        End Sub
+
+        <Fact>
+        Public Sub TestMetadataImportOptions_02()
+            Dim expectedDiagnostics =
+<expected>
+BC2014: the value '255' is invalid for option 'MetadataImportOptions'
+</expected>
+
+            Dim options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+
+            Assert.Equal(MetadataImportOptions.Public, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=MetadataImportOptions.Internal)
+            Assert.Equal(MetadataImportOptions.Internal, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=MetadataImportOptions.All)
+            Assert.Equal(MetadataImportOptions.All, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=MetadataImportOptions.Public)
+            Assert.Equal(MetadataImportOptions.Public, options.MetadataImportOptions)
+            options.Errors.Verify()
+            options = New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=CType(Byte.MaxValue, MetadataImportOptions))
+            Assert.Equal(CType(Byte.MaxValue, MetadataImportOptions), options.MetadataImportOptions)
+            AssertTheseDiagnostics(options.Errors, expectedDiagnostics)
+
+            Dim compilation0 = CreateCompilationWithMscorlib40(
+<compilation>
+    <file name="a.vb">
+Public Class C
+    Public Property P1 As Integer
+    Friend Property P2 As Integer
+    Private Property P3 As Integer
+End Class
+    </file>
+</compilation>, options:=TestOptions.DebugDll)
+
+            Dim compilation = CreateCompilationWithMscorlib40("", options:=New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=MetadataImportOptions.Internal), references:={compilation0.EmitToImageReference()})
+            Dim c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.NotEmpty(c.GetMembers("P2"))
+            Assert.Empty(c.GetMembers("P3"))
+            CompileAndVerify(compilation)
+
+            compilation = compilation.WithOptions(New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=MetadataImportOptions.All))
+            c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.NotEmpty(c.GetMembers("P2"))
+            Assert.NotEmpty(c.GetMembers("P3"))
+            CompileAndVerify(compilation)
+
+            compilation = compilation.WithOptions(New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataImportOptions:=CType(Byte.MaxValue, MetadataImportOptions)))
+            c = compilation.GetTypeByMetadataName("C")
+            Assert.NotEmpty(c.GetMembers("P1"))
+            Assert.NotEmpty(c.GetMembers("P2"))
+            Assert.Empty(c.GetMembers("P3"))
+            compilation.AssertTheseEmitDiagnostics(expectedDiagnostics)
+            compilation.AssertTheseDiagnostics(expectedDiagnostics)
         End Sub
 
     End Class

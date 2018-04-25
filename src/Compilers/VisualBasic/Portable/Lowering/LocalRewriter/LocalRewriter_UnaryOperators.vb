@@ -3,6 +3,7 @@
 Imports System.Collections.Immutable
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -237,22 +238,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 callInput = ProcessNullableOperand(operand, operandHasValueExpression, temps, inits, doNotCaptureLocals:=True)
             End If
 
-            Debug.Assert(callInput.Type.IsSameTypeIgnoringCustomModifiers(operatorCall.Method.Parameters(0).Type),
+            Debug.Assert(callInput.Type.IsSameTypeIgnoringAll(operatorCall.Method.Parameters(0).Type),
                          "operator must take unwrapped value of the operand")
 
             Dim whenHasValue As BoundExpression = operatorCall.Update(operatorCall.Method,
                                                                        Nothing,
                                                                        operatorCall.ReceiverOpt,
                                                                        ImmutableArray.Create(Of BoundExpression)(callInput),
+                                                                       Nothing,
                                                                        operatorCall.ConstantValueOpt,
-                                                                       operatorCall.SuppressObjectClone,
-                                                                       operatorCall.Method.ReturnType)
+                                                                       isLValue:=operatorCall.IsLValue,
+                                                                       suppressObjectClone:=operatorCall.SuppressObjectClone,
+                                                                       type:=operatorCall.Method.ReturnType)
 
-            If Not whenHasValue.Type.IsSameTypeIgnoringCustomModifiers(resultType) Then
+            If Not whenHasValue.Type.IsSameTypeIgnoringAll(resultType) Then
                 whenHasValue = WrapInNullable(whenHasValue, resultType)
             End If
 
-            Debug.Assert(whenHasValue.Type.IsSameTypeIgnoringCustomModifiers(resultType), "result type must be same as resultType")
+            Debug.Assert(whenHasValue.Type.IsSameTypeIgnoringAll(resultType), "result type must be same as resultType")
 
             ' RESULT
 

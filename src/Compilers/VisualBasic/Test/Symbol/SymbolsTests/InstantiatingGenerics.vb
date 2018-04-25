@@ -213,7 +213,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols
     Public Class InstantiatingGenerics
         Inherits BasicTestBase
 
-        <Fact, WorkItem(910574, "DevDiv")>
+        <Fact, WorkItem(910574, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/910574")>
         Public Sub Test1()
 
             Dim assembly = MetadataTestHelpers.LoadFromBytes(TestResources.General.MDTestLib1)
@@ -345,7 +345,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols
         <Fact>
         Public Sub AlphaRename()
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
 <compilation name="C">
     <file name="a.vb">
         
@@ -663,7 +663,7 @@ BC32044: Type argument 'C3T2' does not inherit from or implement the constraint 
         <Fact>
         Public Sub TypeSubstitutionTypeTest()
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="C">
     <file name="a.vb">
 Class C1(Of C1T1, C1T2)
@@ -722,7 +722,7 @@ End Class
         <Fact>
         Public Sub ConstructionWithAlphaRenaming()
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="C">
     <file name="a.vb">
 Module M

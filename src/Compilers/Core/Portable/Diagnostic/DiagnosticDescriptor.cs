@@ -215,7 +215,8 @@ namespace Microsoft.CodeAnalysis
             return effectiveDiagnostic != null ? MapSeverityToReport(effectiveDiagnostic.Severity) : ReportDiagnostic.Suppress;
         }
 
-        private static ReportDiagnostic MapSeverityToReport(DiagnosticSeverity severity)
+        // internal for testing purposes.
+        internal static ReportDiagnostic MapSeverityToReport(DiagnosticSeverity severity)
         {
             switch (severity)
             {
@@ -228,7 +229,7 @@ namespace Microsoft.CodeAnalysis
                 case DiagnosticSeverity.Error:
                     return ReportDiagnostic.Error;
                 default:
-                    throw ExceptionUtilities.Unreachable;
+                    throw ExceptionUtilities.UnexpectedValue(severity);
             }
         }
 

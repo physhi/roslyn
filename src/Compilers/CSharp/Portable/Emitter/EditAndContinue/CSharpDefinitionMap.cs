@@ -1,17 +1,15 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE;
 using Microsoft.CodeAnalysis.Emit;
-using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Symbols;
 
 namespace Microsoft.CodeAnalysis.CSharp.Emit
 {
@@ -20,100 +18,88 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
     /// the corresponding assembly in another. Assumes that only
     /// one assembly has changed between the two compilations.
     /// </summary>
-    internal sealed partial class CSharpDefinitionMap : DefinitionMap<CSharpSymbolMatcher>
+    internal sealed partial class CSharpDefinitionMap : DefinitionMap
     {
         private readonly MetadataDecoder _metadataDecoder;
 
         public CSharpDefinitionMap(
-            PEModule module,
             IEnumerable<SemanticEdit> edits,
             MetadataDecoder metadataDecoder,
             CSharpSymbolMatcher mapToMetadata,
             CSharpSymbolMatcher mapToPrevious)
-            : base(module, edits, mapToMetadata, mapToPrevious)
+            : base(edits, mapToMetadata, mapToPrevious)
         {
             Debug.Assert(metadataDecoder != null);
             _metadataDecoder = metadataDecoder;
         }
 
-        internal bool TryGetAnonymousTypeName(NamedTypeSymbol template, out string name, out int index)
-        {
-            return this.mapToPrevious.TryGetAnonymousTypeName(template, out name, out index);
-        }
+        internal override CommonMessageProvider MessageProvider
+            => CSharp.MessageProvider.Instance;
+
+        protected override LambdaSyntaxFacts GetLambdaSyntaxFacts()
+            => CSharpLambdaSyntaxFacts.Instance;
+
+        internal bool TryGetAnonymousTypeName(IAnonymousTypeTemplateSymbolInternal template, out string name, out int index)
+            => mapToPrevious.TryGetAnonymousTypeName(template, out name, out index);
 
         internal override bool TryGetTypeHandle(Cci.ITypeDefinition def, out TypeDefinitionHandle handle)
         {
-            var other = this.mapToMetadata.MapDefinition(def) as PENamedTypeSymbol;
-            if ((object)other != null)
+            if (mapToMetadata.MapDefinition(def) is PENamedTypeSymbol other)
             {
                 handle = other.Handle;
                 return true;
             }
-            else
-            {
-                handle = default(TypeDefinitionHandle);
-                return false;
-            }
+
+            handle = default;
+            return false;
         }
 
         internal override bool TryGetEventHandle(Cci.IEventDefinition def, out EventDefinitionHandle handle)
         {
-            var other = this.mapToMetadata.MapDefinition(def) as PEEventSymbol;
-            if ((object)other != null)
+            if (mapToMetadata.MapDefinition(def) is PEEventSymbol other)
             {
                 handle = other.Handle;
                 return true;
             }
-            else
-            {
-                handle = default(EventDefinitionHandle);
-                return false;
-            }
+
+            handle = default;
+            return false;
         }
 
         internal override bool TryGetFieldHandle(Cci.IFieldDefinition def, out FieldDefinitionHandle handle)
         {
-            var other = this.mapToMetadata.MapDefinition(def) as PEFieldSymbol;
-            if ((object)other != null)
+            if (mapToMetadata.MapDefinition(def) is PEFieldSymbol other)
             {
                 handle = other.Handle;
                 return true;
             }
-            else
-            {
-                handle = default(FieldDefinitionHandle);
-                return false;
-            }
+
+            handle = default;
+            return false;
         }
 
         internal override bool TryGetMethodHandle(Cci.IMethodDefinition def, out MethodDefinitionHandle handle)
         {
-            var other = this.mapToMetadata.MapDefinition(def) as PEMethodSymbol;
-            if ((object)other != null)
+            if (mapToMetadata.MapDefinition(def) is PEMethodSymbol other)
             {
                 handle = other.Handle;
                 return true;
             }
-            else
-            {
-                handle = default(MethodDefinitionHandle);
-                return false;
-            }
+
+            handle = default;
+            return false;
         }
 
         internal override bool TryGetPropertyHandle(Cci.IPropertyDefinition def, out PropertyDefinitionHandle handle)
         {
-            var other = this.mapToMetadata.MapDefinition(def) as PEPropertySymbol;
-            if ((object)other != null)
+            if (mapToMetadata.MapDefinition(def) is PEPropertySymbol other)
             {
                 handle = other.Handle;
                 return true;
             }
-            else
-            {
-                handle = default(PropertyDefinitionHandle);
-                return false;
-            }
+
+            handle = default;
+            return false;
         }
 
         protected override void GetStateMachineFieldMapFromMetadata(
@@ -182,16 +168,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             awaiterSlotCount = maxAwaiterSlotIndex + 1;
         }
 
-        protected override ImmutableArray<EncLocalInfo> TryGetLocalSlotMapFromMetadata(MethodDefinitionHandle handle, EditAndContinueMethodDebugInformation debugInfo)
+        protected override ImmutableArray<EncLocalInfo> GetLocalSlotMapFromMetadata(StandaloneSignatureHandle handle, EditAndContinueMethodDebugInformation debugInfo)
         {
-            ImmutableArray<LocalInfo<TypeSymbol>> slotMetadata;
-            if (!_metadataDecoder.TryGetLocals(handle, out slotMetadata))
-            {
-                return default(ImmutableArray<EncLocalInfo>);
-            }
+            Debug.Assert(!handle.IsNil);
 
-            var result = CreateLocalSlotMap(debugInfo, slotMetadata);
-            Debug.Assert(result.Length == slotMetadata.Length);
+            var localInfos = _metadataDecoder.GetLocalsOrThrow(handle);
+            var result = CreateLocalSlotMap(debugInfo, localInfos);
+            Debug.Assert(result.Length == localInfos.Length);
             return result;
         }
 

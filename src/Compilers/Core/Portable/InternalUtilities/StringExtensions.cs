@@ -71,8 +71,8 @@ namespace Roslyn.Utilities
             bool trimLeadingTypePrefix,
             Func<char, char> convert)
         {
-            // Special case the common .net pattern of "IFoo" as a type name.  In this case we
-            // want to generate "foo" as the parameter name.  
+            // Special case the common .NET pattern of "IGoo" as a type name.  In this case we
+            // want to generate "goo" as the parameter name.  
             if (!string.IsNullOrEmpty(shortName))
             {
                 if (trimLeadingTypePrefix && (shortName.LooksLikeInterfaceName() || shortName.LooksLikeTypeParameterName()))
@@ -118,6 +118,8 @@ namespace Roslyn.Utilities
             return lastChar != '.';
         }
 
+        private const string AttributeSuffix = "Attribute";
+
         internal static string GetWithSingleAttributeSuffix(
             this string name,
             bool isCaseSensitive)
@@ -128,7 +130,7 @@ namespace Roslyn.Utilities
                 name = cleaned;
             }
 
-            return name + "Attribute";
+            return name + AttributeSuffix;
         }
 
         internal static bool TryGetWithoutAttributeSuffix(
@@ -142,8 +144,7 @@ namespace Roslyn.Utilities
             this string name,
             bool isCaseSensitive)
         {
-            string result;
-            return TryGetWithoutAttributeSuffix(name, isCaseSensitive, out result) ? result : null;
+            return TryGetWithoutAttributeSuffix(name, isCaseSensitive, out var result) ? result : null;
         }
 
         internal static bool TryGetWithoutAttributeSuffix(
@@ -151,9 +152,7 @@ namespace Roslyn.Utilities
             bool isCaseSensitive,
             out string result)
         {
-            const string AttributeSuffix = "Attribute";
-            var comparison = isCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            if (name.Length > AttributeSuffix.Length && name.EndsWith(AttributeSuffix, comparison))
+            if (name.HasAttributeSuffix(isCaseSensitive))
             {
                 result = name.Substring(0, name.Length - AttributeSuffix.Length);
                 return true;
@@ -161,6 +160,12 @@ namespace Roslyn.Utilities
 
             result = null;
             return false;
+        }
+
+        internal static bool HasAttributeSuffix(this string name, bool isCaseSensitive)
+        {
+            var comparison = isCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            return name.Length > AttributeSuffix.Length && name.EndsWith(AttributeSuffix, comparison);
         }
 
         internal static bool IsValidUnicodeString(this string str)
@@ -198,8 +203,7 @@ namespace Roslyn.Utilities
         /// </summary>
         internal static string Unquote(this string arg)
         {
-            bool quoted;
-            return Unquote(arg, out quoted);
+            return Unquote(arg, out var quoted);
         }
 
         internal static string Unquote(this string arg, out bool quoted)
@@ -265,6 +269,30 @@ namespace Roslyn.Utilities
             }
 
             return true;
+        }
+
+        public static int GetCaseInsensitivePrefixLength(this string string1, string string2)
+        {
+            int x = 0;
+            while (x < string1.Length && x < string2.Length &&
+                   char.ToUpper(string1[x]) == char.ToUpper(string2[x]))
+            {
+                x++;
+            }
+
+            return x;
+        }
+
+        public static int GetCaseSensitivePrefixLength(this string string1, string string2)
+        {
+            int x = 0;
+            while (x < string1.Length && x < string2.Length &&
+                   string1[x] == string2[x])
+            {
+                x++;
+            }
+
+            return x;
         }
     }
 }

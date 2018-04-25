@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,33 +14,43 @@ namespace Microsoft.CodeAnalysis.FindSymbols.Finders
             return true;
         }
 
-        protected override Task<IEnumerable<ISymbol>> DetermineCascadedSymbolsAsync(IFieldSymbol symbol, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)
+        protected override Task<ImmutableArray<SymbolAndProjectId>> DetermineCascadedSymbolsAsync(
+            SymbolAndProjectId<IFieldSymbol> symbolAndProjectId,
+            Solution solution,
+            IImmutableSet<Project> projects,
+            FindReferencesSearchOptions options,
+            CancellationToken cancellationToken)
         {
+            var symbol = symbolAndProjectId.Symbol;
             if (symbol.AssociatedSymbol != null)
             {
-                return Task.FromResult<IEnumerable<ISymbol>>(new ISymbol[] { symbol.AssociatedSymbol });
+                return Task.FromResult(
+                    ImmutableArray.Create(symbolAndProjectId.WithSymbol(symbol.AssociatedSymbol)));
             }
             else
             {
-                return SpecializedTasks.EmptyEnumerable<ISymbol>();
+                return SpecializedTasks.EmptyImmutableArray<SymbolAndProjectId>();
             }
         }
 
-        protected override Task<IEnumerable<Document>> DetermineDocumentsToSearchAsync(
+        protected override Task<ImmutableArray<Document>> DetermineDocumentsToSearchAsync(
             IFieldSymbol symbol,
             Project project,
             IImmutableSet<Document> documents,
+            FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
             return FindDocumentsAsync(project, documents, cancellationToken, symbol.Name);
         }
 
-        protected override Task<IEnumerable<ReferenceLocation>> FindReferencesInDocumentAsync(
+        protected override Task<ImmutableArray<FinderLocation>> FindReferencesInDocumentAsync(
             IFieldSymbol symbol,
             Document document,
+            SemanticModel semanticModel,
+            FindReferencesSearchOptions options,
             CancellationToken cancellationToken)
         {
-            return FindReferencesInDocumentUsingSymbolNameAsync(symbol, document, cancellationToken);
+            return FindReferencesInDocumentUsingSymbolNameAsync(symbol, document, semanticModel, cancellationToken);
         }
     }
 }

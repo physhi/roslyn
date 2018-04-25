@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Threading;
@@ -18,8 +18,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                 public MultipleStatementsCodeGenerator(
                     InsertionPoint insertionPoint,
                     SelectionResult selectionResult,
-                    AnalyzerResult analyzerResult) :
-                    base(insertionPoint, selectionResult, analyzerResult)
+                    AnalyzerResult analyzerResult)
+                    : base(insertionPoint, selectionResult, analyzerResult)
                 {
                 }
 
@@ -101,19 +101,12 @@ namespace Microsoft.CodeAnalysis.CSharp.ExtractMethod
                     Contract.ThrowIfNull(node);
                     Contract.ThrowIfFalse(node.IsStatementContainerNode());
 
-                    var blockNode = node as BlockSyntax;
-                    if (blockNode != null)
+                    return node switch
                     {
-                        return blockNode.Statements;
-                    }
-
-                    var switchSectionNode = node as SwitchSectionSyntax;
-                    if (switchSectionNode != null)
-                    {
-                        return switchSectionNode.Statements;
-                    }
-
-                    return Contract.FailWithReturn<SyntaxList<StatementSyntax>>("unknown statements container!");
+                        BlockSyntax blockNode => blockNode.Statements,
+                        SwitchSectionSyntax switchSectionNode => switchSectionNode.Statements,
+                        _ => Contract.FailWithReturn<SyntaxList<StatementSyntax>>("unknown statements container!"),
+                    };
                 }
 
                 protected override SyntaxNode GetFirstStatementOrInitializerSelectedAtCallSite()

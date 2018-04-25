@@ -108,6 +108,7 @@ class C
         }
 
         [Fact]
+        [WorkItem(32576, "https://github.com/dotnet/roslyn/issues/32576")]
         public void TestIncrementDecimal()
         {
             TestIncrementCompilationAndOutput<decimal>(-1, 0);
@@ -823,7 +824,7 @@ class C
 ");
         }
 
-        [WorkItem(540718, "DevDiv")]
+        [WorkItem(540718, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540718")]
         [Fact]
         public void GenConditionalBranchTempForInc()
         {
@@ -857,7 +858,7 @@ class Test
                 );
         }
 
-        [WorkItem(540718, "DevDiv")]
+        [WorkItem(540718, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540718")]
         [Fact]
         public void IncrementField()
         {
@@ -906,7 +907,7 @@ class Test
                 );
         }
 
-        [WorkItem(540723, "DevDiv")]
+        [WorkItem(540723, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540723")]
         [Fact]
         public void MissingIncInFinallyBlock()
         {
@@ -927,7 +928,7 @@ class My
             CompileAndVerify(source, expectedOutput: "1");
         }
 
-        [WorkItem(540810, "DevDiv")]
+        [WorkItem(540810, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540810")]
         [Fact]
         public void NestedIncrement()
         {
@@ -948,7 +949,7 @@ class My
             CompileAndVerify(source, expectedOutput: "11");
         }
 
-        [WorkItem(540810, "DevDiv")]
+        [WorkItem(540810, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540810")]
         [Fact]
         public void IncrementSideEffects()
         {
@@ -1005,7 +1006,7 @@ Zero
             CompileAndVerify(source, expectedOutput: expectedOutput);
         }
 
-        [WorkItem(720742, "DevDiv")]
+        [WorkItem(720742, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720742")]
         [Fact]
         public void IncrementRefVal()
         {

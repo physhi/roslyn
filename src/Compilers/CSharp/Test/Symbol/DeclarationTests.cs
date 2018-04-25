@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
+using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
 //test
@@ -116,18 +118,16 @@ namespace NA
             Assert.Equal(0, d2.Children.Length);
 
             var table = DeclarationTable.Empty;
-            Assert.Empty(table.AllRootNamespacesUnordered());
-
-            var mr = table.MergedRoot;
+            var mr = table.CalculateMergedRoot(null);
             Assert.NotNull(mr);
+            Assert.True(mr.Declarations.IsEmpty);
             Assert.True(table.TypeNames.IsEmpty());
 
             table = table.AddRootDeclaration(Lazy(decl1));
+            mr = table.CalculateMergedRoot(null);
 
-            Assert.Equal(decl1, table.AllRootNamespacesUnordered().Single());
+            Assert.Equal(mr.Declarations, new[] { decl1 });
             Assert.True(table.TypeNames.OrderBy(s => s).SequenceEqual(new[] { "C", "D" }));
-
-            mr = table.MergedRoot;
 
             Assert.Equal(DeclarationKind.Namespace, mr.Kind);
             Assert.Equal(string.Empty, mr.Name);
@@ -156,12 +156,11 @@ namespace NA
             Assert.Equal("D", d.Name);
 
             table = table.AddRootDeclaration(Lazy(decl2));
+            mr = table.CalculateMergedRoot(null);
 
             Assert.True(table.TypeNames.Distinct().OrderBy(s => s).SequenceEqual(new[] { "C", "D" }));
 
-            Assert.Equal(2, table.AllRootNamespacesUnordered().Intersect(new[] { decl1, decl2 }).Count());
-
-            mr = table.MergedRoot;
+            Assert.Equal(mr.Declarations, new[] { decl1, decl2 });
 
             Assert.Equal(DeclarationKind.Namespace, mr.Kind);
             Assert.Equal(string.Empty, mr.Name);
@@ -268,7 +267,7 @@ namespace NA
             Assert.Equal(SymbolKind.NamedType, comp.GlobalNamespace.GetMembers()[0].Kind);
         }
 
-        [Fact()]
+        [ConditionalFact(typeof(NoIOperationValidation))]
         public void OnlyOneParse()
         {
             var underlyingTree = SyntaxFactory.ParseSyntaxTree(@"
@@ -290,7 +289,7 @@ public class B
 
             var countedTree = new CountedSyntaxTree(foreignType);
 
-            var compilation = CreateCompilationWithMscorlib(new SyntaxTree[] { underlyingTree, countedTree });
+            var compilation = CreateCompilation(new SyntaxTree[] { underlyingTree, countedTree }, skipUsesIsNullable: true);
 
             var type = compilation.Assembly.GlobalNamespace.GetTypeMembers().First();
             Assert.Equal(1, countedTree.AccessCount);   // parse once to build the decl table
@@ -300,7 +299,7 @@ public class B
             Assert.Equal(1, countedTree.AccessCount);
 
             // Getting the interfaces will cause us to do some more binding of the current type.
-            var interfaces = type.Interfaces;
+            var interfaces = type.Interfaces();
             Assert.Equal(1, countedTree.AccessCount);
 
             // Now bind the members.
@@ -308,7 +307,7 @@ public class B
             Assert.Equal(1, countedTree.AccessCount);
 
             // Once we have the method, we shouldn't need to go back to syntax again.
-            var returnType = method.ReturnType;
+            var returnType = method.ReturnTypeWithAnnotations;
             Assert.Equal(1, countedTree.AccessCount);
 
             var parameterType = method.Parameters.Single();
@@ -424,6 +423,8 @@ public class B
                 get { return _underlyingTree.Length; }
             }
 
+            public override ImmutableDictionary<string, ReportDiagnostic> DiagnosticOptions => throw new NotImplementedException();
+
             public override SyntaxReference GetReference(SyntaxNode node)
             {
                 return new Reference(this, _underlyingTree.GetReference(node));
@@ -440,6 +441,11 @@ public class B
             }
 
             public override SyntaxTree WithFilePath(string path)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override SyntaxTree WithDiagnosticOptions(ImmutableDictionary<string, ReportDiagnostic> options)
             {
                 throw new NotImplementedException();
             }

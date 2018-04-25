@@ -2,10 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Shared.Utilities
@@ -22,21 +19,9 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
             _symbolEquivalenceComparer = symbolEquivalenceComparer;
         }
 
-        private IEqualityComparer<IParameterSymbol> ParameterEquivalenceComparer
-        {
-            get
-            {
-                return _symbolEquivalenceComparer.ParameterEquivalenceComparer;
-            }
-        }
+        private IEqualityComparer<IParameterSymbol> ParameterEquivalenceComparer => _symbolEquivalenceComparer.ParameterEquivalenceComparer;
 
-        private IEqualityComparer<ITypeSymbol> SignatureTypeEquivalenceComparer
-        {
-            get
-            {
-                return _symbolEquivalenceComparer.SignatureTypeEquivalenceComparer;
-            }
-        }
+        private IEqualityComparer<ITypeSymbol> SignatureTypeEquivalenceComparer => _symbolEquivalenceComparer.SignatureTypeEquivalenceComparer;
 
         public bool HaveSameSignature(ISymbol symbol1, ISymbol symbol2, bool caseSensitive)
         {
@@ -153,7 +138,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities
                 return false;
             }
 
-            for (int i = 0; i < parameters1.Count; ++i)
+            for (var i = 0; i < parameters1.Count; ++i)
             {
                 if (!_symbolEquivalenceComparer.ParameterEquivalenceComparer.Equals(parameters1[i], parameters2[i], compareParameterName, isCaseSensitive))
                 {

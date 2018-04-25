@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
-    // Note: this code has a copy-and-paste sibling in AbstractRegionDataFlowPass.
+    // Note: this code has a copy-and-paste sibling in AbstractRegionControlFlowPass.
     // Any fix to one should be applied to the other.
-    internal class AbstractRegionDataFlowPass : DataFlowPass
+    internal abstract class AbstractRegionDataFlowPass : DefiniteAssignmentPass
     {
         internal AbstractRegionDataFlowPass(
             CSharpCompilation compilation,
@@ -30,16 +29,22 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// </summary>
         protected override ImmutableArray<PendingBranch> Scan(ref bool badRegion)
         {
-            SetState(ReachableState());
             MakeSlots(MethodParameters);
             if ((object)MethodThisParameter != null) GetOrCreateSlot(MethodThisParameter);
-            return base.Scan(ref badRegion);
+            var result = base.Scan(ref badRegion);
+            return result;
         }
 
         public override BoundNode VisitLambda(BoundLambda node)
         {
             MakeSlots(node.Symbol.Parameters);
             return base.VisitLambda(node);
+        }
+
+        public override BoundNode VisitLocalFunctionStatement(BoundLocalFunctionStatement node)
+        {
+            MakeSlots(node.Symbol.Parameters);
+            return base.VisitLocalFunctionStatement(node);
         }
 
         private void MakeSlots(ImmutableArray<ParameterSymbol> parameters)

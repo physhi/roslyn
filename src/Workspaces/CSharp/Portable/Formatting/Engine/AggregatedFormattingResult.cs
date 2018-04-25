@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -14,8 +15,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
     internal class AggregatedFormattingResult : AbstractAggregatedFormattingResult
     {
-        public AggregatedFormattingResult(SyntaxNode node, IList<AbstractFormattingResult> results, SimpleIntervalTree<TextSpan> formattingSpans) :
-            base(node, results, formattingSpans)
+        public AggregatedFormattingResult(SyntaxNode node, IList<AbstractFormattingResult> results, SimpleIntervalTree<TextSpan> formattingSpans)
+            : base(node, results, formattingSpans)
         {
         }
 

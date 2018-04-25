@@ -291,6 +291,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Public MustOverride Overrides ReadOnly Property Parameters As ImmutableArray(Of ParameterSymbol)
 
+        Public NotOverridable Overrides ReadOnly Property ReturnsByRef As Boolean
+            Get
+                Return OriginalDefinition.ReturnsByRef
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property ReturnType As TypeSymbol
             Get
                 Return OriginalDefinition.ReturnType.InternalSubstituteTypeParameters(Me.TypeSubstitution).Type
@@ -300,6 +306,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Public Overrides ReadOnly Property ReturnTypeCustomModifiers As ImmutableArray(Of CustomModifier)
             Get
                 Return Me.TypeSubstitution.SubstituteCustomModifiers(OriginalDefinition.ReturnType, OriginalDefinition.ReturnTypeCustomModifiers)
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property RefCustomModifiers As ImmutableArray(Of CustomModifier)
+            Get
+                Return Me.TypeSubstitution.SubstituteCustomModifiers(OriginalDefinition.RefCustomModifiers)
             End Get
         End Property
 
@@ -421,7 +433,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Friend Function SetAssociatedPropertyOrEvent(propertyOrEventSymbol As Symbol) As Boolean
             If _propertyOrEventSymbolOpt Is Nothing Then
-                Debug.Assert(propertyOrEventSymbol.ContainingType = Me.ContainingType)
+                Debug.Assert(TypeSymbol.Equals(propertyOrEventSymbol.ContainingType, Me.ContainingType, TypeCompareKind.ConsiderEverything))
 
                 ' No locking required since SetAssociatedProperty will only be called by the
                 ' thread that created the method symbol (and will be called before the method
@@ -433,7 +445,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Return False
         End Function
 
-        Friend Overrides ReadOnly Property Syntax As VisualBasicSyntaxNode
+        Friend Overrides ReadOnly Property Syntax As SyntaxNode
             Get
                 Return Nothing
             End Get

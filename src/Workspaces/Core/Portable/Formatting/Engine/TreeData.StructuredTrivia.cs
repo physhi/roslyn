@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -15,8 +14,8 @@ namespace Microsoft.CodeAnalysis.Formatting
             private readonly SyntaxTrivia _trivia;
             private readonly TreeData _treeData;
 
-            public StructuredTrivia(SyntaxTrivia trivia, int initialColumn) :
-                base(trivia.GetStructure())
+            public StructuredTrivia(SyntaxTrivia trivia, int initialColumn)
+                : base(trivia.GetStructure())
             {
                 Contract.ThrowIfFalse(trivia.HasStructure);
 

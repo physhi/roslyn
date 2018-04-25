@@ -29,9 +29,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Symbols.CorLibrary
             Assert.Same(assemblies(1), DirectCast(assemblies(0).Modules(0), PEModuleSymbol).CorLibrary)
         End Sub
 
-        <Fact, WorkItem(760148, "DevDiv")>
+        <Fact, WorkItem(760148, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/760148")>
         Public Sub Bug760148_1()
-            Dim corLib = CompilationUtils.CreateCompilationWithoutReferences(
+            Dim corLib = CompilationUtils.CreateEmptyCompilation(
 <compilation>
     <file name="a.vb">
 Namespace System
@@ -39,14 +39,14 @@ Namespace System
     End Class
 End Namespace
     </file>
-</compilation>, TestOptions.ReleaseDll)
+</compilation>, options:=TestOptions.ReleaseDll)
 
             Dim obj = corLib.GetSpecialType(SpecialType.System_Object)
 
             Assert.False(obj.IsErrorType())
             Assert.Same(corLib.Assembly, obj.ContainingAssembly)
 
-            Dim consumer = CompilationUtils.CreateCompilationWithReferences(
+            Dim consumer = CompilationUtils.CreateEmptyCompilationWithReferences(
 <compilation>
     <file name="a.vb">
 Namespace System
@@ -59,9 +59,9 @@ End Namespace
             Assert.Same(obj, consumer.GetSpecialType(SpecialType.System_Object))
         End Sub
 
-        <Fact, WorkItem(760148, "DevDiv")>
+        <Fact, WorkItem(760148, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/760148")>
         Public Sub Bug760148_2()
-            Dim corLib = CompilationUtils.CreateCompilationWithoutReferences(
+            Dim corLib = CompilationUtils.CreateEmptyCompilation(
 <compilation>
     <file name="a.vb">
 Namespace System
@@ -69,11 +69,11 @@ Namespace System
     End Class
 End Namespace
     </file>
-</compilation>, TestOptions.ReleaseDll)
+</compilation>, options:=TestOptions.ReleaseDll)
 
             Dim obj = corLib.GetSpecialType(SpecialType.System_Object)
 
-            Dim consumer = CompilationUtils.CreateCompilationWithReferences(
+            Dim consumer = CompilationUtils.CreateEmptyCompilationWithReferences(
 <compilation>
     <file name="a.vb">
 Namespace System

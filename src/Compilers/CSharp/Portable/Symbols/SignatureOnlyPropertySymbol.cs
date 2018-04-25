@@ -4,8 +4,6 @@ using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
-using Cci = Microsoft.Cci;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols
@@ -19,8 +17,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         private readonly string _name;
         private readonly TypeSymbol _containingType;
         private readonly ImmutableArray<ParameterSymbol> _parameters;
-        private readonly TypeSymbol _type;
-        private readonly ImmutableArray<CustomModifier> _typeCustomModifiers;
+        private readonly RefKind _refKind;
+        private readonly TypeWithAnnotations _type;
+        private readonly ImmutableArray<CustomModifier> _refCustomModifiers;
         private readonly bool _isStatic;
         private readonly ImmutableArray<PropertySymbol> _explicitInterfaceImplementations;
 
@@ -28,13 +27,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             string name,
             TypeSymbol containingType,
             ImmutableArray<ParameterSymbol> parameters,
-            TypeSymbol type,
-            ImmutableArray<CustomModifier> typeCustomModifiers,
+            RefKind refKind,
+            TypeWithAnnotations type,
+            ImmutableArray<CustomModifier> refCustomModifiers,
             bool isStatic,
             ImmutableArray<PropertySymbol> explicitInterfaceImplementations)
         {
+            _refKind = refKind;
             _type = type;
-            _typeCustomModifiers = typeCustomModifiers;
+            _refCustomModifiers = refCustomModifiers;
             _isStatic = isStatic;
             _parameters = parameters;
             _explicitInterfaceImplementations = explicitInterfaceImplementations.NullToEmpty();
@@ -42,9 +43,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             _name = name;
         }
 
-        public override TypeSymbol Type { get { return _type; } }
+        public override RefKind RefKind { get { return _refKind; } }
 
-        public override ImmutableArray<CustomModifier> TypeCustomModifiers { get { return _typeCustomModifiers; } }
+        public override TypeWithAnnotations TypeWithAnnotations { get { return _type; } }
+
+        public override ImmutableArray<CustomModifier> RefCustomModifiers { get { return _refCustomModifiers; } }
 
         public override bool IsStatic { get { return _isStatic; } }
 

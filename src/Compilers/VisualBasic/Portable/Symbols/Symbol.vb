@@ -1,19 +1,15 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports System.Globalization
 Imports System.Runtime.InteropServices
-Imports System.Text
 Imports System.Threading
-Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Collections
+Imports Microsoft.CodeAnalysis.PooledObjects
+Imports Microsoft.CodeAnalysis.Symbols
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports TypeKind = Microsoft.CodeAnalysis.TypeKind
 Imports Display = Microsoft.CodeAnalysis.VisualBasic.SymbolDisplay
-Imports Microsoft.CodeAnalysis.Diagnostics
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
 
@@ -23,7 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     ''' </summary>
     <DebuggerDisplay("{GetDebuggerDisplay(), nq}")>
     Friend MustInherit Class Symbol
-        Implements ISymbol, IMessageSerializable
+        Implements ISymbol, ISymbolInternal, IFormattable
 
         ' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ' Changes to the public interface of this class should remain synchronized with the C# version of Symbol.
@@ -192,6 +188,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Dim sourceModuleSymbol = TryCast(Me.ContainingModule, SourceModuleSymbol)
                 Return If(sourceModuleSymbol Is Nothing, Nothing, sourceModuleSymbol.DeclaringCompilation)
+            End Get
+        End Property
+
+        ReadOnly Property ISymbolInternal_DeclaringCompilation As Compilation Implements ISymbolInternal.DeclaringCompilation
+            Get
+                Return DeclaringCompilation
             End Get
         End Property
 
@@ -430,14 +432,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         Friend ReadOnly Property ObsoleteState As ThreeState
             Get
+                Select Case ObsoleteKind
+                    Case ObsoleteAttributeKind.None, ObsoleteAttributeKind.Experimental
+                        Return ThreeState.False
+                    Case ObsoleteAttributeKind.Uninitialized
+                        Return ThreeState.Unknown
+                    Case Else
+                        Return ThreeState.True
+                End Select
+            End Get
+        End Property
+
+        Friend ReadOnly Property ObsoleteKind As ObsoleteAttributeKind
+            Get
                 Dim data = Me.ObsoleteAttributeData
-                If data Is Nothing Then
-                    Return ThreeState.False
-                ElseIf data Is ObsoleteAttributeData.Uninitialized Then
-                    Return ThreeState.Unknown
-                Else
-                    Return ThreeState.True
-                End If
+                Return If(data Is Nothing, ObsoleteAttributeKind.None, data.Kind)
             End Get
         End Property
 
@@ -752,8 +761,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return Me Is obj
         End Function
 
-        Public Overloads Function [Equals](other As ISymbol) As Boolean Implements IEquatable(Of ISymbol).Equals
-            Return Me.[Equals](CObj(other))
+        Private Overloads Function IEquatable_Equals(other As ISymbol) As Boolean Implements IEquatable(Of ISymbol).Equals
+            Return Me.[Equals](other, SymbolEqualityComparer.Default.CompareKind)
+        End Function
+
+        Private Overloads Function ISymbol_Equals(other As ISymbol, equalityComparer As SymbolEqualityComparer) As Boolean Implements ISymbol.Equals
+            Return equalityComparer.Equals(Me, other)
+        End Function
+
+        Overloads Function Equals(other As ISymbol, compareKind As TypeCompareKind) As Boolean Implements ISymbolInternal.Equals
+            Return Me.Equals(TryCast(other, Symbol), compareKind)
+        End Function
+
+        ' By default we don't consider the compareKind. This can be overridden.
+        Public Overloads Function Equals(other As Symbol, compareKind As TypeCompareKind) As Boolean
+            Return Me.Equals(other)
         End Function
 
         ' By default, we do reference equality. This can be overridden.
@@ -875,14 +897,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If errorInfo IsNot Nothing Then
                 Select Case errorInfo.Code
-                    Case ERRID.ERR_UnreferencedAssemblyBase3,
-                         ERRID.ERR_UnreferencedAssemblyImplements3
-                        errorInfo = ErrorFactory.ErrorInfo(ERRID.ERR_UnreferencedAssembly3, errorInfo.Arguments(0), errorInfo.Arguments(1))
-
-                    Case ERRID.ERR_UnreferencedModuleBase3,
-                         ERRID.ERR_UnreferencedModuleImplements3
-                        errorInfo = ErrorFactory.ErrorInfo(ERRID.ERR_UnreferencedModule3, errorInfo.Arguments(0), errorInfo.Arguments(1))
-
                     Case ERRID.ERR_UnsupportedType1
 
                         Select Case Me.Kind
@@ -932,19 +946,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return errorInfo
             End If
 
-            Dim modifiersErrorInfo As DiagnosticInfo = DeriveUseSiteErrorInfoFromCustomModifiers(param.CustomModifiers)
+            Dim refModifiersErrorInfo As DiagnosticInfo = DeriveUseSiteErrorInfoFromCustomModifiers(param.RefCustomModifiers)
 
-            If modifiersErrorInfo IsNot Nothing Then
-                If modifiersErrorInfo.Code = highestPriorityUseSiteError Then
-                    Return modifiersErrorInfo
-                End If
-
-                If errorInfo Is Nothing Then
-                    Return modifiersErrorInfo
-                End If
+            If refModifiersErrorInfo IsNot Nothing AndAlso refModifiersErrorInfo.Code = highestPriorityUseSiteError Then
+                Return refModifiersErrorInfo
             End If
 
-            Return errorInfo
+            Dim modifiersErrorInfo As DiagnosticInfo = DeriveUseSiteErrorInfoFromCustomModifiers(param.CustomModifiers)
+
+            If modifiersErrorInfo IsNot Nothing AndAlso modifiersErrorInfo.Code = highestPriorityUseSiteError Then
+                Return modifiersErrorInfo
+            End If
+
+            Return If(errorInfo, If(refModifiersErrorInfo, modifiersErrorInfo))
         End Function
 
         Friend Function DeriveUseSiteErrorInfoFromParameters(parameters As ImmutableArray(Of ParameterSymbol)) As DiagnosticInfo
@@ -1016,7 +1030,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overloads Shared Function GetUnificationUseSiteDiagnosticRecursive(parameters As ImmutableArray(Of ParameterSymbol), owner As Symbol, ByRef checkedTypes As HashSet(Of TypeSymbol)) As DiagnosticInfo
             For Each parameter In parameters
                 Dim info = If(parameter.Type.GetUnificationUseSiteDiagnosticRecursive(owner, checkedTypes),
-                              GetUnificationUseSiteDiagnosticRecursive(parameter.CustomModifiers, owner, checkedTypes))
+                              If(GetUnificationUseSiteDiagnosticRecursive(parameter.RefCustomModifiers, owner, checkedTypes),
+                                    GetUnificationUseSiteDiagnosticRecursive(parameter.CustomModifiers, owner, checkedTypes)))
 
                 If info IsNot Nothing Then
                     Return info
@@ -1196,5 +1211,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
 #End Region
+
+        Protected Shared Function ConstructTypeArguments(ParamArray typeArguments() As ITypeSymbol) As ImmutableArray(Of TypeSymbol)
+            Dim builder = ArrayBuilder(Of TypeSymbol).GetInstance(typeArguments.Length)
+            For Each typeArg In typeArguments
+                builder.Add(typeArg.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(typeArguments)))
+            Next
+            Return builder.ToImmutableAndFree()
+        End Function
+
+        Protected Shared Function ConstructTypeArguments(typeArguments As ImmutableArray(Of ITypeSymbol), typeArgumentNullableAnnotations As ImmutableArray(Of CodeAnalysis.NullableAnnotation)) As ImmutableArray(Of TypeSymbol)
+            If typeArguments.IsDefault Then
+                Throw New ArgumentException(NameOf(typeArguments))
+            End If
+
+            Dim n = typeArguments.Length
+            If Not typeArgumentNullableAnnotations.IsDefault AndAlso typeArgumentNullableAnnotations.Length <> n Then
+                Throw New ArgumentException(NameOf(typeArgumentNullableAnnotations))
+            End If
+
+            Return typeArguments.SelectAsArray(Function(typeArg) typeArg.EnsureVbSymbolOrNothing(Of TypeSymbol)(NameOf(typeArguments)))
+        End Function
+
+        Private Overloads Function IFormattable_ToString(format As String, formatProvider As IFormatProvider) As String Implements IFormattable.ToString
+            Return ToString()
+        End Function
     End Class
 End Namespace

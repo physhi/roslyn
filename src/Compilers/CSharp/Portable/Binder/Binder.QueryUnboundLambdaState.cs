@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 {
     internal partial class Binder
     {
-        private delegate BoundBlock LambdaBodyFactory(LambdaSymbol lambdaSymbol, ref Binder lambdaBodyBinder, DiagnosticBag diagnostics);
+        private delegate BoundBlock LambdaBodyFactory(LambdaSymbol lambdaSymbol, Binder lambdaBodyBinder, DiagnosticBag diagnostics);
 
         private class QueryUnboundLambdaState : UnboundLambdaState
         {
@@ -34,7 +34,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             public override RefKind RefKind(int index) { return Microsoft.CodeAnalysis.RefKind.None; }
             public override MessageID MessageID { get { return MessageID.IDS_FeatureQueryExpression; } } // TODO: what is the correct ID here?
             public override Location ParameterLocation(int index) { return _parameters[index].Locations[0]; }
-            public override TypeSymbol ParameterType(int index) { throw new ArgumentException(); } // implicitly typed
+            public override TypeWithAnnotations ParameterTypeWithAnnotations(int index) { throw new ArgumentException(); } // implicitly typed
 
             public override void GenerateAnonymousFunctionConversionError(DiagnosticBag diagnostics, TypeSymbol targetType)
             {
@@ -47,9 +47,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return new WithQueryLambdaParametersBinder(lambdaSymbol, _rangeVariableMap, binder);
             }
 
-            protected override BoundBlock BindLambdaBody(LambdaSymbol lambdaSymbol, ref Binder lambdaBodyBinder, DiagnosticBag diagnostics)
+            protected override BoundBlock BindLambdaBody(LambdaSymbol lambdaSymbol, Binder lambdaBodyBinder, DiagnosticBag diagnostics)
             {
-                return _bodyFactory(lambdaSymbol, ref lambdaBodyBinder, diagnostics);
+                return _bodyFactory(lambdaSymbol, lambdaBodyBinder, diagnostics);
             }
         }
     }
