@@ -12,6 +12,48 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
     public class StructTests : FlowTestBase
     {
         [Fact]
+        [CompilerTrait(CompilerFeature.Tuples)]
+        public void TupleFieldNameAliasing()
+        {
+            var comp = CreateCompilationWithMscorlib40(@"
+using System;
+
+class C
+{
+    void M()
+    {
+        (int x, int y) t;
+        t.x = 0;
+        Console.Write(t.x);
+        Console.Write(t.Item1);
+    }
+    void M2()
+    {
+        (int x, int y) t;
+        Console.Write(t.y);
+        // No error, error is reported once per field
+        // and t.Item2 is alias for the same field
+        Console.Write(t.Item2);
+    }
+    void M3()
+    {
+        (int x, int y) t;
+        Console.Write(t.Item2);
+        // No error, error is reported once per field
+        // and t.y is alias for the same field
+        Console.Write(t.y);
+    }
+}", references: new[] { SystemRuntimeFacadeRef, ValueTupleRef });
+            comp.VerifyDiagnostics(
+                // (16,23): error CS0170: Use of possibly unassigned field 'y'
+                //         Console.Write(t.y);
+                Diagnostic(ErrorCode.ERR_UseDefViolationField, "t.y").WithArguments("y").WithLocation(16, 23),
+                // (24,23): error CS0170: Use of possibly unassigned field 'Item2'
+                //         Console.Write(t.Item2);
+                Diagnostic(ErrorCode.ERR_UseDefViolationField, "t.Item2").WithArguments("Item2").WithLocation(24, 23));
+        }
+
+        [Fact]
         public void SelfDefaultConstructor()
         {
             string program = @"
@@ -21,7 +63,7 @@ struct S
     public S(int x, int y) : this() { this.x = x; this.y = y; }
 }
 ";
-            var comp = CreateCompilationWithMscorlib(program);
+            var comp = CreateCompilation(program);
             comp.VerifyDiagnostics();
 
             var structType = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("S");
@@ -36,7 +78,7 @@ struct S
             Assert.Equal(0, synthesizedConstructor.Parameters.Length);
         }
 
-        [Fact, WorkItem(543133, "DevDiv")]
+        [Fact, WorkItem(543133, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543133")]
         public void FieldAssignedAndReferenced()
         {
             var text =
@@ -55,7 +97,7 @@ class Program
  
 struct P { public int X; }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics();
         }
 
@@ -86,7 +128,7 @@ class C
         }
 
         [Fact]
-        [WorkItem(545509, "DevDiv")]
+        [WorkItem(545509, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545509")]
         public void StructIndexerReceiver()
         {
             string program = @"
@@ -104,7 +146,7 @@ struct SafeBitVector
             _data = value ? _data | bit : _data & ~bit;
         }
     }
-    internal bool Foo(int bit)
+    internal bool Goo(int bit)
     {
         return this[bit];
     }
@@ -113,7 +155,7 @@ struct SafeBitVector
 class SectionInformation
 {
     SafeBitVector _flags;
-    internal bool Foo(int x)
+    internal bool Goo(int x)
     {
         return _flags[x];
     }
@@ -122,17 +164,17 @@ class SectionInformation
 class SectionInformation2
 {
     SafeBitVector _flags;
-    internal bool Foo(int x)
+    internal bool Goo(int x)
     {
-        return _flags.Foo(x);
+        return _flags.Goo(x);
     }
 }";
-            var comp = CreateCompilationWithMscorlib(program);
+            var comp = CreateCompilation(program);
             comp.VerifyDiagnostics();
         }
 
         [Fact]
-        [WorkItem(545710, "DevDiv")]
+        [WorkItem(545710, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545710")]
         public void StructFieldWithAssignedPropertyMembers()
         {
             string program = @"
@@ -154,12 +196,12 @@ class GraphicsContext
     }
     public PointF TransformOffset { get { return this.transformOffset; } }
 }";
-            var comp = CreateCompilationWithMscorlib(program);
+            var comp = CreateCompilation(program);
             comp.VerifyDiagnostics();
         }
 
         [Fact]
-        [WorkItem(874526)]
+        [WorkItem(874526, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/874526")]
         public void GenericStructWithPropertyUsingStruct()
         {
             var source =
@@ -167,16 +209,16 @@ class GraphicsContext
 {
     S<T[]>? P { get; set; }
 }";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (3,13): error CS0523: Struct member 'S<T>.P' of type 'S<T[]>?' causes a cycle in the struct layout
                 //     S<T[]>? P { get; set; }
                 Diagnostic(ErrorCode.ERR_StructLayoutCycle, "P").WithArguments("S<T>.P", "S<T[]>?").WithLocation(3, 13));
         }
 
-        [Fact, WorkItem(1017887)]
+        [Fact, WorkItem(1017887, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1017887")]
         public void EmptyStructsFromMetadata()
         {
-            var comp1 = CreateCompilationWithMscorlib(
+            var comp1 = CreateCompilation(
 @"public struct StructWithReference
 {
     string PrivateData;
@@ -200,7 +242,7 @@ public struct StructWithValue
         var v2 = v1;
     }
 }";
-            CreateCompilationWithMscorlib(source2,
+            CreateCompilation(source2,
                 options: TestOptions.ReleaseDll,
                 references: new MetadataReference[] { sourceReference },
                 parseOptions: TestOptions.Regular.WithStrictFeature()).VerifyDiagnostics(
@@ -211,7 +253,7 @@ public struct StructWithValue
                 //         var v2 = v1;
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "v1").WithArguments("v1").WithLocation(9, 18)
                 );
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
                 // NOTE: no errors expected because we treat all imported data the same as if imported from metadata.
                 ////// (6,18): error CS0165: Use of unassigned local variable 'r1'
                 //////         var r2 = r1;
@@ -220,17 +262,17 @@ public struct StructWithValue
                 //         var v2 = v1;
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "v1").WithArguments("v1").WithLocation(9, 18)
                 );
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
                 // (9,18): error CS0165: Use of unassigned local variable 'v1'
                 //         var v2 = v1;
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "v1").WithArguments("v1").WithLocation(9, 18)
                 );
         }
 
-        [Fact, WorkItem(1072447)]
+        [Fact, WorkItem(1072447, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072447")]
         public void DoNotIgnorePrivateStructFieldsOfTypeParameterTypeFromMetadata()
         {
-            var comp1 = CreateCompilationWithMscorlib(
+            var comp1 = CreateCompilation(
 @"public struct GenericStruct<T> where T : class
 {
     T PrivateData;
@@ -248,22 +290,22 @@ public struct StructWithValue
         var r2 = r1;
     }
 }";
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
                 // (6,18): error CS0165: Use of unassigned local variable 'r1'
                 //         var r2 = r1;
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "r1").WithArguments("r1").WithLocation(6, 18)
                 );
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
                 // (6,18): error CS0165: Use of unassigned local variable 'r1'
                 //         var r2 = r1;
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "r1").WithArguments("r1").WithLocation(6, 18)
                 );
         }
 
-        [Fact, WorkItem(1072447)]
+        [Fact, WorkItem(1072447, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072447")]
         public void IgnoreInternalStructFieldsOfReferenceTypeFromMetadata()
         {
-            var comp1 = CreateCompilationWithMscorlib(
+            var comp1 = CreateCompilation(
 @"public struct Struct
 {
     internal string data;
@@ -281,20 +323,20 @@ public struct StructWithValue
         var r2 = r1;
     }
 }";
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
                 // NOTE: no errors expected because we treat all imported data the same as if imported from metadata.
                 ////// (6,18): error CS0165: Use of unassigned local variable 'r1'
                 //////         var r2 = r1;
                 ////Diagnostic(ErrorCode.ERR_UseDefViolation, "r1").WithArguments("r1").WithLocation(6, 18)
                 );
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
                 );
         }
 
-        [Fact, WorkItem(1072447)]
+        [Fact, WorkItem(1072447, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072447")]
         public void IgnoreEffectivelyInternalStructFieldsOfReferenceTypeFromMetadata()
         {
-            var comp1 = CreateCompilationWithMscorlib(
+            var comp1 = CreateCompilation(
 @"
 internal class C1
 {
@@ -320,17 +362,17 @@ public struct Struct
         var r2 = r1;
     }
 }";
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { sourceReference }).VerifyDiagnostics(
                 // NOTE: no errors expected because we treat all imported data the same as if imported from metadata.
                 ////// (6,18): error CS0165: Use of unassigned local variable 'r1'
                 //////         var r2 = r1;
                 ////Diagnostic(ErrorCode.ERR_UseDefViolation, "r1").WithArguments("r1").WithLocation(6, 18)
                 );
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { metadataReference }).VerifyDiagnostics(
                 );
         }
 
-        [Fact, WorkItem(1072447)]
+        [Fact, WorkItem(1072447, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072447")]
         public void IgnoreEffectivelyInternalStructFieldsOfReferenceTypeFromAddedModule()
         {
             var source = @"
@@ -346,7 +388,7 @@ public struct Struct
     internal C1.S data;
 }
 ";
-            var comp1 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugModule);
+            var comp1 = CreateCompilation(source, options: TestOptions.DebugModule);
             var moduleReference = comp1.EmitToImageReference();
 
             var source2 =
@@ -358,14 +400,14 @@ public struct Struct
         var r2 = r1;
     }
 }";
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { moduleReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { moduleReference }).VerifyDiagnostics(
                 // (6,18): error CS0165: Use of unassigned local variable 'r1'
                 //         var r2 = r1;
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "r1").WithArguments("r1").WithLocation(6, 18)
                 );
         }
 
-        [Fact, WorkItem(1072447)]
+        [Fact, WorkItem(1072447, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1072447")]
         public void IgnorePrivateStructFieldsOfReferenceTypeFromAddedModule02()
         {
             var source = @"
@@ -374,7 +416,7 @@ public struct Struct
     private string data;
 }
 ";
-            var comp1 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugModule);
+            var comp1 = CreateCompilation(source, options: TestOptions.DebugModule);
             var moduleReference = comp1.EmitToImageReference();
 
             var source2 =
@@ -386,7 +428,7 @@ public struct Struct
         var r2 = r1;
     }
 }";
-            CreateCompilationWithMscorlib(source2, references: new MetadataReference[] { moduleReference }).VerifyDiagnostics(
+            CreateCompilation(source2, references: new MetadataReference[] { moduleReference }).VerifyDiagnostics(
                 );
         }
     }

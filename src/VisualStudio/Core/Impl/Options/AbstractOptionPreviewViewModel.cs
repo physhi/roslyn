@@ -1,12 +1,14 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Data;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Preview;
@@ -39,13 +41,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
         private IContentTypeRegistryService _contentTypeRegistryService;
 
         public List<object> Items { get; set; }
+        public ObservableCollection<AbstractCodeStyleOptionViewModel> CodeStyleItems { get; set; }
 
-        public OptionSet Options { get; private set; }
+        public OptionSet Options { get; set; }
+        private readonly OptionSet _originalOptions;
 
         protected AbstractOptionPreviewViewModel(OptionSet options, IServiceProvider serviceProvider, string language)
         {
             this.Options = options;
+            _originalOptions = options;
             this.Items = new List<object>();
+            this.CodeStyleItems = new ObservableCollection<AbstractCodeStyleOptionViewModel>();
 
             _componentModel = (IComponentModel)serviceProvider.GetService(typeof(SComponentModel));
 
@@ -61,12 +67,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
 
         internal OptionSet ApplyChangedOptions(OptionSet optionSet)
         {
-            foreach (var optionKey in this.Options.GetAccessedOptions())
+            foreach (var optionKey in this.Options.GetChangedOptions(_originalOptions))
             {
-                if (ShouldPersistOption(optionKey))
-                {
-                    optionSet = optionSet.WithChangedOption(optionKey, this.Options.GetOption(optionKey));
-                }
+                optionSet = optionSet.WithChangedOption(optionKey, this.Options.GetOption(optionKey));
             }
 
             return optionSet;
@@ -74,13 +77,29 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
 
         public void SetOptionAndUpdatePreview<T>(T value, IOption option, string preview)
         {
-            if (option is PerLanguageOption<T>)
+            if (option is Option<CodeStyleOption<T>>)
+            {
+                var opt = Options.GetOption((Option<CodeStyleOption<T>>)option);
+                opt.Value = value;
+                Options = Options.WithChangedOption((Option<CodeStyleOption<T>>)option, opt);
+            }
+            else if (option is PerLanguageOption<CodeStyleOption<T>>)
+            {
+                var opt = Options.GetOption((PerLanguageOption<CodeStyleOption<T>>)option, Language);
+                opt.Value = value;
+                Options = Options.WithChangedOption((PerLanguageOption<CodeStyleOption<T>>)option, Language, opt);
+            }
+            else if (option is Option<T>)
+            {
+                Options = Options.WithChangedOption((Option<T>)option, value);
+            }
+            else if (option is PerLanguageOption<T>)
             {
                 Options = Options.WithChangedOption((PerLanguageOption<T>)option, Language, value);
             }
             else
             {
-                Options = Options.WithChangedOption((Option<T>)option, value);
+                throw new InvalidOperationException("Unexpected option type");
             }
 
             UpdateDocument(preview);
@@ -109,9 +128,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
 
         public void UpdatePreview(string text)
         {
-            const string start = "//[";
-            const string end = "//]";
-
             var service = MefV1HostServices.Create(_componentModel.DefaultExportProvider);
             var workspace = new PreviewWorkspace(service);
             var fileName = string.Format("project.{0}", Language == "C#" ? "csproj" : "vbproj");
@@ -141,20 +157,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
             var container = textBuffer.AsTextContainer();
             var documentBackedByTextBuffer = document.WithText(container.CurrentText);
 
-            var bufferText = textBuffer.CurrentSnapshot.GetText().ToString();
-            var startIndex = bufferText.IndexOf(start, StringComparison.Ordinal);
-            var endIndex = bufferText.IndexOf(end, StringComparison.Ordinal);
-            var startLine = textBuffer.CurrentSnapshot.GetLineNumberFromPosition(startIndex) + 1;
-            var endLine = textBuffer.CurrentSnapshot.GetLineNumberFromPosition(endIndex);
-
             var projection = _projectionBufferFactory.CreateProjectionBufferWithoutIndentation(_contentTypeRegistryService,
                 _editorOptions.CreateOptions(),
                 textBuffer.CurrentSnapshot,
-                "",
-                LineSpan.FromBounds(startLine, endLine));
+                separator: "",
+                exposedLineSpans: GetExposedLineSpans(textBuffer.CurrentSnapshot).ToArray());
 
             var textView = _textEditorFactoryService.CreateTextView(projection,
-              _textEditorFactoryService.CreateTextViewRoleSet(PredefinedTextViewRoles.Analyzable));
+              _textEditorFactoryService.CreateTextViewRoleSet(PredefinedTextViewRoles.Interactive));
 
             this.TextViewHost = _textEditorFactoryService.CreateTextViewHost(textView, setFocus: false);
 
@@ -166,6 +176,36 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
                 workspace.Dispose();
                 workspace = null;
             };
+        }
+
+        private static List<LineSpan> GetExposedLineSpans(ITextSnapshot textSnapshot)
+        {
+            const string start = "//[";
+            const string end = "//]";
+
+            var bufferText = textSnapshot.GetText().ToString();
+
+            var lineSpans = new List<LineSpan>();
+            var lastEndIndex = 0;
+
+            while (true)
+            {
+                var startIndex = bufferText.IndexOf(start, lastEndIndex, StringComparison.Ordinal);
+                if (startIndex == -1)
+                {
+                    break;
+                }
+
+                var endIndex = bufferText.IndexOf(end, lastEndIndex, StringComparison.Ordinal);
+
+                var startLine = textSnapshot.GetLineNumberFromPosition(startIndex) + 1;
+                var endLine = textSnapshot.GetLineNumberFromPosition(endIndex);
+
+                lineSpans.Add(LineSpan.FromBounds(startLine, endLine));
+                lastEndIndex = endIndex + end.Length;
+            }
+
+            return lineSpans;
         }
 
         public void Dispose()
@@ -181,7 +221,5 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
         {
             UpdatePreview(text);
         }
-
-        internal abstract bool ShouldPersistOption(OptionKey optionKey);
     }
 }

@@ -6,6 +6,7 @@ Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -106,7 +107,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' A non-empty SingleLookupResult with the result is returned.
         '
         ' For symbols from outside of this compilation the method also checks 
-        ' if the symbol is marked with 'Microsoft.VisualBasic.Embedded' attribute.
+        ' if the symbol is marked with 'Microsoft.VisualBasic.Embedded' or 'Microsoft.CodeAnalysis.Embedded' attributes.
         '
         ' If arity passed in is -1, no arity checks are done.
         Friend Function CheckViability(sym As Symbol,
@@ -152,9 +153,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 unwrappedSym = asAlias.Target
             End If
 
-            ' Check for external symbols marked with 'Microsoft.VisualBasic.Embedded' attribute
-            If unwrappedSym.ContainingModule IsNot Me.ContainingModule AndAlso unwrappedSym.IsHiddenByEmbeddedAttribute() Then
-                Return SingleLookupResult.Empty
+            ' Check for external symbols marked with 'Microsoft.VisualBasic.Embedded' or 'Microsoft.CodeAnalysis.Embedded' attributes
+            If unwrappedSym.ContainingModule IsNot Me.ContainingModule Then
+                If unwrappedSym.IsHiddenByVisualBasicEmbeddedAttribute() OrElse unwrappedSym.IsHiddenByCodeAnalysisEmbeddedAttribute() Then
+                    Return SingleLookupResult.Empty
+                End If
             End If
 
             If unwrappedSym.Kind = SymbolKind.NamedType AndAlso unwrappedSym.EmbeddedSymbolKind = EmbeddedSymbolKind.EmbeddedAttribute AndAlso
@@ -273,11 +276,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </remarks>
         Friend Function CanAddLookupSymbolInfo(sym As Symbol,
                                                     options As LookupOptions,
+                                                    nameSet As LookupSymbolsInfo,
                                                     accessThroughType As TypeSymbol) As Boolean
+            Debug.Assert(sym IsNot Nothing)
+
+            If Not nameSet.CanBeAdded(sym.Name) Then
+                Return False
+            End If
+
             Dim singleResult = CheckViability(sym, -1, options, accessThroughType, useSiteDiagnostics:=Nothing)
 
-            If sym IsNot Nothing AndAlso
-               (options And LookupOptions.MethodsOnly) <> 0 AndAlso
+            If (options And LookupOptions.MethodsOnly) <> 0 AndAlso
                sym.Kind <> SymbolKind.Method Then
                 Return False
             End If
@@ -307,21 +316,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(actualArity > arity, "arities shouldn't match")
                 Return ERRID.ERR_TooFewGenericArguments1
             End If
-        End Function
-
-        ' Check is a symbol has a speakable name.
-        Private Shared Function HasSpeakableName(sym As Symbol) As Boolean
-            ' TODO: this probably should move to Symbol -- e.g., Symbol.CanBeBoundByName
-            If sym.Kind = SymbolKind.Method Then
-                Select Case DirectCast(sym, MethodSymbol).MethodKind
-                    Case MethodKind.Ordinary, MethodKind.ReducedExtension, MethodKind.DelegateInvoke, MethodKind.UserDefinedOperator, MethodKind.Conversion, MethodKind.DeclareMethod
-                        Return True
-                    Case Else
-                        Return False
-                End Select
-            End If
-
-            Return True
         End Function
 
         ''' <summary>
@@ -412,6 +406,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(lookupResult.IsClear)
 
                 Dim sourceModule = binder.Compilation.SourceModule
+
+                ' Handle a case of being able to refer to System.Int32 through System.Integer.
+                ' Same for other intrinsic types with intrinsic name different from emitted name.
+                If (options And LookupOptions.AllowIntrinsicAliases) <> 0 AndAlso arity = 0 Then
+                    Dim containingNs = container.ContainingNamespace
+
+                    If containingNs IsNot Nothing AndAlso containingNs.IsGlobalNamespace AndAlso CaseInsensitiveComparison.Equals(container.Name, MetadataHelpers.SystemString) Then
+                        Dim specialType = GetTypeForIntrinsicAlias(name)
+
+                        If specialType <> SpecialType.None Then
+                            Dim candidate = binder.Compilation.GetSpecialType(specialType)
+
+                            ' Intrinsic alias works only if type is available
+                            If Not candidate.IsErrorType() Then
+                                lookupResult.MergeMembersOfTheSameNamespace(binder.CheckViability(candidate, arity, options, Nothing, useSiteDiagnostics), sourceModule, options)
+                            End If
+                        End If
+                    End If
+                End If
+
 #If DEBUG Then
                 Dim haveSeenNamespace As Boolean = False
 #End If
@@ -429,6 +443,29 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     lookupResult.MergeMembersOfTheSameNamespace(currentResult, sourceModule, options)
                 Next
             End Sub
+
+            Public Shared Function GetTypeForIntrinsicAlias(possibleAlias As String) As SpecialType
+                Dim aliasAsKeyword As SyntaxKind = SyntaxFacts.GetKeywordKind(possibleAlias)
+
+                Select Case aliasAsKeyword
+                    Case SyntaxKind.DateKeyword
+                        Return SpecialType.System_DateTime
+                    Case SyntaxKind.UShortKeyword
+                        Return SpecialType.System_UInt16
+                    Case SyntaxKind.ShortKeyword
+                        Return SpecialType.System_Int16
+                    Case SyntaxKind.UIntegerKeyword
+                        Return SpecialType.System_UInt32
+                    Case SyntaxKind.IntegerKeyword
+                        Return SpecialType.System_Int32
+                    Case SyntaxKind.ULongKeyword
+                        Return SpecialType.System_UInt64
+                    Case SyntaxKind.LongKeyword
+                        Return SpecialType.System_Int64
+                    Case Else
+                        Return SpecialType.None
+                End Select
+            End Function
 
             ''' <summary>
             ''' Lookup a member name in modules of a namespace, 
@@ -495,7 +532,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' Add names from the namespace
                 For Each sym In container.GetMembersUnordered()
                     ' UNDONE: filter by options
-                    If binder.CanAddLookupSymbolInfo(sym, options, Nothing) Then
+                    If binder.CanAddLookupSymbolInfo(sym, options, nameSet, Nothing) Then
                         nameSet.AddSymbol(sym, sym.Name, sym.GetArity())
                     End If
                 Next
@@ -1495,8 +1532,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                             ERRID.ERR_AmbiguousAcrossInterfaces3,
                                             symbols.ToImmutable,
                                             name,
-                                            symbols(i).ContainingType,
-                                            symbols(j).ContainingType)
+                                            CustomSymbolDisplayFormatter.DefaultErrorFormat(symbols(i).ContainingType),
+                                            CustomSymbolDisplayFormatter.DefaultErrorFormat(symbols(j).ContainingType))
 
                                 GoTo ExitForFor
                             End If
@@ -1966,6 +2003,10 @@ ExitForFor:
                                                                     typeParameter As TypeParameterSymbol,
                                                                     options As LookupOptions,
                                                                     binder As Binder)
+                If typeParameter.TypeParameterKind = TypeParameterKind.Cref Then
+                    Return
+                End If
+
                 AddLookupSymbolsInfoInTypeParameterNoExtensionMethods(nameSet, typeParameter, options, binder)
 
                 ' Search for extension methods.
@@ -2052,7 +2093,7 @@ ExitForFor:
                     ' validate them.
                     If TypeOf container Is NamedTypeSymbol Then
                         For Each sym In container.GetTypeMembersUnordered()
-                            If binder.CanAddLookupSymbolInfo(sym, options, accessThroughType) Then
+                            If binder.CanAddLookupSymbolInfo(sym, options, nameSet, accessThroughType) Then
                                 nameSet.AddSymbol(sym, sym.Name, sym.Arity)
                             End If
                         Next
@@ -2060,7 +2101,7 @@ ExitForFor:
                 ElseIf (options And LookupOptions.LabelsOnly) = 0 Then
                     ' Go through each member of the type.
                     For Each sym In container.GetMembersUnordered()
-                        If binder.CanAddLookupSymbolInfo(sym, options, accessThroughType) Then
+                        If binder.CanAddLookupSymbolInfo(sym, options, nameSet, accessThroughType) Then
                             nameSet.AddSymbol(sym, sym.Name, sym.GetArity())
                         End If
                     Next

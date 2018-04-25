@@ -12,7 +12,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
         Inherits BasicTestBase
 
         ' In Dev10 (and earlier), this didn't generate an error.
-        <Fact, WorkItem(529599, "DevDiv")>
+        <Fact, WorkItem(529599, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529599")>
         Public Sub ParsePreprocessorEndIfInMethodBody()
             ParseAndVerify(<![CDATA[
                 Module Module1
@@ -66,17 +66,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
         ''' Roslyn doesn't give warning BC30934 while Dev10 does (Eval ctor as no const)
         '''  but gives new warning BC42025 for accessing const field through object instance
         ''' This is an improvement in Roslyn that we are able to eval the const access through 'new object()' instance
-        <WorkItem(528223, "DevDiv")>
+        <WorkItem(528223, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528223")>
         <Fact>
         Public Sub BC30934ERR_RequiredAttributeConstConversion2_1()
-            Dim errs = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim errs = CompilationUtils.CreateCompilationWithMscorlib40(
     <compilation>
         <file name="a.vb"><![CDATA[
 Imports System
 Class Test
     Const x = ""
-    <Obsolete(Foo(New Test()).x)>
-    Shared Function Foo(ByVal x As Object) As Test
+    <Obsolete(Goo(New Test()).x)>
+    Shared Function Goo(ByVal x As Object) As Test
         Return Nothing
     End Function
 End Class
@@ -87,7 +87,7 @@ End Class
             Assert.Equal(DiagnosticSeverity.Warning, errs(0).Severity)
         End Sub
 
-        <Fact(), WorkItem(542389, "DevDiv")>
+        <Fact(), WorkItem(542389, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542389")>
         Public Sub BC30519_InferVariableAsRHSValueType()
             Dim text =
 <compilation>
@@ -110,15 +110,15 @@ End Namespace
 </compilation>
 
             ' Not Breaking anymore - Dev11 gives NO error
-            CreateCompilationWithMscorlibAndVBRuntime(text).VerifyDiagnostics()
+            CreateCompilationWithMscorlib40AndVBRuntime(text).VerifyDiagnostics()
 
         End Sub
 
-        <WorkItem(531529, "DevDiv")>
-        <WorkItem(543241, "DevDiv")>
+        <WorkItem(531529, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531529")>
+        <WorkItem(543241, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543241")>
         <Fact()>
         Public Sub BC42104WRN_DefAsgUseNullRef01()
-            Dim errs = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim errs = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation>
         <file name="a.vb"><![CDATA[
 Imports System
@@ -146,11 +146,11 @@ End Module
             'Assert.Equal(DiagnosticSeverity.Warning, errs(0).Severity)
         End Sub
 
-        <WorkItem(543241, "DevDiv")>
-        <WorkItem(531310, "DevDiv")>
+        <WorkItem(543241, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543241")>
+        <WorkItem(531310, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531310")>
         <Fact()>
         Public Sub BC42104WRN_DefAsgUseNullRef02()
-            Dim errs = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim errs = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation>
         <file name="a.vb"><![CDATA[
 Imports System
@@ -177,10 +177,10 @@ End Module
             'Assert.Equal(DiagnosticSeverity.Warning, errs(0).Severity)
         End Sub
 
-        <WorkItem(543241, "DevDiv")>
+        <WorkItem(543241, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543241")>
         <Fact()>
         Public Sub BC42109WRN_DefAsgUseNullRefStr01()
-            Dim errs = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim errs = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation>
         <file name="a.vb"><![CDATA[
 Imports System
@@ -209,7 +209,7 @@ End Module
             Assert.Equal(DiagnosticSeverity.Warning, errs(0).Severity)
         End Sub
 
-        <WorkItem(529262, "DevDiv")>
+        <WorkItem(529262, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529262")>
         <Fact()>
         Public Sub PartialMethod_EmitNamesInProperCase()
             CompileAndVerify(
@@ -234,7 +234,7 @@ End Class
 </compilation>, expectedOutput:="Void M[T,U](T, U) | T X, U Y") 'Dev10 would emit "Void m[t,u](t, u) | t x, u y"
         End Sub
 
-        <WorkItem(529261, "DevDiv")>
+        <WorkItem(529261, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529261")>
         <Fact()>
         Public Sub PartialMethod_AllowNonExecutableStatements()
             'Dev10 used to report errors for each of the three cases identified below. Roslyn doesn't.
@@ -273,10 +273,10 @@ End Module
                              </compilation>, expectedOutput:="Success")
         End Sub
 
-        <WorkItem(543241, "DevDiv")>
+        <WorkItem(543241, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543241")>
         <Fact()>
         Public Sub BC42109WRN_DefAsgUseNullRefStr02()
-            Dim errs = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim errs = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation>
         <file name="a.vb"><![CDATA[
 Imports System
@@ -304,10 +304,10 @@ End Module
             Assert.Equal(DiagnosticSeverity.Warning, errs(0).Severity)
         End Sub
 
-        <WorkItem(544500, "DevDiv")>
+        <WorkItem(544500, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544500")>
         <Fact>
         Public Sub PartialConstructors()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
 <compilation>
     <file name="a.vb">
 Imports System
@@ -352,10 +352,10 @@ BC30269: 'Private Sub New(x As T, y As C1(Of U, V).C1(Of U), z As U, w As C1(Of 
 </errors>)
         End Sub
 
-        <WorkItem(544500, "DevDiv")>
+        <WorkItem(544500, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544500")>
         <Fact>
         Public Sub PartialConstructors2()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(
 <compilation>
     <file name="a.vb">
 Imports System
@@ -380,35 +380,35 @@ BC36969: 'Sub New' cannot be declared 'Partial'.
 </errors>)
         End Sub
 
-        <WorkItem(528311, "DevDiv")>
+        <WorkItem(528311, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528311")>
         <Fact()>
         Public Sub TestHideBySigChangeForOverriddenMethods()
             Dim vbCompilation = CreateVisualBasicCompilation("TestHideBySigChangeForOverriddenMethods",
             <![CDATA[Imports System
 
 Public Class Class1
-    Public Sub Foo(i As Integer)
-        Console.WriteLine("Class1.Foo(i As Integer)")
+    Public Sub Goo(i As Integer)
+        Console.WriteLine("Class1.Goo(i As Integer)")
     End Sub
-    Public Overridable Sub Foo()
-        Console.WriteLine("Class1.Foo()")
+    Public Overridable Sub Goo()
+        Console.WriteLine("Class1.Goo()")
     End Sub
 End Class
 
 Public Class Class2 : Inherits Class1
-    Public Overrides Sub Foo()
-        Console.WriteLine("Class2.Foo()")
+    Public Overrides Sub Goo()
+        Console.WriteLine("Class2.Goo()")
     End Sub
 End Class
 
 Public Module Program
     Sub Main(args As String())
         Dim b As Class1 = New Class2
-        b.Foo
-        b.Foo(1)
+        b.Goo
+        b.Goo(1)
         Dim d As Class2 = New Class2
-        d.Foo
-        d.Foo(1)
+        d.Goo
+        d.Goo(1)
     End Sub
 End Module]]>,
                 compilationOptions:=New VisualBasicCompilationOptions(OutputKind.ConsoleApplication))
@@ -429,14 +429,14 @@ End Module]]>,
             'TODO: Add tests for the latebinder breaks (See Dev10 bug 850631,849009).
 
             Dim vbVerifier = CompileAndVerify(vbCompilation,
-                expectedOutput:=<![CDATA[Class2.Foo()
-Class1.Foo(i As Integer)
-Class2.Foo()
-Class1.Foo(i As Integer)
+                expectedOutput:=<![CDATA[Class2.Goo()
+Class1.Goo(i As Integer)
+Class2.Goo()
+Class1.Goo(i As Integer)
 ]]>,
                 expectedSignatures:=
                 {
-                    Signature("Class2", "Foo", ".method public hidebysig strict virtual instance System.Void Foo() cil managed")
+                    Signature("Class2", "Goo", ".method public hidebysig strict virtual instance System.Void Goo() cil managed")
                 })
 
             vbVerifier.VerifyDiagnostics()
@@ -451,16 +451,16 @@ public class Program
     public static void Main()
     {
         Class3 d = new Class3();
-        d.Foo();
+        d.Goo();
 
         // The below line would fail to compile in Dev10 (with following error).
-        // error CS1501: No overload for method 'Foo' takes 1 arguments.
+        // error CS1501: No overload for method 'Goo' takes 1 arguments.
         // In Roslyn this works fine.
-        d.Foo(1);
+        d.Goo(1);
 
         Class1 b = d;
-        b.Foo();
-        b.Foo(1);
+        b.Goo();
+        b.Goo(1);
     }
 }]]>,
                 compilationOptions:=New CSharp.CSharpCompilationOptions(OutputKind.ConsoleApplication),
@@ -468,7 +468,7 @@ public class Program
             csCompilation.VerifyDiagnostics() 'No errors
         End Sub
 
-        <Fact(), WorkItem(529471, "DevDiv")>
+        <Fact(), WorkItem(529471, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529471")>
         Public Sub LiftedLogicalOperationsNoSideEffect()
             CompileAndVerify(
                 <compilation>
@@ -479,7 +479,7 @@ Module M
     Sub Main()
         Dim b As Boolean? = False
         Console.Write("F OrElse F=")
-        If b OrElse Foo(b) Then
+        If b OrElse Goo(b) Then
             Console.Write("True |")
         Else
             Console.Write("False |")
@@ -495,8 +495,8 @@ Module M
 
         Dim bF As Boolean? = False
         Dim bT As Boolean? = True
-        Console.Write("F Or F={0} | ", bF Or Foo(bF))
-        Console.Write("T Or F={0} | ", bT Or Foo(bT))
+        Console.Write("F Or F={0} | ", bF Or Goo(bF))
+        Console.Write("T Or F={0} | ", bT Or Goo(bT))
         bF = False
         bT = True
         Console.Write("T And T={0} | ", bT And Bar(bT))
@@ -504,7 +504,7 @@ Module M
 
     End Sub
 
-    Function Foo(ByRef b As Boolean?) As Boolean?
+    Function Goo(ByRef b As Boolean?) As Boolean?
         b = Not b
         Return False
     End Function
@@ -518,12 +518,12 @@ End Module
                 </compilation>, expectedOutput:="F OrElse F=False |T AndAlso T=True | F Or F=False | T Or F=True | T And T=True | F And T=False")
         End Sub
 
-        <Fact(), WorkItem(545050, "DevDiv")>
+        <Fact(), WorkItem(545050, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545050")>
         Public Sub NoBC32126ERR_AddressOfNullableMethod_Static()
 
             ' Native: error BC32126: Methods of 'System.Nullable(Of T)' cannot be used as operands of the 'AddressOf' operator.
             ' Roslyn: No error
-            CreateCompilationWithMscorlibAndVBRuntime(
+            CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation>
         <file name="a.vb">
             Imports System
@@ -537,26 +537,26 @@ End Module
     </compilation>).AssertNoDiagnostics()
         End Sub
 
-        <Fact(), WorkItem(529544, "DevDiv")>
+        <Fact(), WorkItem(529544, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529544")>
         Public Sub TestMissingSynchronizedFlagForEvents()
             Dim comp = CreateVisualBasicCompilation("TestMissingSynchronizedFlagForEvents",
             <![CDATA[Public Class C1
-    Public Event foo()
+    Public Event goo()
 End Class]]>,
                 compilationOptions:=New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
 
-            ' In Dev11, we used to emit an additional 'synchronized' metadata flag in the signature of add_foo() and remove_foo() methods below.
+            ' In Dev11, we used to emit an additional 'synchronized' metadata flag in the signature of add_goo() and remove_goo() methods below.
 
             Dim verifier = CompileAndVerify(comp, expectedSignatures:=
             {
-                Signature("C1", "add_foo", ".method [System.Runtime.CompilerServices.CompilerGeneratedAttribute()] public specialname instance System.Void add_foo(C1+fooEventHandler obj) cil managed"),
-                Signature("C1", "remove_foo", ".method [System.Runtime.CompilerServices.CompilerGeneratedAttribute()] public specialname instance System.Void remove_foo(C1+fooEventHandler obj) cil managed")
+                Signature("C1", "add_goo", ".method [System.Runtime.CompilerServices.CompilerGeneratedAttribute()] public specialname instance System.Void add_goo(C1+gooEventHandler obj) cil managed"),
+                Signature("C1", "remove_goo", ".method [System.Runtime.CompilerServices.CompilerGeneratedAttribute()] public specialname instance System.Void remove_goo(C1+gooEventHandler obj) cil managed")
             })
 
             verifier.VerifyDiagnostics()
         End Sub
 
-        <Fact, WorkItem(529653, "DevDiv")>
+        <Fact, WorkItem(529653, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529653")>
         Public Sub TestExecutionOrderForHandles()
             Dim vbCompilation = CreateVisualBasicCompilation("TestExecutionOrderForHandles",
             <![CDATA[Option Strict Off
@@ -617,7 +617,7 @@ Base F]]>)
             vbVerifier.VerifyDiagnostics()
         End Sub
 
-        <Fact, WorkItem(529574, "DevDiv")>
+        <Fact, WorkItem(529574, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529574")>
         Public Sub TestCrossLanguageOptionalAndParamarrayForHandles()
             Dim csCompilation = CreateCSharpCompilation("TestCrossLanguageOptionalAndParamarrayForHandles_CS",
             <![CDATA[public class CSClass
@@ -635,16 +635,16 @@ Base F]]>)
             <![CDATA[
 Public Class VBClass : Inherits CSClass
     Public WithEvents w As CSClass = New CSClass
-    Function Foo(x As String) Handles w.ev, MyBase.ev, MyClass.ev
+    Function Goo(x As String) Handles w.ev, MyBase.ev, MyClass.ev
         Return 0
     End Function
-    Function Foo(x As String, ParamArray y() As Integer) Handles w.ev, MyBase.ev, MyClass.ev
+    Function Goo(x As String, ParamArray y() As Integer) Handles w.ev, MyBase.ev, MyClass.ev
         Return 0
     End Function
-    Function Foo2(Optional x As String = "") Handles w.ev, MyBase.ev, MyClass.ev
+    Function Goo2(Optional x As String = "") Handles w.ev, MyBase.ev, MyClass.ev
         Return 0
     End Function
-    Function Foo2(x As String, y() As Integer) Handles w.ev, MyBase.ev, MyClass.ev
+    Function Goo2(x As String, y() As Integer) Handles w.ev, MyBase.ev, MyClass.ev
         Return 0
     End Function
 End Class
@@ -661,15 +661,15 @@ End Module]]>,
             'Breaking Change: Dev11 allows above repro to compile while Roslyn reports following errors.
             'This was approved in VB LDB on 8/1/2012. See bug 13578 for more details.
             vbCompilation.VerifyDiagnostics(
-                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Foo", "ev"),
-                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Foo", "ev"),
-                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Foo", "ev"),
-                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Foo2", "ev"),
-                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Foo2", "ev"),
-                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Foo2", "ev"))
+                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo", "ev"),
+                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo", "ev"),
+                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo", "ev"),
+                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo2", "ev"),
+                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo2", "ev"),
+                Diagnostic(ERRID.ERR_EventHandlerSignatureIncompatible2, "ev").WithArguments("Goo2", "ev"))
         End Sub
 
-        <Fact, WorkItem(569036, "DevDiv")>
+        <Fact, WorkItem(569036, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/569036")>
         Public Sub DifferenceInExceptionEvaluationWithRoslyn()
             CompileAndVerify(
 <compilation>
@@ -691,14 +691,14 @@ Module Module1
             Return GetType(T)
         End Function
  
-        Public Function foo_exc() As Integer
+        Public Function goo_exc() As Integer
             Throw New ArgumentException
-            foo_exc = 1
+            goo_exc = 1
         End Function
  
-        Public Function foo_eval_check(ByRef arg As Integer) As Integer?
+        Public Function goo_eval_check(ByRef arg As Integer) As Integer?
             arg = arg + 1
-            foo_eval_check = 1
+            goo_eval_check = 1
         End Function
 
     Dim eval
@@ -706,7 +706,7 @@ Module Module1
     Sub Main()
         eval = 19
         Try
-            Dim x = CheckType(foo_eval_check(eval) / foo_exc())
+            Dim x = CheckType(goo_eval_check(eval) / goo_exc())
             Console.Write("Exception expected ")
         Catch ex As ArgumentException
             Console.Write("19:")

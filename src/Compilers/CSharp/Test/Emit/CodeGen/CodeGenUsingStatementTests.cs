@@ -952,7 +952,7 @@ After");
 }");
         }
 
-        [Fact, WorkItem(543249, "DevDiv")]
+        [Fact, WorkItem(543249, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543249")]
         public void UsingInCatchBlock()
         {
             var text = @"
@@ -1147,7 +1147,7 @@ class Gen<T>
 	}
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "obj").WithArguments("T"));
+            CreateCompilation(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "obj").WithArguments("T"));
         }
 
         [Fact]
@@ -1182,7 +1182,7 @@ class Gen<T> where T : new()
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (13,16): error CS1674: 'T': type used in a using statement must be implicitly convertible to 'System.IDisposable'
                 //         using (val)
                 Diagnostic(ErrorCode.ERR_NoConvToIDisp, "val").WithArguments("T"),
@@ -1198,7 +1198,7 @@ class Gen<T> where T : new()
             var source = @"
 class Program
 {
-    static void foo(ref MyManagedClass x, out MyManagedClass y)
+    static void goo(ref MyManagedClass x, out MyManagedClass y)
     {
         using (x)
         {
@@ -1216,7 +1216,7 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_UseDefViolationOut, "y").WithArguments("y"));
+            CreateCompilation(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_UseDefViolationOut, "y").WithArguments("y"));
         }
 
         // Doesn't implement IDisposable, but has a Dispose() function
@@ -1226,7 +1226,7 @@ class Program
             var source = @"
 class Program
 {
-    static void foo()
+    static void goo()
     {
         MyManagedClass res = new MyManagedClass();
         using (res) // Invalid
@@ -1240,7 +1240,7 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "res").WithArguments("Program.MyManagedClass"));
+            CreateCompilation(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "res").WithArguments("Program.MyManagedClass"));
         }
 
         [Fact]
@@ -1249,7 +1249,7 @@ class Program
             var source = @"
 class Program
 {
-    static void foo()
+    static void goo()
     {
         MyManagedClass res = new MyManagedClass();
         using (res) // Invalid
@@ -1263,7 +1263,7 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "res").WithArguments("Program.MyManagedClass"));
+            CreateCompilation(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "res").WithArguments("Program.MyManagedClass"));
         }
 
         // Implicit implement IDisposable
@@ -1274,7 +1274,7 @@ class Program
 using System;
 class Program
 {
-    static void foo()
+    static void goo()
     {
         MyManagedClass res = new MyManagedClass();
         using (res) 
@@ -1288,7 +1288,7 @@ class Program
     }
 }
 ";
-            CompileAndVerify(source).VerifyIL("Program.foo", @"
+            CompileAndVerify(source).VerifyIL("Program.goo", @"
 {
   // Code size       19 (0x13)
   .maxstack  1
@@ -1364,7 +1364,7 @@ class Program
 using System;
 class Program
 {
-    static void foo()
+    static void goo()
     {
         MyManagedClass res = new MyManagedClass();
         using (res) 
@@ -1378,7 +1378,7 @@ class Program
     }
 }
 ";
-            CompileAndVerify(source).VerifyIL("Program.foo", @"
+            CompileAndVerify(source).VerifyIL("Program.goo", @"
 {
   // Code size       19 (0x13)
   .maxstack  1
@@ -1952,7 +1952,7 @@ Dispose";
         }
 
         // Dispose() called for nested using
-        [Fact, WorkItem(528943, "DevDiv")]
+        [Fact, WorkItem(528943, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528943")]
         public void DisposeCalled_NestedUsing()
         {
             var source = @"
@@ -2124,7 +2124,7 @@ struct MyManagedClass : IDisposable
         }
 
         // Dispose() called for first objects with exception thrown after second block
-        [Fact, WorkItem(542982, "DevDiv")]
+        [Fact, WorkItem(542982, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542982")]
         public void DisposeCalledAfterThrow_NestedUsing()
         {
             var source = @"
@@ -2196,7 +2196,7 @@ struct  MyManagedClass : IDisposable
 }");
         }
 
-        [Fact, WorkItem(542982, "DevDiv")]
+        [Fact, WorkItem(542982, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542982")]
         public void DisposeCalledAfterThrow_NestedUsing_2()
         {
             var source = @"
@@ -2281,7 +2281,7 @@ struct  MyManagedClass : IDisposable
     {  }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (8,18): error CS1026: ) expected
                 //         using (r1;r2) // Invalid
                 Diagnostic(ErrorCode.ERR_CloseParenExpected, ";"),
@@ -2297,7 +2297,7 @@ struct  MyManagedClass : IDisposable
         }
 
         // Multiple objects can be used in with a using statement, but they must be declared inside the using statement
-        [Fact, WorkItem(542982, "DevDiv")]
+        [Fact, WorkItem(542982, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542982")]
         public void MultipleResourceInUsing_2()
         {
             var source = @"
@@ -2317,11 +2317,11 @@ struct MyManagedClass1 : IDisposable
     { }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_FixedMustInit, "res2"));
+            CreateCompilation(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_FixedMustInit, "res2"));
         }
 
         // Dispose() called for both objects when exception thrown in compound case
-        [Fact, WorkItem(528943, "DevDiv")]
+        [Fact, WorkItem(528943, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528943")]
         public void DisposeCalledForMultiResources()
         {
             var source = @"
@@ -2386,7 +2386,7 @@ struct MyManagedClass1 : IDisposable
         }
 
         // Dangling using keyword
-        [WorkItem(528933, "DevDiv")]
+        [WorkItem(528933, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528933")]
         [Fact]
         public void DanglingUsing()
         {
@@ -2399,7 +2399,7 @@ class A
 	}
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (6,8): error CS1003: Syntax error, '(' expected
                 // 		using
                 Diagnostic(ErrorCode.ERR_SyntaxError, "").WithArguments("(", "}"),
@@ -2438,7 +2438,7 @@ class MyManagedClass1 : IDisposable
     {  }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
+            CreateCompilation(source).VerifyDiagnostics();
         }
 
         // Query expression in using statement
@@ -2457,7 +2457,7 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlibAndSystemCore(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "from x in new int[] { 1 } select x").WithArguments("System.Collections.Generic.IEnumerable<int>"));
+            CreateCompilationWithMscorlib40AndSystemCore(source).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_NoConvToIDisp, "from x in new int[] { 1 } select x").WithArguments("System.Collections.Generic.IEnumerable<int>"));
         }
 
         // Error when using a lambda in a using()
@@ -2481,7 +2481,7 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (6,16): error CS1674: 'lambda expression': type used in a using statement must be implicitly convertible to 'System.IDisposable'
                 //         using (x => x)     // err
                 Diagnostic(ErrorCode.ERR_NoConvToIDisp, "x => x").WithArguments("lambda expression"),
@@ -2521,7 +2521,7 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
     // (6,16): error CS1674: '<empty anonymous type>': type used in a using statement must be implicitly convertible to 'System.IDisposable'
     //         using (var a = new { })
     Diagnostic(ErrorCode.ERR_NoConvToIDisp, "var a = new { }").WithArguments("<empty anonymous type>"),
@@ -2590,7 +2590,7 @@ using System;
 delegate T D1<T>(T t);
 class A1
 {
-    static void Foo<T>(T t) where T : IDisposable
+    static void Goo<T>(T t) where T : IDisposable
     {
         T local = t;
         using (T t1 = ((D1<T>)delegate(T tt) { return t; })(t))
@@ -2602,11 +2602,11 @@ class A1
     }
 }
 ";
-            CreateCompilationWithMscorlibAndSystemCore(source).VerifyDiagnostics();
+            CreateCompilationWithMscorlib40AndSystemCore(source).VerifyDiagnostics();
         }
 
         // Put the using around the try
-        [Fact, WorkItem(528943, "DevDiv")]
+        [Fact, WorkItem(528943, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528943")]
         public void UsingAroundTry()
         {
             var source = @"
@@ -2777,7 +2777,7 @@ struct A : System.IDisposable
             CompileAndVerify(source, expectedOutput: "5");
         }
 
-        [Fact, WorkItem(1077204)]
+        [Fact, WorkItem(1077204, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1077204")]
         public void TestValueTypeUsingVariableFieldsAreReadonly()
         {
             const string source = @"
@@ -2810,7 +2810,7 @@ struct A : System.IDisposable
             CompileAndVerify(source, expectedOutput: "0");
         }
 
-        [Fact, WorkItem(1077204)]
+        [Fact, WorkItem(1077204, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1077204")]
         public void TestValueTypeUsingVariableFieldsAreReadonly2()
         {
             const string source = @"

@@ -3,7 +3,7 @@
 using Roslyn.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,23 +16,11 @@ using static Microsoft.CodeAnalysis.CommandLine.CompilerServerLogger;
 // This file describes data structures about the protocol from client program to server that is 
 // used. The basic protocol is this.
 //
-// Server creates a named pipe with name ProtocolConstants.PipeName, with the server process id
-// appended to that pipe name.
-//
-// Client enumerates all processes on the machine, search for one with the correct fully qualified
-// executable name. If none are found, that executable is started. The client then connects
-// to the named pipe, and writes a single request, as represented by the Request structure.
-// If a pipe is disconnected, and it didn't create that process, the clients continues trying to 
-// connect.
-//
 // After the server pipe is connected, it forks off a thread to handle the connection, and creates
 // a new instance of the pipe to listen for new clients. When it gets a request, it validates
 // the security and elevation level of the client. If that fails, it disconnects the client. Otherwise,
 // it handles the request, sends a response (described by Response class) back to the client, then
 // disconnects the pipe and ends the thread.
-//
-// NOTE: Changes to the protocol information in this file must also be reflected in protocol.h in the
-// unmanaged csc project, as well as the code in protocol.cpp.
 
 namespace Microsoft.CodeAnalysis.CommandLine
 {
@@ -54,44 +42,51 @@ namespace Microsoft.CodeAnalysis.CommandLine
     {
         public readonly uint ProtocolVersion;
         public readonly RequestLanguage Language;
-        public readonly ImmutableArray<Argument> Arguments;
+        public readonly ReadOnlyCollection<Argument> Arguments;
 
         public BuildRequest(uint protocolVersion,
                             RequestLanguage language,
-                            ImmutableArray<Argument> arguments)
+                            IEnumerable<Argument> arguments)
         {
             ProtocolVersion = protocolVersion;
             Language = language;
+            Arguments = new ReadOnlyCollection<Argument>(arguments.ToList());
 
-            if (arguments.Length > ushort.MaxValue)
+            if (Arguments.Count > ushort.MaxValue)
             {
                 throw new ArgumentOutOfRangeException(nameof(arguments),
                     "Too many arguments: maximum of "
                     + ushort.MaxValue + " arguments allowed.");
             }
-            Arguments = arguments;
         }
 
         public static BuildRequest Create(RequestLanguage language,
                                           string workingDirectory,
+                                          string tempDirectory,
                                           IList<string> args,
                                           string keepAlive = null,
                                           string libDirectory = null)
         {
             Log("Creating BuildRequest");
             Log($"Working directory: {workingDirectory}");
+            Log($"Temp directory: {tempDirectory}");
             Log($"Lib directory: {libDirectory ?? "null"}");
 
             var requestLength = args.Count + 1 + (libDirectory == null ? 0 : 1);
-            var requestArgs = ImmutableArray.CreateBuilder<Argument>(requestLength);
+            var requestArgs = new List<Argument>(requestLength);
 
             requestArgs.Add(new Argument(ArgumentId.CurrentDirectory, 0, workingDirectory));
+            requestArgs.Add(new Argument(ArgumentId.TempDirectory, 0, tempDirectory));
 
             if (keepAlive != null)
+            {
                 requestArgs.Add(new Argument(ArgumentId.KeepAlive, 0, keepAlive));
+            }
 
             if (libDirectory != null)
+            {
                 requestArgs.Add(new Argument(ArgumentId.LibEnvVariable, 0, libDirectory));
+            }
 
             for (int i = 0; i < args.Count; ++i)
             {
@@ -100,7 +95,13 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 requestArgs.Add(new Argument(ArgumentId.CommandLineArgument, i, arg));
             }
 
-            return new BuildRequest(BuildProtocolConstants.ProtocolVersion, language, requestArgs.ToImmutable());
+            return new BuildRequest(BuildProtocolConstants.ProtocolVersion, language, requestArgs);
+        }
+
+        public static BuildRequest CreateShutdown()
+        {
+            var requestArgs = new[] { new Argument(ArgumentId.Shutdown, argumentIndex: 0, value: "") };
+            return new BuildRequest(BuildProtocolConstants.ProtocolVersion, RequestLanguage.CSharpCompile, requestArgs);
         }
 
         /// <summary>
@@ -114,10 +115,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
             // Read the length of the request
             var lengthBuffer = new byte[4];
             Log("Reading length of request");
-            await ReadAllAsync(inStream,
-                                                      lengthBuffer,
-                                                      4,
-                                                      cancellationToken).ConfigureAwait(false);
+            await ReadAllAsync(inStream, lengthBuffer, 4, cancellationToken).ConfigureAwait(false);
             var length = BitConverter.ToInt32(lengthBuffer, 0);
 
             // Back out if the request is > 1MB
@@ -130,23 +128,20 @@ namespace Microsoft.CodeAnalysis.CommandLine
             cancellationToken.ThrowIfCancellationRequested();
 
             // Read the full request
-            var responseBuffer = new byte[length];
-            await ReadAllAsync(inStream,
-                                                      responseBuffer,
-                                                      length,
-                                                      cancellationToken).ConfigureAwait(false);
+            var requestBuffer = new byte[length];
+            await ReadAllAsync(inStream, requestBuffer, length, cancellationToken).ConfigureAwait(false);
 
             cancellationToken.ThrowIfCancellationRequested();
 
             Log("Parsing request");
             // Parse the request into the Request data structure.
-            using (var reader = new BinaryReader(new MemoryStream(responseBuffer), Encoding.Unicode))
+            using (var reader = new BinaryReader(new MemoryStream(requestBuffer), Encoding.Unicode))
             {
                 var protocolVersion = reader.ReadUInt32();
                 var language = (RequestLanguage)reader.ReadUInt32();
                 uint argumentCount = reader.ReadUInt32();
 
-                var argumentsBuilder = ImmutableArray.CreateBuilder<Argument>((int)argumentCount);
+                var argumentsBuilder = new List<Argument>((int)argumentCount);
 
                 for (int i = 0; i < argumentCount; i++)
                 {
@@ -156,14 +151,14 @@ namespace Microsoft.CodeAnalysis.CommandLine
 
                 return new BuildRequest(protocolVersion,
                                         language,
-                                        argumentsBuilder.ToImmutableArray());
+                                        argumentsBuilder);
             }
         }
 
         /// <summary>
         /// Write a Request to the stream.
         /// </summary>
-        public async Task WriteAsync(Stream outStream, CancellationToken cancellationToken)
+        public async Task WriteAsync(Stream outStream, CancellationToken cancellationToken = default(CancellationToken))
         {
             using (var memoryStream = new MemoryStream())
             using (var writer = new BinaryWriter(memoryStream, Encoding.Unicode))
@@ -172,7 +167,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 Log("Formatting request");
                 writer.Write(ProtocolVersion);
                 writer.Write((uint)Language);
-                writer.Write(Arguments.Length);
+                writer.Write(Arguments.Count);
                 foreach (Argument arg in Arguments)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -266,9 +261,23 @@ namespace Microsoft.CodeAnalysis.CommandLine
     {
         public enum ResponseType
         {
+            // The client and server are using incompatible protocol versions.
             MismatchedVersion,
+
+            // The build request completed on the server and the results are contained
+            // in the message. 
             Completed,
-            AnalyzerInconsistency
+
+            // The build request could not be run on the server due because it created
+            // an unresolvable inconsistency with analyzers.  
+            AnalyzerInconsistency,
+
+            // The shutdown request completed and the server process information is 
+            // contained in the message. 
+            Shutdown,
+
+            // The request was rejected by the server.  
+            Rejected,
         }
 
         public abstract ResponseType Type { get; }
@@ -316,7 +325,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
         /// <param name="stream"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static async Task<BuildResponse> ReadAsync(Stream stream, CancellationToken cancellationToken)
+        public static async Task<BuildResponse> ReadAsync(Stream stream, CancellationToken cancellationToken = default(CancellationToken))
         {
             Log("Reading response length");
             // Read the response length
@@ -344,6 +353,10 @@ namespace Microsoft.CodeAnalysis.CommandLine
                         return new MismatchedVersionBuildResponse();
                     case ResponseType.AnalyzerInconsistency:
                         return new AnalyzerInconsistencyBuildResponse();
+                    case ResponseType.Shutdown:
+                        return ShutdownBuildResponse.Create(reader);
+                    case ResponseType.Rejected:
+                        return new RejectedBuildResponse();
                     default:
                         throw new InvalidOperationException("Received invalid response type from server.");
                 }
@@ -374,16 +387,19 @@ namespace Microsoft.CodeAnalysis.CommandLine
 
         public CompletedBuildResponse(int returnCode,
                                       bool utf8output,
-                                      string output,
-                                      string errorOutput)
+                                      string output)
         {
             ReturnCode = returnCode;
             Utf8Output = utf8output;
             Output = output;
-            ErrorOutput = errorOutput;
+
+            // This field existed to support writing to Console.Error.  The compiler doesn't ever write to 
+            // this field or Console.Error.  This field is only kept around in order to maintain the existing
+            // protocol semantics.
+            ErrorOutput = string.Empty;
         }
 
-        public override ResponseType Type { get { return ResponseType.Completed; } }
+        public override ResponseType Type => ResponseType.Completed;
 
         public static CompletedBuildResponse Create(BinaryReader reader)
         {
@@ -391,8 +407,12 @@ namespace Microsoft.CodeAnalysis.CommandLine
             var utf8Output = reader.ReadBoolean();
             var output = ReadLengthPrefixedString(reader);
             var errorOutput = ReadLengthPrefixedString(reader);
+            if (!string.IsNullOrEmpty(errorOutput))
+            {
+                throw new InvalidOperationException();
+            }
 
-            return new CompletedBuildResponse(returnCode, utf8Output, output, errorOutput);
+            return new CompletedBuildResponse(returnCode, utf8Output, output);
         }
 
         protected override void AddResponseBody(BinaryWriter writer)
@@ -404,9 +424,32 @@ namespace Microsoft.CodeAnalysis.CommandLine
         }
     }
 
+    internal sealed class ShutdownBuildResponse : BuildResponse
+    {
+        public readonly int ServerProcessId;
+
+        public ShutdownBuildResponse(int serverProcessId)
+        {
+            ServerProcessId = serverProcessId;
+        }
+
+        public override ResponseType Type => ResponseType.Shutdown;
+
+        protected override void AddResponseBody(BinaryWriter writer)
+        {
+            writer.Write(ServerProcessId);
+        }
+
+        public static ShutdownBuildResponse Create(BinaryReader reader)
+        {
+            var serverProcessId = reader.ReadInt32();
+            return new ShutdownBuildResponse(serverProcessId);
+        }
+    }
+
     internal sealed class MismatchedVersionBuildResponse : BuildResponse
     {
-        public override ResponseType Type { get { return ResponseType.MismatchedVersion; } }
+        public override ResponseType Type => ResponseType.MismatchedVersion;
 
         /// <summary>
         /// MismatchedVersion has no body.
@@ -416,7 +459,18 @@ namespace Microsoft.CodeAnalysis.CommandLine
 
     internal sealed class AnalyzerInconsistencyBuildResponse : BuildResponse
     {
-        public override ResponseType Type { get { return ResponseType.AnalyzerInconsistency; } }
+        public override ResponseType Type => ResponseType.AnalyzerInconsistency;
+
+        /// <summary>
+        /// AnalyzerInconsistency has no body.
+        /// </summary>
+        /// <param name="writer"></param>
+        protected override void AddResponseBody(BinaryWriter writer) { }
+    }
+
+    internal sealed class RejectedBuildResponse : BuildResponse
+    {
+        public override ResponseType Type => ResponseType.Rejected;
 
         /// <summary>
         /// AnalyzerInconsistency has no body.
@@ -448,12 +502,21 @@ namespace Microsoft.CodeAnalysis.CommandLine
         {
             // The current directory of the client
             CurrentDirectory = 0x51147221,
+
             // A comment line argument. The argument index indicates which one (0 .. N)
             CommandLineArgument,
+
             // The "LIB" environment variable of the client
             LibEnvVariable,
+
             // Request a longer keep alive time for the server
             KeepAlive,
+
+            // Request a server shutdown from the client
+            Shutdown,
+
+            // The directory to use for temporary operations.
+            TempDirectory,
         }
 
         /// <summary>
@@ -505,16 +568,6 @@ namespace Microsoft.CodeAnalysis.CommandLine
                 totalBytesRead += bytesRead;
             } while (totalBytesRead < count);
             Log("Finished read");
-        }
-
-        public static string GetServerMutexName(string pipeName)
-        {
-            return $"{pipeName}.server";
-        }
-
-        public static string GetClientMutexName(string pipeName)
-        {
-            return $"{pipeName}.client";
         }
     }
 }

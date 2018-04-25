@@ -157,7 +157,7 @@ End Module
                          </compilation>
 
             For i = 0 To 100
-                Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(source)
+                Dim compilation = CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(source)
 
                 Dim tasks(10) As Task
                 For jj = 0 To tasks.Length - 1
@@ -176,7 +176,7 @@ End Module
             Next
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_If1()
             CompileAndVerify(
@@ -196,7 +196,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_If2()
             CompileAndVerify(
@@ -216,7 +216,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_If3()
             CompileAndVerify(
@@ -236,7 +236,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional1()
             CompileAndVerify(
@@ -254,7 +254,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional2()
             CompileAndVerify(
@@ -272,7 +272,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional3()
             CompileAndVerify(
@@ -290,7 +290,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional4()
             CompileAndVerify(
@@ -308,7 +308,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional5()
             CompileAndVerify(
@@ -328,7 +328,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional_CollInitializer1()
             CompileAndVerify(
@@ -346,7 +346,7 @@ End Module
 expectedOutput:="VB$AnonymousType_0`1[T0]")
         End Sub
 
-        <WorkItem(544243, "DevDiv")>
+        <WorkItem(544243, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544243")>
         <Fact()>
         Public Sub TestAnonymousTypeInUnreachableCode_Conditional_CollInitializer2()
             CompileAndVerify(
@@ -368,7 +368,7 @@ expectedOutput:="VB$AnonymousType_0`1[T0]")
         Public Sub TestAnonymousType_ToString()
             ' test AnonymousType_ToString() itself
             Dim currCulture = System.Threading.Thread.CurrentThread.CurrentCulture
-            System.Threading.Thread.CurrentThread.CurrentCulture = New System.Globalization.CultureInfo("en-US")
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture
             Try
 
                 CompileAndVerify(
@@ -654,7 +654,7 @@ New XCData(<![CDATA[
 
         End Sub
 
-        <WorkItem(531571, "DevDiv")>
+        <WorkItem(531571, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531571")>
         <Fact()>
         Public Sub Bug_531571()
             CompileAndVerify(
@@ -684,6 +684,35 @@ Module Program
         Dim at2 As Object = New With {.f1 = "YYY", Key .f2 = 456, Key .f3 = "XXX", .f4 = Nothing }
         ' Changes in Key fields
         Dim at3 As Object = New With {.f1 = 123, Key .f2 = 455, Key .f3 = "XXX", .f4 = 123.456!}
+
+        Dim hc1 = at1.GetHashCode()      
+        Console.WriteLine(hc1 = at2.GetHashCode )
+        Console.WriteLine(hc1 = at3.GetHashCode)
+    
+    End Sub
+End Module
+    </file>
+</compilation>,
+expectedOutput:=<![CDATA[
+True
+False
+]]>)
+        End Sub
+
+        <Fact()>
+        Public Sub TestAnonymousType_GetHashCode03()
+            CompileAndVerify(
+<compilation>
+    <file name="a.vb">
+Imports System
+Module Program
+
+    Sub Main()
+        Dim at1 As Object = New With {.Ǉ1 = 123, Key .Ǉ2 = 456, Key .Ǉ3 = "XXX", .Ǉ4 = 123.456!}
+        ' Value changes in non-key fields, casing changes in all fields that require a recent unicode version
+        Dim at2 As Object = New With {.ǈ1 = "YYY", Key .ǈ2 = 456, Key .ǈ3 = "XXX", .ǈ4 = Nothing }
+        ' Value changes in Key fields
+        Dim at3 As Object = New With {.Ǉ1 = 123, Key .Ǉ2 = 455, Key .Ǉ3 = "XXX", .Ǉ4 = 123.456!}
 
         Dim hc1 = at1.GetHashCode()      
         Console.WriteLine(hc1 = at2.GetHashCode )
@@ -734,7 +763,7 @@ expectedOutput:=<![CDATA[
         Public Sub TestAnonymousType_LocalAsNewWith()
             ' AnonymousType ToString
             Dim currCulture = System.Threading.Thread.CurrentThread.CurrentCulture
-            System.Threading.Thread.CurrentThread.CurrentCulture = New System.Globalization.CultureInfo("en-US")
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture
             Try
 
                 CompileAndVerify(
@@ -791,14 +820,14 @@ Friend Module AnonTProp001mod
         Dim obj = New C
         Try
 
-            Dim scen1 = New With {.With = "aclass", ._p_ = "C"c, Foo, Key New C().extMethod}
-            Console.WriteLine("{0},{1},{2},{3}", scen1.With, scen1._p_, scen1.foo, scen1.Extmethod)
+            Dim scen1 = New With {.With = "aclass", ._p_ = "C"c, Goo, Key New C().extMethod}
+            Console.WriteLine("{0},{1},{2},{3}", scen1.With, scen1._p_, scen1.goo, scen1.Extmethod)
 
             Dim scen2 = New With {obj.Extmethod02, obj!_123, C.APROP}
             Console.WriteLine("{0},{1},{2}", scen2.ExtMethod02, scen2._123, scen2.aprop)
 
             Try
-                Dim scen4 = New With {.prop1 = FooEx("testing")}
+                Dim scen4 = New With {.prop1 = GooEx("testing")}
                 Console.WriteLine("NO EX")
             Catch ex As Exception
                 Console.WriteLine("Exp EX")
@@ -808,11 +837,11 @@ Friend Module AnonTProp001mod
         End Try
     End Sub
 
-    Function Foo() As String
+    Function Goo() As String
         Return "Abc"
     End Function
 
-    Function FooEx(ByVal p1 As String) As String
+    Function GooEx(ByVal p1 As String) As String
         Throw New Exception("This exception is expected")
     End Function
 

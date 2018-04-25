@@ -52,7 +52,7 @@ End Class
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
 
             ' --- test sub delegate ----------------------------------------------------------------------------
 
@@ -192,7 +192,7 @@ End Class
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
 
             Dim subGenDel As NamedTypeSymbol = CType(compilation.SourceModule.GlobalNamespace.GetTypeMembers("SubGenDel").Single(), NamedTypeSymbol)
             Dim param1Type = subGenDel.TypeParameters(0)
@@ -216,7 +216,7 @@ End Class
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
 
             Dim subDel As NamedTypeSymbol = CType(compilation.SourceModule.GlobalNamespace.GetTypeMembers("SubDel").Single(), NamedTypeSymbol)
             Assert.Equal(subDel.Locations(0), subDel.DelegateInvokeMethod.Locations(0))
@@ -240,7 +240,7 @@ End Class
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
 
             Dim fieldSym = CType(compilation.SourceModule.GlobalNamespace.GetTypeMembers("C1").Single().GetMembers("Field").Single(), SourceFieldSymbol)
             Dim funcDel As NamedTypeSymbol = CType(fieldSym.Type, NamedTypeSymbol)
@@ -294,7 +294,7 @@ End Structure
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
             CompilationUtils.AssertNoErrors(compilation)
 
         End Sub
@@ -309,7 +309,7 @@ Delegate Sub del1(p As Integer, p as String, p as Object, p as String)
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
             CompilationUtils.AssertNoErrors(compilation)
 
             Dim del As NamedTypeSymbol = CType(compilation.SourceModule.GlobalNamespace.GetTypeMembers("del1").Single(), NamedTypeSymbol)
@@ -367,12 +367,12 @@ End Module
                     </file>
                          </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source)
 
             CompilationUtils.AssertNoErrors(compilation)
         End Sub
 
-        <WorkItem(540948, "DevDiv")>
+        <WorkItem(540948, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540948")>
         <Fact>
         Public Sub AddressOfGenericMethod()
             Dim source = <compilation name="C">
@@ -381,22 +381,22 @@ Imports System
 
 Module C
     Sub Main()
-        Dim a As Action(Of Integer) = AddressOf Foo
+        Dim a As Action(Of Integer) = AddressOf Goo
     End Sub
 
-    Sub Foo(Of T)(x As T)
+    Sub Goo(Of T)(x As T)
     End Sub
 End Module                    
                             </file>
                          </compilation>
 
-            Dim comp1 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.Off))
+            Dim comp1 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.Off))
             CompilationUtils.AssertNoErrors(comp1)
-            Dim comp2 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On))
+            Dim comp2 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On))
             CompilationUtils.AssertNoErrors(comp2)
         End Sub
 
-        <WorkItem(541002, "DevDiv")>
+        <WorkItem(541002, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541002")>
         <Fact>
         Public Sub TypeParameterCannotConflictWithDelegateMethod()
             Dim source = <compilation name="F">
@@ -408,13 +408,13 @@ End Class
                             </file>
                          </compilation>
 
-            Dim comp1 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.Off))
+            Dim comp1 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.Off))
             CompilationUtils.AssertNoErrors(comp1)
-            Dim comp2 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On))
+            Dim comp2 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On))
             CompilationUtils.AssertNoErrors(comp2)
         End Sub
 
-        <WorkItem(541004, "DevDiv")>
+        <WorkItem(541004, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541004")>
         <Fact>
         Public Sub DelegateParameterCanBeNamedInvoke()
             Dim source = <compilation name="D">
@@ -426,9 +426,9 @@ End Class
                             </file>
                          </compilation>
 
-            Dim comp1 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.Off))
+            Dim comp1 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.Off))
             CompilationUtils.AssertNoErrors(comp1)
-            Dim comp2 = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On))
+            Dim comp2 = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(source, TestOptions.ReleaseDll.WithOptionStrict(OptionStrict.On))
             CompilationUtils.AssertNoErrors(comp2)
         End Sub
     End Class

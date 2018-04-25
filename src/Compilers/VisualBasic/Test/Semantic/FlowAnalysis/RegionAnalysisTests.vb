@@ -17,7 +17,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
 
         <Fact()>
         Public Sub NullArgsToFlowAnalysisMethods()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
         <compilation name="TestEntryPoints01">
             <file name="a.b">
 class C 
@@ -93,7 +93,7 @@ End Class
             Assert.Equal("s", GetSymbolNamesJoined(analysis.WrittenInside))
         End Sub
 
-        <WorkItem(768095, "DevDiv")>
+        <WorkItem(768095, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/768095")>
         <Fact()>
         Public Sub Bug768095()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -117,7 +117,7 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(531223, "DevDiv")>
+        <WorkItem(531223, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531223")>
         <Fact()>
         Public Sub Bug17780a()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -133,7 +133,7 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(531223, "DevDiv")>
+        <WorkItem(531223, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531223")>
         <Fact()>
         Public Sub Bug17780b()
             ' TODO: Rewrite the test when Yield is supported
@@ -153,7 +153,7 @@ Friend Class SourceFileScope
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543362, "DevDiv")>
+        <WorkItem(543362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543362")>
         <Fact()>
         Public Sub Bug11067()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -169,7 +169,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(529967, "DevDiv")>
+        <WorkItem(529967, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529967")>
         <Fact()>
         Public Sub Bug14894a()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -193,7 +193,7 @@ End Module
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
         End Sub
 
-        <WorkItem(529967, "DevDiv")>
+        <WorkItem(529967, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529967")>
         <Fact()>
         Public Sub Bug14894b()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -212,7 +212,7 @@ End Module
             Assert.Equal("o3", GetSymbolNamesJoined(analysis.DataFlowsIn))
         End Sub
 
-        <WorkItem(544602, "DevDiv")>
+        <WorkItem(544602, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544602")>
         <Fact()>
         Public Sub Bug13053a()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -229,7 +229,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(545069, "DevDiv")>
+        <WorkItem(545069, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545069")>
         <Fact()>
         Public Sub ParameterNameAsAnInvalidRegion()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -245,7 +245,7 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(545443, "DevDiv")>
+        <WorkItem(545443, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545443")>
         <Fact()>
         Public Sub XmlNameInsideEndTag()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -261,7 +261,7 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(545077, "DevDiv")>
+        <WorkItem(545077, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545077")>
         <Fact()>
         Public Sub ExpressionsInAttributeValues()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -279,7 +279,7 @@ Imports System.Reflection
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(545077, "DevDiv")>
+        <WorkItem(545077, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545077")>
         <Fact()>
         Public Sub ExpressionsInAttributeValues2()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -321,7 +321,7 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(545432, "DevDiv")>
+        <WorkItem(545432, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545432")>
         <Fact()>
         Public Sub LowerBoundOfArrayDefinitionSize()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -337,7 +337,7 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(544602, "DevDiv")>
+        <WorkItem(544602, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544602")>
         <Fact()>
         Public Sub Bug13053b()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -354,7 +354,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(679765, "DevDiv")>
+        <WorkItem(679765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/679765")>
         <Fact()>
         Public Sub Bug679765a()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -371,7 +371,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(679765, "DevDiv")>
+        <WorkItem(679765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/679765")>
         <Fact()>
         Public Sub Bug679765b()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -388,7 +388,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(679765, "DevDiv")>
+        <WorkItem(679765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/679765")>
         <Fact()>
         Public Sub Bug679765c()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -405,7 +405,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543570, "DevDiv")>
+        <WorkItem(543570, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543570")>
         <Fact()>
         Public Sub Bug11428()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -416,13 +416,13 @@ Module Program
     End Sub
 End Module
 Class C
-    Public Sub Foo()
+    Public Sub Goo()
     End Sub
 End Class
 Class M
     Inherits C
     Public r As Double
-    Public Overrides Sub Foo()
+    Public Overrides Sub Goo()
         Return [|MyBase.Total|] * r
     End Sub
 End Class
@@ -431,7 +431,7 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543581, "DevDiv")>
+        <WorkItem(543581, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543581")>
         <Fact()>
         Public Sub Bug11440a()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -465,7 +465,7 @@ End Module
             Assert.Equal("args, lambda, arg, arg1, arg2", GetSymbolNamesJoined(analysis.WrittenOutside))
         End Sub
 
-        <WorkItem(543581, "DevDiv")>
+        <WorkItem(543581, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543581")>
         <Fact()>
         Public Sub Bug11440b()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -495,14 +495,14 @@ End Module
             Assert.Equal("args, arg2, y", GetSymbolNamesJoined(analysis.WrittenOutside))
         End Sub
 
-        <WorkItem(544330, "DevDiv")>
+        <WorkItem(544330, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544330")>
         <Fact()>
         Public Sub Bug12609()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation name="Bug12609">
           <file name="a.b">
 Class A    
-    Sub Foo(Optional i As Integer = [|1|])
+    Sub Goo(Optional i As Integer = [|1|])
     End Sub
 End Class
           </file>
@@ -510,14 +510,14 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(542231, "DevDiv")>
+        <WorkItem(542231, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542231")>
         <Fact()>
         Public Sub TestUnreachableRegion()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation>
           <file name="a.b">
 Class A    
-    Sub Foo()
+    Sub Goo()
         Dim i As Integer
         Return
         [| i = i + 1 |]
@@ -532,14 +532,14 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
         End Sub
 
-        <WorkItem(542231, "DevDiv")>
+        <WorkItem(542231, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542231")>
         <Fact()>
         Public Sub TestUnreachableRegion2()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation>
           <file name="a.b">
 Class A    
-    Sub Foo()
+    Sub Goo()
         Dim i As Integer = 0
         Dim j As Integer = 0
         Dim k As Integer = 0
@@ -574,14 +574,14 @@ End Class
             Assert.Equal("i, k", GetSymbolNamesJoined(analysis.DataFlowsOut))
         End Sub
 
-        <WorkItem(542231, "DevDiv")>
+        <WorkItem(542231, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542231")>
         <Fact()>
         Public Sub TestUnreachableRegionInExpression()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation>
           <file name="a.b">
 Class A    
-    Function Foo() As Boolean
+    Function Goo() As Boolean
         Dim i As Boolean = True
         Dim j As Boolean = False
         dim ext as external = new external
@@ -596,14 +596,14 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
         End Sub
 
-        <WorkItem(545445, "DevDiv")>
+        <WorkItem(545445, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545445")>
         <Fact()>
         Public Sub ExpressionInside()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation name="Bug12609">
           <file name="a.b">
 Class A    
-    Sub Foo()
+    Sub Goo()
         Dim outputAuthoringDocument = &lt;?xml version=[|"1.0"|]?&gt;
               &lt;wix:Wix&gt;
                   &lt;wix:Fragment&gt;
@@ -618,14 +618,14 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(544201, "DevDiv")>
+        <WorkItem(544201, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544201")>
         <Fact()>
         Public Sub Bug12423a()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation name="Bug12423a">
           <file name="a.b">
 Class A    
-    Sub Foo()
+    Sub Goo()
         Dim x = { [| New B (abc) |] }
     End Sub
 End Class
@@ -638,14 +638,14 @@ End Class
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(544201, "DevDiv")>
+        <WorkItem(544201, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544201")>
         <Fact()>
         Public Sub Bug12423b()
             Dim analysis = CompileAndAnalyzeDataFlow(
       <compilation name="Bug12423b">
           <file name="a.b">
 Class A    
-    Sub Foo(i As Integer)
+    Sub Goo(i As Integer)
         Dim x = New B([| i |] ) { New B (abc) }
     End Sub
 End Class
@@ -727,7 +727,7 @@ End Enum
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.WrittenOutside))
         End Sub
 
-        <WorkItem(768094, "DevDiv")>
+        <WorkItem(768094, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/768094")>
         <Fact()>
         Public Sub Bug768094a()
             Dim program =
@@ -780,7 +780,7 @@ end class
             Assert.Equal(0, analysis.EntryPoints.Count())
         End Sub
 
-        <WorkItem(768094, "DevDiv")>
+        <WorkItem(768094, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/768094")>
         <Fact()>
         Public Sub Bug768094b()
             Dim program =
@@ -935,7 +935,7 @@ End Namespace
             analysis = model.AnalyzeDataFlow(expr.Name) ' NO THROW
         End Sub
 
-        <WorkItem(768094, "DevDiv")>
+        <WorkItem(768094, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/768094")>
         <Fact()>
         Public Sub Bug768094c()
             Dim program =
@@ -963,7 +963,7 @@ End Class
             Dim analysis = model.AnalyzeDataFlow(expr) ' NO THROW
         End Sub
 
-        <WorkItem(768094, "DevDiv")>
+        <WorkItem(768094, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/768094")>
         <Fact()>
         Public Sub Bug768094d()
             Dim program =
@@ -1068,7 +1068,7 @@ end class
             Assert.True(analysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(543320, "DevDiv")>
+        <WorkItem(543320, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543320")>
         <Fact()>
         Public Sub Bug10987()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -1142,6 +1142,8 @@ End Class
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.CapturedOutside))
             Assert.Equal("s", GetSymbolNamesJoined(analysis.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
             Assert.Equal("s", GetSymbolNamesJoined(analysis.ReadInside))
@@ -1150,7 +1152,7 @@ End Class
             Assert.Equal("args, s, t", GetSymbolNamesJoined(analysis.WrittenOutside))
         End Sub
 
-        <WorkItem(542789, "DevDiv")>
+        <WorkItem(542789, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542789")>
         <Fact()>
         Public Sub Bug10172()
             Dim analysis = CompileAndAnalyzeControlAndDataFlow(
@@ -1173,6 +1175,8 @@ End Module
             Assert.True(analysis.Item1.Succeeded)
             Assert.True(analysis.Item2.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.Item2.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.Item2.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.Item2.CapturedOutside))
         End Sub
 
         <WorkItem(1312, "https://github.com/dotnet/roslyn/issues/1312")>
@@ -1202,9 +1206,11 @@ Class C
 End Class</file>
       </compilation>)
             Assert.Equal("Me, c", GetSymbolNamesJoined(analysis.Captured))
+            Assert.Equal("c", GetSymbolNamesJoined(analysis.CapturedInside))
+            Assert.Equal("Me", GetSymbolNamesJoined(analysis.CapturedOutside))
         End Sub
 
-        <WorkItem(543645, "DevDiv")>
+        <WorkItem(543645, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543645")>
         <Fact()>
         Public Sub Bug11526()
             Dim analysis = CompileAndAnalyzeControlAndDataFlow(
@@ -1231,7 +1237,7 @@ End Module
             Assert.True(analysis.Item2.Succeeded)
         End Sub
 
-        <WorkItem(543111, "DevDiv")>
+        <WorkItem(543111, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543111")>
         <Fact()>
         Public Sub Bug10683a()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -1388,24 +1394,26 @@ End Module
             Assert.True(controlFlowAnalysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(540454, "DevDiv")>
+        <WorkItem(540454, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540454")>
         <Fact()>
         Public Sub TestDataFlowAnalysisWithErrorsInStaticContext()
             Dim analysis = CompileAndAnalyzeControlAndDataFlow(
       <compilation name="TestDataFlowAnalysisWithErrorsInStaticContext">
           <file name="a.b">
 Class C
-    Sub Foo()
+    Sub Goo()
     End Sub
     Shared Sub Bar()
         [|
-        Foo() |]
+        Goo() |]
     End Sub
 End Class  </file>
       </compilation>)
             Dim dataFlowAnalysis = analysis.Item2
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.ReadInside))
@@ -1421,9 +1429,9 @@ End Class  </file>
       <compilation name="TestImplicitReturnVariable">
           <file name="a.b">
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         [|
-        Foo = 1
+        Goo = 1
         |]
     End Function
 End Module
@@ -1433,8 +1441,8 @@ End Module
             Dim dataFlowAnalysis = analysis.Item2
             Assert.Equal(0, controlFlowAnalysis.ExitPoints.Count())
             Assert.Equal(0, controlFlowAnalysis.EntryPoints.Count())
-            Assert.Equal("Foo", GetSymbolNamesJoined(dataFlowAnalysis.AlwaysAssigned))
-            Assert.Equal("Foo", GetSymbolNamesJoined(dataFlowAnalysis.WrittenInside))
+            Assert.Equal("Goo", GetSymbolNamesJoined(dataFlowAnalysis.AlwaysAssigned))
+            Assert.Equal("Goo", GetSymbolNamesJoined(dataFlowAnalysis.WrittenInside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.VariablesDeclared))
             Assert.True(controlFlowAnalysis.EndPointIsReachable)
         End Sub
@@ -1469,7 +1477,7 @@ end class</file>
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y, z
         [|
         If True
@@ -1498,7 +1506,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y, z
         Dim b As Boolean = True
         [|
@@ -1527,7 +1535,7 @@ End Module
           <file name="a.b">
 Imports System
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y
         If True Then x = 1 Else If True Then Return 1 Else [|Return 1|]
         Return x + y
@@ -1548,7 +1556,7 @@ End Module
           <file name="a.b">
 Imports System
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y
         If True Then x = 1 Else [|If True Then Return 1 Else Return 1|]
         Return x + y
@@ -1569,7 +1577,7 @@ End Module
           <file name="a.b">
 Imports System
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y
         [|If True Then x = 1 Else If True Then Return 1 Else Return 1|]
         Return x + y
@@ -1591,7 +1599,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y
         [|If True Then x = 1 Else y = 1|]
         Dim z = x + y
@@ -1614,7 +1622,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim b As Boolean = True
         Dim x, y
         [|If b Then x = 1 Else y = 1|]
@@ -1638,7 +1646,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y
         If True Then [|x = 1|] Else y = 1
         Dim z = x + y
@@ -1661,7 +1669,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y, z
         If True Then x = 1 Else [|y = 1|]
         Dim z = x + y
@@ -1684,7 +1692,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim b As Boolean = True
         Dim x, y, z
         If b Then x = 1 Else [|y = 1|]
@@ -1708,7 +1716,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y, z
         If True Then x = 1 Else If True Then y = 1 Else [|z = 1|]
         Dim zz = z + x + y
@@ -1731,7 +1739,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim b As Boolean = True
         Dim x, y, z
         If b Then x = 1 Else If b Then y = 1 Else [|z = 1|]
@@ -1755,7 +1763,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim x, y, z
         If True Then x = 1 Else [|If True Then y = 1 Else y = 1|]
         Dim zz = z + x + y
@@ -1778,7 +1786,7 @@ End Module
 Imports System
 
 Module Program
-    Function Foo() As Integer
+    Function Goo() As Integer
         Dim b As Boolean = True
         Dim x, y, z
         If b Then x = 1 Else [|If b Then y = 1 Else y = 1|]
@@ -1875,15 +1883,15 @@ Module Program
     Sub Main(args As String())
         Dim o as object = 1
 [|
-        foo(o)
+        goo(o)
 |]
     End Sub
 
-    Sub foo(x As String)
+    Sub goo(x As String)
 
     End Sub
 
-    Sub foo(Byref x As Integer)
+    Sub goo(Byref x As Integer)
 
     End Sub
 End Module
@@ -1913,15 +1921,15 @@ Class Program
         Dim o as object = 1
         Dim oo as object = new Program
 [|
-        oo.foo(o)
+        oo.goo(o)
 |]
     End Sub
 
-    Sub foo(x As String)
+    Sub goo(x As String)
 
     End Sub
 
-    Sub foo(Byref x As Integer)
+    Sub goo(Byref x As Integer)
 
     End Sub
 End Class
@@ -1954,11 +1962,11 @@ Module Program
 |]
     End Sub
 
-    Sub foo(x As String)
+    Sub goo(x As String)
 
     End Sub
 
-    Sub foo(Byref x As Integer)
+    Sub goo(Byref x As Integer)
 
     End Sub
 End Module
@@ -2144,6 +2152,8 @@ End Class
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Equal("Me, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
         End Sub
 
         <Fact()>
@@ -2177,6 +2187,8 @@ End Class
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Equal("Me, b, i", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
         End Sub
 
         <Fact()>
@@ -2239,7 +2251,7 @@ end class</file>
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
         End Sub
 
-        <WorkItem(543492, "DevDiv")>
+        <WorkItem(543492, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543492")>
         <Fact()>
         Public Sub MeAndMyBaseReference1()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -2261,7 +2273,7 @@ End Class
             Assert.Equal("Me", GetSymbolNamesJoined(analysis.DataFlowsIn))
         End Sub
 
-        <WorkItem(543492, "DevDiv")>
+        <WorkItem(543492, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543492")>
         <Fact()>
         Public Sub MeAndMyBaseReference2()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -2506,6 +2518,8 @@ End Class
             Assert.Equal("a", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Equal("Me, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
         End Sub
 
         <Fact()>
@@ -2545,7 +2559,7 @@ End Class
                 writtenOutside:={"x"})
         End Sub
 
-        <WorkItem(542156, "DevDiv")>
+        <WorkItem(542156, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542156")>
         <Fact()>
         Public Sub TestRedimImplicitDataFlow()
             VerifyReDimDataFlowAnalysis(
@@ -2564,7 +2578,7 @@ End Class
                 writtenOutside:={"y"})
         End Sub
 
-        <WorkItem(542156, "DevDiv")>
+        <WorkItem(542156, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542156")>
         <Fact()>
         Public Sub TestRedimMultipleImplicitDataFlow()
             VerifyReDimDataFlowAnalysis(
@@ -3060,14 +3074,14 @@ class C
     shared sub Main()
         dim x as integer = 0
 [|
-        Foo(
+        Goo(
 x 
 )
 |]
       System.Console.WriteLine(x)
     end sub
 
-    shared sub Foo(byref x as integer)
+    shared sub Goo(byref x as integer)
     end sub
 end class
             </file>
@@ -3088,7 +3102,7 @@ end class
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(541891, "DevDiv")>
+        <WorkItem(541891, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541891")>
         <Fact()>
         Public Sub TestRefArgumentSelection02()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -3097,10 +3111,10 @@ end class
 class C
      Sub Main()
         Dim x As UInteger
-        System.Console.WriteLine([|Foo(x)|])
+        System.Console.WriteLine([|Goo(x)|])
     End Sub
 
-    Function Foo(ByRef x As ULong)
+    Function Goo(ByRef x As ULong)
         x = 123
         Return x + 1
     End Function
@@ -3118,7 +3132,7 @@ end class
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(541891, "DevDiv")>
+        <WorkItem(541891, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541891")>
         <Fact()>
         Public Sub TestRefArgumentSelection02a()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -3127,10 +3141,10 @@ end class
 class C
      Sub Main()
         Dim x As UInteger
-        System.Console.WriteLine(Foo([|x|]))
+        System.Console.WriteLine(Goo([|x|]))
     End Sub
 
-    Function Foo(ByRef x As ULong)
+    Function Goo(ByRef x As ULong)
         x = 123
         Return x + 1
     End Function
@@ -3235,7 +3249,7 @@ End Module
             Assert.Equal("ary, local01, local02", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(541891, "DevDiv")>
+        <WorkItem(541891, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541891")>
         <Fact()>
         Public Sub TestRefArgumentSelection03()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -3245,10 +3259,10 @@ class C
      Sub Main()
         Dim x As ULong
 
-        System.Console.WriteLine([|Foo(x)|])
+        System.Console.WriteLine([|Goo(x)|])
     End Sub
 
-    Function Foo(ByRef x As ULong)
+    Function Goo(ByRef x As ULong)
         x = 123
         Return x + 1
     End Function
@@ -3275,11 +3289,11 @@ class C
     shared sub Main()
         dim x as integer = 1, y as integer = 1
 [|
-        Foo(x)
+        Goo(x)
 |]
     end sub
 
-    shared sub Foo(int x) 
+    shared sub Goo(int x) 
     end sub
 end class
             </file>
@@ -3311,12 +3325,12 @@ class C
 [|
         x = y
         y = 2
-        Foo(y, 2) ' VB does not support expression assignment F(x = y, y = 2)
+        Goo(y, 2) ' VB does not support expression assignment F(x = y, y = 2)
 |]
         dim z as integer = x + y
     }
 
-    shared sub Foo(int x, int y)
+    shared sub Goo(int x, int y)
     end sub
 }
             </file>
@@ -3369,9 +3383,11 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Equal("Me, args, y", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
         End Sub
 
-        <Fact, WorkItem(538979, "DevDiv")>
+        <Fact, WorkItem(538979, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538979")>
         Public Sub AssertFromInvalidLocalDeclaration()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
       <compilation name="AssertFromInvalidLocalDeclaration">
@@ -3406,7 +3422,7 @@ end class
             Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <Fact(), WorkItem(538979, "DevDiv")>
+        <Fact(), WorkItem(538979, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538979")>
         Public Sub AssertFromInvalidKeywordAsExpr()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
       <compilation name="AssertFromInvalidKeywordAsExpr">
@@ -3431,7 +3447,7 @@ end class
             Assert.False(controlFlowAnalysisResults.EndPointIsReachable)
         End Sub
 
-        <WorkItem(539286, "DevDiv")>
+        <WorkItem(539286, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539286")>
         <Fact()>
         Public Sub RegionAnalysisInFieldInitializers_Simple()
 
@@ -3452,6 +3468,8 @@ End Class
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.CapturedOutside))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.DataFlowsOut))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.ReadInside))
@@ -3461,7 +3479,7 @@ End Class
 
         End Sub
 
-        <WorkItem(539286, "DevDiv")>
+        <WorkItem(539286, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539286")>
         <Fact()>
         Public Sub RegionAnalysisInPropertyInitializers_Simple()
 
@@ -3482,6 +3500,8 @@ End Class
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.CapturedOutside))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.DataFlowsOut))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.ReadInside))
@@ -3491,7 +3511,7 @@ End Class
 
         End Sub
 
-        <WorkItem(539286, "DevDiv")>
+        <WorkItem(539286, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539286")>
         <Fact()>
         Public Sub RegionAnalysisInFieldInitializers_WithMyBase()
             Dim source =
@@ -3523,6 +3543,8 @@ End Class
             Dim dataResults1 = CompileAndAnalyzeDataFlow(source)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.CapturedOutside))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataResults1.DataFlowsOut))
             Assert.Equal("Me", GetSymbolNamesJoined(dataResults1.ReadInside))
@@ -3532,7 +3554,7 @@ End Class
 
         End Sub
 
-        <WorkItem(539286, "DevDiv")>
+        <WorkItem(539286, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539286")>
         <Fact()>
         Public Sub RegionAnalysisInFieldInitializers_Lambda()
 
@@ -3548,12 +3570,12 @@ Class Class1
                  Dim b As Integer = 2
                  [|
                  b = 3
-                 Dim c As Integer = 1 + a + b + Me.Foo() |]
+                 Dim c As Integer = 1 + a + b + Me.Goo() |]
                  Return c
              End Function
     End Sub
 
-    Public Function Foo() As Integer
+    Public Function Goo() As Integer
         Return Nothing
     End Function
 End Class
@@ -3571,11 +3593,11 @@ Class Class1
             Dim b As Integer = 2
             [|
             b = 3
-            Dim c As Integer = 1 + a + b + Me.Foo() |]
+            Dim c As Integer = 1 + a + b + Me.Goo() |]
             Return c
         End Function
 
-    Public Function Foo() As Integer
+    Public Function Goo() As Integer
         Return Nothing
     End Function
 End Class
@@ -3592,6 +3614,10 @@ End Class
                 GetSymbolNamesJoined(dataResults2.AlwaysAssigned))
             Assert.Equal(GetSymbolNamesJoined(dataResults1.Captured),
                 GetSymbolNamesJoined(dataResults2.Captured))
+            Assert.Equal(GetSymbolNamesJoined(dataResults1.CapturedInside),
+                 GetSymbolNamesJoined(dataResults2.CapturedInside))
+            Assert.Equal(GetSymbolNamesJoined(dataResults1.CapturedOutside),
+                 GetSymbolNamesJoined(dataResults2.CapturedOutside))
             Assert.Equal(GetSymbolNamesJoined(dataResults1.DataFlowsIn),
                 GetSymbolNamesJoined(dataResults2.DataFlowsIn))
             Assert.Equal(GetSymbolNamesJoined(dataResults1.DataFlowsOut),
@@ -3608,7 +3634,7 @@ End Class
 
         End Sub
 
-        <WorkItem(539286, "DevDiv")>
+        <WorkItem(539286, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539286")>
         <Fact()>
         Public Sub RegionAnalysisInFieldInitializers_NestedLambdaAndTwoConstructors()
 
@@ -3628,14 +3654,14 @@ Class Class1(Of T)
                     Dim ttx As T = tx
                     [|
                     b = 3
-                    Dim c As Integer = Foo() + p + pp + a + b + a_outer |]
+                    Dim c As Integer = Goo() + p + pp + a + b + a_outer |]
                     Return c
                 End Function
                 Return ff(Nothing, p)
             End Function
     End Sub
 
-    Public Function Foo() As Integer
+    Public Function Goo() As Integer
         Return Nothing
     End Function
 
@@ -3662,13 +3688,13 @@ Class Class1(Of T)
                 Dim ttx As T = tx
                 [|
                 b = 3
-                Dim c As Integer = Foo() + p + pp + a + b + a_outer |]
+                Dim c As Integer = Goo() + p + pp + a + b + a_outer |]
                 Return c
             End Function
             Return ff(Nothing, p)
         End Function
 
-    Public Function Foo() As Integer
+    Public Function Goo() As Integer
         Return Nothing
     End Function
 
@@ -3690,6 +3716,10 @@ End Class
                 GetSymbolNamesJoined(dataResults2.AlwaysAssigned))
             Assert.Equal(GetSymbolNamesJoined(dataResults1.Captured),
                 GetSymbolNamesJoined(dataResults2.Captured))
+            Assert.Equal(GetSymbolNamesJoined(dataResults1.CapturedInside),
+                 GetSymbolNamesJoined(dataResults2.CapturedInside))
+            Assert.Equal(GetSymbolNamesJoined(dataResults1.CapturedOutside),
+                 GetSymbolNamesJoined(dataResults2.CapturedOutside))
             Assert.Equal(GetSymbolNamesJoined(dataResults1.DataFlowsIn),
                 GetSymbolNamesJoined(dataResults2.DataFlowsIn))
             Assert.Equal(GetSymbolNamesJoined(dataResults1.DataFlowsOut),
@@ -3705,7 +3735,7 @@ End Class
 
         End Sub
 
-        <WorkItem(539197, "DevDiv")>
+        <WorkItem(539197, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539197")>
         <Fact()>
         Public Sub ByRefParameterNotInAppropriateCollections1()
             ' ByRef parameters are not considered assigned
@@ -3742,7 +3772,7 @@ End Class
             Assert.Equal("Me, t, t1", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(539197, "DevDiv")>
+        <WorkItem(539197, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539197")>
         <Fact()>
         Public Sub ByRefParameterNotInAppropriateCollections2()
             ' ByRef parameters are not considered assigned
@@ -4282,7 +4312,7 @@ End Class
             Assert.Equal("x, y", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
         End Sub
 
-        <WorkItem(541005, "DevDiv")>
+        <WorkItem(541005, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541005")>
         <Fact()>
         Public Sub TestMultipleLocalsInitializedByAsNew1()
             Dim dataFlowAnalysis = CompileAndAnalyzeDataFlow(
@@ -4307,7 +4337,7 @@ End Module
             Assert.Equal("args, a, x, y, z", GetSymbolNamesJoined(dataFlowAnalysis.WrittenOutside))
         End Sub
 
-        <WorkItem(541005, "DevDiv")>
+        <WorkItem(541005, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541005")>
         <Fact()>
         Public Sub TestMultipleLocalsInitializedByAsNew2()
             Dim analysis = CompileAndAnalyzeControlAndDataFlow(
@@ -4338,7 +4368,7 @@ End Module
             Assert.True(controlFlowAnalysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(528623, "DevDiv")>
+        <WorkItem(528623, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528623")>
         <Fact()>
         Public Sub TestElementAccess01()
             Dim analysis = CompileAndAnalyzeControlAndDataFlow(
@@ -4404,7 +4434,7 @@ End Enum
             Assert.Equal("Me, args, ex", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(542565, "DevDiv")>
+        <WorkItem(542565, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542565")>
         <Fact()>
         Public Sub IdentifierNameInForStatement()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4422,13 +4452,13 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(528860, "DevDiv")>
+        <WorkItem(528860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528860")>
         <Fact()>
         Public Sub IdentifierNameInMemberAccessExpr()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
    <compilation>
        <file name="a.vb">
-Public Class Foo
+Public Class Goo
     Sub M()
         Dim c As C = New C()
         Dim n1 = c.[|M|]
@@ -4440,7 +4470,7 @@ End Class
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(528860, "DevDiv")>
+        <WorkItem(528860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528860")>
         <Fact()>
         Public Sub IdentifierNameInMemberAccessExpr2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4458,7 +4488,7 @@ End Class
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(542860, "DevDiv")>
+        <WorkItem(542860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542860")>
         <Fact()>
         Public Sub IdentifierNameSyntax()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4476,7 +4506,7 @@ End Class
             Assert.True(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(542860, "DevDiv")>
+        <WorkItem(542860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542860")>
         <Fact()>
         Public Sub IdentifierNameSyntax2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4485,9 +4515,9 @@ End Class
 Imports Microsoft.VisualBasic
 Public Class C
     Sub M()
-        Dim n1 = [|Foo|](85)
+        Dim n1 = [|Goo|](85)
         End Sub
-    Function Foo(i As Integer) As Integer
+    Function Goo(i As Integer) As Integer
         Return i
     End Function
 End Class
@@ -4497,7 +4527,7 @@ End Class
             Assert.True(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(542860, "DevDiv")>
+        <WorkItem(542860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542860")>
         <Fact()>
         Public Sub IdentifierNameSyntax3()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4506,9 +4536,9 @@ End Class
 Imports Microsoft.VisualBasic
 Public Class C
     Sub M()
-        Dim n1 = [|Foo|](85)
+        Dim n1 = [|Goo|](85)
   End Sub
-    ReadOnly Property Foo(i As Integer) As Integer
+    ReadOnly Property Goo(i As Integer) As Integer
         Get
             Return i
         End Get
@@ -4520,7 +4550,7 @@ End Class
             Assert.True(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543369, "DevDiv")>
+        <WorkItem(543369, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543369")>
         <Fact()>
         Public Sub PredefinedTypeIncompleteSub()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4536,7 +4566,7 @@ End Class
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543369, "DevDiv")>
+        <WorkItem(543369, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543369")>
         <Fact()>
         Public Sub PredefinedType2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -4554,10 +4584,10 @@ End Class
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543461, "DevDiv")>
+        <WorkItem(543461, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543461")>
         <Fact()>
         Public Sub CollectionInitSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4576,10 +4606,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543461, "DevDiv")>
+        <WorkItem(543461, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543461")>
         <Fact()>
         Public Sub CollectionInitSyntax2()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Imports System.Collections.Generic
@@ -4599,10 +4629,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543461, "DevDiv")>
+        <WorkItem(543461, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543461")>
         <Fact()>
         Public Sub CollectionInitSyntax3()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Imports System.Collections.Generic
@@ -4622,10 +4652,10 @@ End Module
             Assert.True(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543509, "DevDiv")>
+        <WorkItem(543509, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543509")>
         <Fact()>
         Public Sub IfStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4649,7 +4679,7 @@ End Module
 
         <Fact()>
         Public Sub ElseStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4675,7 +4705,7 @@ End Module
 
         <Fact()>
         Public Sub WithStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4695,10 +4725,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(757796, "DevDiv")>
+        <WorkItem(757796, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/757796")>
         <Fact()>
         Public Sub Bug757796()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Imports System
@@ -4725,7 +4755,7 @@ End Module  </file>
 
         <Fact()>
         Public Sub TryStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4749,7 +4779,7 @@ End Module
 
         <Fact()>
         Public Sub CatchStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4773,7 +4803,7 @@ End Module
 
         <Fact()>
         Public Sub FinallyStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4795,10 +4825,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543722, "DevDiv")>
+        <WorkItem(543722, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543722")>
         <Fact()>
         Public Sub SyncLockStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4818,10 +4848,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543736, "DevDiv")>
+        <WorkItem(543736, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543736")>
         <Fact()>
         Public Sub WhileStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -4843,7 +4873,7 @@ End Module
 
         <Fact()>
         Public Sub UsingStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Imports System.IO
@@ -4864,10 +4894,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(545449, "DevDiv")>
+        <WorkItem(545449, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545449")>
         <Fact()>
         Public Sub LoopWhileStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Imports System.IO
@@ -4894,11 +4924,11 @@ End Module
 
         <Fact()>
         Public Sub SelectStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Class Frame
-    Sub Foo()
+    Sub Goo()
         Select Case 1 + 2 + 3
             Case 1
             Case 2
@@ -4918,11 +4948,11 @@ End Class
 
         <Fact()>
         Public Sub CaseStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Class Frame
-    Sub Foo()
+    Sub Goo()
         Select Case 1 + 2 + 3
             Case 1
             Case 2
@@ -4943,11 +4973,11 @@ End Class
 
         <Fact()>
         Public Sub DoStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Class Frame
-    Sub Foo()
+    Sub Goo()
         Do
             Exit Do
         Loop
@@ -4966,11 +4996,11 @@ End Class
 
         <Fact()>
         Public Sub ForStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Class Frame
-    Sub Foo()
+    Sub Goo()
         For i = 0 To 1
         Next
     End Sub
@@ -4988,11 +5018,11 @@ End Class
 
         <Fact()>
         Public Sub ForEachStatementSyntax()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Class Frame
-    Sub Foo()
+    Sub Goo()
         For Each c In ""
         Next
     End Sub
@@ -5008,7 +5038,7 @@ End Class
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543548, "DevDiv")>
+        <WorkItem(543548, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543548")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5032,7 +5062,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543548, "DevDiv")>
+        <WorkItem(543548, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543548")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5056,7 +5086,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543548, "DevDiv")>
+        <WorkItem(543548, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543548")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess3()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5083,7 +5113,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543548, "DevDiv")>
+        <WorkItem(543548, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543548")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess4()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5110,7 +5140,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543695, "DevDiv")>
+        <WorkItem(543695, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543695")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess5()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5129,7 +5159,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543695, "DevDiv")>
+        <WorkItem(543695, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543695")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess6()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5146,7 +5176,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543695, "DevDiv")>
+        <WorkItem(543695, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543695")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess7()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5169,7 +5199,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543695, "DevDiv")>
+        <WorkItem(543695, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543695")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess8()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5192,7 +5222,7 @@ End Module
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(545080, "DevDiv")>
+        <WorkItem(545080, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545080")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess9()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5222,7 +5252,7 @@ End Class
             Assert.False(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(545080, "DevDiv")>
+        <WorkItem(545080, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545080")>
         <Fact()>
         Public Sub NamespaceIdentifierNameInMemberAccess10()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5272,6 +5302,8 @@ End Module
             Assert.Equal("p", GetSymbolNamesJoined(analysisResult.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysisResult.AlwaysAssigned))
             Assert.Equal("local", GetSymbolNamesJoined(analysisResult.Captured))
+            Assert.Equal("local", GetSymbolNamesJoined(analysisResult.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysisResult.CapturedOutside))
             Assert.Equal("local, constLocal", GetSymbolNamesJoined(analysisResult.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysisResult.DataFlowsOut))
             Assert.Equal("local, constLocal, p", GetSymbolNamesJoined(analysisResult.ReadInside))
@@ -5307,6 +5339,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysisResult.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysisResult.AlwaysAssigned))
             Assert.Equal("mp, local", GetSymbolNamesJoined(analysisResult.Captured))
+            Assert.Equal("mp, local", GetSymbolNamesJoined(analysisResult.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysisResult.CapturedOutside))
             Assert.Equal("mp, constLocal", GetSymbolNamesJoined(analysisResult.DataFlowsIn))
             Assert.Equal("local", GetSymbolNamesJoined(analysisResult.DataFlowsOut))
             Assert.Equal("mp, constLocal", GetSymbolNamesJoined(analysisResult.ReadInside))
@@ -5316,7 +5350,7 @@ End Class
 
         End Sub
 
-        <WorkItem(543701, "DevDiv")>
+        <WorkItem(543701, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543701")>
         <Fact()>
         Public Sub LiteralExprInVarDeclInsideSingleLineLambda()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5333,7 +5367,7 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543702, "DevDiv")>
+        <WorkItem(543702, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543702")>
         <Fact()>
         Public Sub LiteralExprInsideEnumMemberDecl()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -5402,7 +5436,7 @@ End Class
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1_OnlyImplicitReceiverRegion1()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5428,7 +5462,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1_OnlyImplicitReceiverRegion2()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5454,7 +5488,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1_DeclAndImplicitReceiverRegion()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5481,6 +5515,8 @@ End Class
             Assert.Equal("x, y", GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal("x, y", GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("x, y", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5489,7 +5525,7 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1_ValidRegion1()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5523,6 +5559,8 @@ End Class
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5531,7 +5569,7 @@ End Class
             Assert.Equal("x, y", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1_ValidRegion2()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5564,6 +5602,8 @@ End Class
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5572,7 +5612,7 @@ End Class
             Assert.Equal("x, y", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1_InvalidRegion3()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5604,7 +5644,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(531226, "DevDiv")>
+        <WorkItem(531226, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531226")>
         <Fact()>
         Public Sub DisableConstantLiteralRegion()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5623,7 +5663,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(531226, "DevDiv")>
+        <WorkItem(531226, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531226")>
         <Fact()>
         Public Sub WithStatement_LValueExpression()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5657,7 +5697,7 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
         End Sub
 
-        <WorkItem(531226, "DevDiv")>
+        <WorkItem(531226, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531226")>
         <Fact()>
         Public Sub WithStatement_LValueExpression2()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5683,7 +5723,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(531226, "DevDiv")>
+        <WorkItem(531226, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531226")>
         <Fact()>
         Public Sub WithStatement_LValueExpression3()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5714,7 +5754,7 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
         End Sub
 
-        <WorkItem(531226, "DevDiv")>
+        <WorkItem(531226, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531226")>
         <Fact()>
         Public Sub WithStatement_LValueExpression4()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5740,7 +5780,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1a_ObjectInitializer()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5769,6 +5809,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5777,7 +5819,7 @@ End Class
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1a_ObjectInitializer2()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5806,6 +5848,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5814,7 +5858,7 @@ End Class
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1b()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5844,6 +5888,8 @@ End Class
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5852,7 +5898,7 @@ End Class
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializersLocalsAccessed1bb()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5880,6 +5926,8 @@ End Class
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5888,7 +5936,7 @@ End Class
             Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_StructWithFieldAccessesInLambda1()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5924,7 +5972,7 @@ End Structure
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_StructWithFieldAccessesInLambda2()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -5963,6 +6011,8 @@ End Structure
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("a", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("a", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -5971,7 +6021,7 @@ End Structure
             Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_StructWithFieldAccessesInLambda3()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -6012,6 +6062,8 @@ End Structure
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("a", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("a", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -6020,7 +6072,7 @@ End Structure
             Assert.Equal("Me, i, l, a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_StructWithFieldAccessesInLambda4()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -6057,6 +6109,8 @@ End Structure
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -6065,7 +6119,7 @@ End Structure
             Assert.Equal("Me, i, a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_StructWithFieldAccessesInLambda5()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -6101,6 +6155,8 @@ End Structure
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal("a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal("a", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -6109,7 +6165,7 @@ End Structure
             Assert.Equal("Me, i, a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_StructWithFieldAccessesInLambda6()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -6145,6 +6201,8 @@ End Structure
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -6153,7 +6211,7 @@ End Structure
             Assert.Equal("Me, i, a, b", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
-        <WorkItem(544298, "DevDiv")>
+        <WorkItem(544298, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544298")>
         <Fact()>
         Public Sub ObjectInitializers_PassingFieldByRef()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -6188,6 +6246,8 @@ End Structure
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("b", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -6221,6 +6281,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
@@ -6262,6 +6324,8 @@ End Class
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
         End Sub
 
         <Fact()>
@@ -6303,6 +6367,8 @@ End Class
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Equal("localint, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Equal("localint", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("localint", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
         End Sub
 
         <Fact()>
@@ -6346,6 +6412,8 @@ End Class
             Assert.Equal("localint, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
             Assert.Equal("localint", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("localint", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
 
             Dim controlFlowAnalysisResults = analysisResults.Item1
             Assert.Equal(0, controlFlowAnalysisResults.EntryPoints.Count)
@@ -6368,8 +6436,8 @@ Imports System.Collections.Generic
 
 Public Class C2
     Public Shared Sub Main()
-        dim foo as string = "Hello World"
-        Dim x as [|New List(Of String) From {foo, "!"}|]
+        dim goo as string = "Hello World"
+        Dim x as [|New List(Of String) From {goo, "!"}|]
     End Sub
 End Class
     </file>
@@ -6377,12 +6445,12 @@ End Class
 
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
-            Assert.Equal("foo", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
+            Assert.Equal("goo", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
-            Assert.Equal("foo", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
+            Assert.Equal("goo", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.ReadOutside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
-            Assert.Equal("foo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
         <Fact()>
@@ -6395,8 +6463,8 @@ Imports System.Collections.Generic
 
 Public Class C2
     Public Shared Sub Main()
-        dim foo as string = "Hello World"
-        Dim x as New List(Of String) From [|{foo, "!"}|]
+        dim goo as string = "Hello World"
+        Dim x as New List(Of String) From [|{goo, "!"}|]
     End Sub
 End Class
     </file>
@@ -6414,8 +6482,8 @@ Imports System.Collections.Generic
 
 Public Class C2
     Public Shared Sub Main()
-        dim foo as string = "Hello World"
-        Dim x as New Dictionary(Of String, Integer) From {[|{foo, 1}|], {"bar", 42}}
+        dim goo as string = "Hello World"
+        Dim x as New Dictionary(Of String, Integer) From {[|{goo, 1}|], {"bar", 42}}
     End Sub
 End Class
     </file>
@@ -6424,7 +6492,7 @@ End Class
             Assert.False(dataFlowAnalysisResults.Succeeded)
         End Sub
 
-        <WorkItem(530032, "DevDiv")>
+        <WorkItem(530032, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530032")>
         <Fact>
         Public Sub CollectionInitializersNestedInitializer()
             Dim dataFlowAnalysisResults = CompileAndAnalyzeDataFlow(
@@ -6435,8 +6503,8 @@ Imports System.Collections.Generic
 
 Public Class C2
     Public Shared Sub Main(),
-        dim foo as string = "Hello World"
-        Dim x as New Dictionary(Of String(), Integer) From { {[|{foo, "!"}|], 1} }
+        dim goo as string = "Hello World"
+        Dim x as New Dictionary(Of String(), Integer) From { {[|{goo, "!"}|], 1} }
     End Sub
 End Class
     </file>
@@ -6445,12 +6513,12 @@ End Class
             Assert.True(dataFlowAnalysisResults.Succeeded)
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
-            Assert.Equal("foo", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
+            Assert.Equal("goo", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
-            Assert.Equal("foo", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
+            Assert.Equal("goo", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.ReadOutside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
-            Assert.Equal("foo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
         <Fact()>
@@ -6463,10 +6531,10 @@ Imports System.Collections.Generic
 
 Public Class C2
     Public Shared Sub Main()
-        Dim foo As String = "Hello World"
+        Dim goo As String = "Hello World"
         Dim x As [|New List(Of Action) From {
             Sub()
-                Console.WriteLine(foo)
+                Console.WriteLine(goo)
             End Sub,
             Sub()
                 Console.WriteLine(x.Item(0))
@@ -6481,13 +6549,15 @@ End Class
             Assert.True(dataFlowAnalysisResults.Succeeded)
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.AlwaysAssigned))
-            Assert.Equal("foo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsIn))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.DataFlowsOut))
-            Assert.Equal("foo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
-            Assert.Equal("foo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.Captured))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysisResults.CapturedOutside))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.ReadInside))
             Assert.Null(GetSymbolNamesJoined(dataFlowAnalysisResults.ReadOutside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenInside))
-            Assert.Equal("foo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
+            Assert.Equal("goo, x", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside))
         End Sub
 
         <Fact(), WorkItem(12970, "DevDiv_Projects/Roslyn")>
@@ -6513,7 +6583,7 @@ End Module
 
 #End Region
 
-        <Fact(), WorkItem(544079, "DevDiv")>
+        <Fact(), WorkItem(544079, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544079")>
         Public Sub UserDefinedOperatorBody()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
 <compilation>
@@ -6554,6 +6624,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty((dataFlowResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -6562,7 +6634,7 @@ End Module
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <Fact(), WorkItem(544079, "DevDiv")>
+        <Fact(), WorkItem(544079, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544079")>
         Public Sub UserDefinedOperatorBody_1()
             Dim analysisResults = CompileAndAnalyzeControlAndDataFlow(
 <compilation>
@@ -6601,6 +6673,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty((dataFlowResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -6643,6 +6717,8 @@ End Module
             Assert.Equal("y", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Equal("args, x, bb", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("args, x, bb", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("args, x, bb", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("args, x, bb, y", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -6651,7 +6727,7 @@ End Module
             Assert.Equal("args, x, bb, ret", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <Fact(), WorkItem(545047, "DevDiv")>
+        <Fact(), WorkItem(545047, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545047")>
         Public Sub UserDefinedLiftedOperatorInExpr()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
 <compilation>
@@ -6689,6 +6765,8 @@ End Module
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Equal("p, local", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("p, local", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("p, local", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("p, local, x", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -6697,7 +6775,7 @@ End Module
             Assert.Equal("p, local, f", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <Fact(), WorkItem(545047, "DevDiv")>
+        <Fact(), WorkItem(545047, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545047")>
         Public Sub DataFlowsInAndNullable()
             ' WARNING: if this test is edited, the test with the 
             '          test with the same name in C# must be modified too
@@ -6730,6 +6808,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i, s", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i, s", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -6738,7 +6818,7 @@ End Module
             Assert.Equal("args, i, s", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(545249, "DevDiv")>
+        <WorkItem(545249, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545249")>
         <Fact()>
         Public Sub TestWithEventsInitializer()
             Dim comp = CompileAndAnalyzeDataFlow(
@@ -6752,7 +6832,7 @@ End Class
             Debug.Assert(comp.Succeeded)
         End Sub
 
-        <WorkItem(545249, "DevDiv")>
+        <WorkItem(545249, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545249")>
         <Fact()>
         Public Sub TestWithEventsInitializer2()
             Dim comp = CompileAndAnalyzeDataFlow(
@@ -6798,10 +6878,10 @@ End Class
             Debug.Assert(comp.Succeeded)
         End Sub
 
-        <WorkItem(545480, "DevDiv")>
+        <WorkItem(545480, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545480")>
         <Fact()>
         Public Sub ReturnStatementInElseInsideIncompleteFunction()
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb">
 Public Class vbPartialCls002
@@ -6820,7 +6900,7 @@ Public Class vbPartialCls002
             Assert.True(controlFlowAnalysis.Succeeded)
         End Sub
 
-        <WorkItem(545900, "DevDiv")>
+        <WorkItem(545900, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545900")>
         <Fact()>
         Public Sub AnonymousObjectCreationExprInsideOptionalParamDecl()
             Dim comp = CompileAndAnalyzeDataFlow(
@@ -6835,7 +6915,7 @@ End Module
             Assert.False(comp.Succeeded)
         End Sub
 
-        <WorkItem(545900, "DevDiv")>
+        <WorkItem(545900, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545900")>
         <Fact()>
         Public Sub AnonymousObjectCreationExprInsideOptionalParamDecl2()
             Dim comp = CompileAndAnalyzeDataFlow(
@@ -6852,7 +6932,7 @@ End Class
             Assert.False(comp.Succeeded)
         End Sub
 
-        <WorkItem(545900, "DevDiv")>
+        <WorkItem(545900, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545900")>
         <Fact()>
         Public Sub LambdaExprInsideOptionalParamDecl2()
             Dim comp = CompileAndAnalyzeDataFlow(
@@ -6880,7 +6960,7 @@ End Module
 
         <Fact()>
         Public Sub ConstantUnevaluatedReceiver()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Class A
@@ -6899,7 +6979,7 @@ End Class
 
         <Fact()>
         Public Sub CallUnevaluatedReceiver()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Class A
@@ -6918,10 +6998,10 @@ End Class
             model.AnalyzeDataFlow(expr)
         End Sub
 
-        <WorkItem(546639, "DevDiv")>
+        <WorkItem(546639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546639")>
         <Fact()>
         Public Sub AddressOfUnevaluatedReceiver()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Class A
@@ -6939,10 +7019,10 @@ End Class
             model.AnalyzeDataFlow(expr)
         End Sub
 
-        <WorkItem(546629, "DevDiv")>
+        <WorkItem(546629, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546629")>
         <Fact()>
         Public Sub TypeExpressionUnevaluatedReceiver()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Class A
@@ -6961,7 +7041,7 @@ End Class
             model.AnalyzeDataFlow(expr)
         End Sub
 
-        <WorkItem(545266, "DevDiv")>
+        <WorkItem(545266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545266")>
         <Fact()>
         Public Sub DataFlowImplicitLoopVariableInBrokenCodeNotInDataFlowsOut()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -6983,6 +7063,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -6991,7 +7073,7 @@ End Module
             Assert.Equal("args, i, j", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(545266, "DevDiv")>
+        <WorkItem(545266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545266")>
         <Fact()>
         Public Sub DataFlowImplicitLoopVariableInBrokenCodeNotInDataFlowsOut_2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7015,6 +7097,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -7023,7 +7107,7 @@ End Module
             Assert.Equal("args, x, i, j", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(545266, "DevDiv")>
+        <WorkItem(545266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545266")>
         <Fact()>
         Public Sub DataFlowUnassignedVariablesWithoutAssignmentInsideDoNotFlowOut_1()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7049,6 +7133,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -7057,7 +7143,7 @@ End Module
             Assert.Equal("args, i, j", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(545266, "DevDiv")>
+        <WorkItem(545266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545266")>
         <Fact()>
         Public Sub DataFlowUnassignedVariablesWithoutAssignmentInsideDoNotFlowOut_2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7083,6 +7169,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -7091,7 +7179,7 @@ End Module
             Assert.Equal("args, i, k, j", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(545266, "DevDiv")>
+        <WorkItem(545266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545266")>
         <Fact()>
         Public Sub DataFlowImplicitUsingVariableInBrokenCodeNotInDataFlowsOut()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7113,6 +7201,8 @@ End Module
             Assert.Empty(dataFlowResults.VariablesDeclared)
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -7121,7 +7211,7 @@ End Module
             Assert.Equal("args, i, j", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(546995, "DevDiv")>
+        <WorkItem(546995, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546995")>
         <Fact()>
         Public Sub DataFlowUnassignedVariablesWithoutAssignmentInsideDoNotFlowOut_3()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7143,6 +7233,8 @@ End Module
             Assert.Equal("i, q", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Empty(dataFlowResults.AlwaysAssigned)
             Assert.Empty(dataFlowResults.Captured)
+            Assert.Empty(dataFlowResults.CapturedInside)
+            Assert.Empty(dataFlowResults.CapturedOutside)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Empty(dataFlowResults.DataFlowsOut)
             Assert.Equal("i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -7150,7 +7242,7 @@ End Module
             Assert.Empty(dataFlowResults.ReadOutside)
             Assert.Equal("args", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
-        <WorkItem(669341, "DevDiv")>
+        <WorkItem(669341, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/669341")>
         <Fact()>
         Public Sub ReceiverRead()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7185,7 +7277,7 @@ End Module
             Assert.Equal("X, Value", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(669341, "DevDiv")>
+        <WorkItem(669341, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/669341")>
         <Fact()>
         Public Sub ReceiverWritten()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7220,7 +7312,7 @@ End Module
             Assert.Equal("X", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(669341, "DevDiv")>
+        <WorkItem(669341, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/669341")>
         <Fact()>
         Public Sub ReceiverReadAndWritten()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7258,7 +7350,7 @@ End Module
 
 #Region "Anonymous Type, Lambda"
 
-        <WorkItem(543464, "DevDiv")>
+        <WorkItem(543464, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543464")>
         <Fact()>
         Public Sub TestCaptured()
             Dim analysis = CompileAndAnalyzeDataFlow(
@@ -7280,6 +7372,8 @@ end class</file>
             Assert.Equal("l1", GetSymbolNamesJoined(analysis.VariablesDeclared))
             Assert.Equal("l1", GetSymbolNamesJoined(analysis.AlwaysAssigned))
             Assert.Equal("Me, x, y", GetSymbolNamesJoined(analysis.Captured))
+            Assert.Equal("Me, x, y", GetSymbolNamesJoined(analysis.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.CapturedOutside))
             Assert.Equal("Me, x, y", GetSymbolNamesJoined(analysis.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
             Assert.Equal("Me, x, y", GetSymbolNamesJoined(analysis.ReadInside))
@@ -7288,7 +7382,38 @@ end class</file>
             Assert.Equal("Me, x, a, y, c", GetSymbolNamesJoined(analysis.WrittenOutside))
         End Sub
 
-        <WorkItem(542629, "DevDiv")>
+        <Fact()>
+        Public Sub TestCapturedRegion()
+            Dim analysis = CompileAndAnalyzeDataFlow(
+      <compilation name="TestLifted">
+          <file name="a.b">
+class C
+    Dim field = 123
+    public sub F(x as integer)
+
+        dim a as integer = 1, y as integer = 1
+        dim outside = function() x+field
+[|
+        dim inside = function() y
+|]
+    end sub
+end class</file>
+      </compilation>)
+
+            Assert.Equal("inside", GetSymbolNamesJoined(analysis.VariablesDeclared))
+            Assert.Equal("inside", GetSymbolNamesJoined(analysis.AlwaysAssigned))
+            Assert.Equal("Me, x, y", GetSymbolNamesJoined(analysis.Captured))
+            Assert.Equal("y", GetSymbolNamesJoined(analysis.CapturedInside))
+            Assert.Equal("Me, x", GetSymbolNamesJoined(analysis.CapturedOutside))
+            Assert.Equal("y", GetSymbolNamesJoined(analysis.DataFlowsIn))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(analysis.DataFlowsOut))
+            Assert.Equal("y", GetSymbolNamesJoined(analysis.ReadInside))
+            Assert.Equal("inside", GetSymbolNamesJoined(analysis.WrittenInside))
+            Assert.Equal("Me, x", GetSymbolNamesJoined(analysis.ReadOutside))
+            Assert.Equal("Me, x, a, y, outside", GetSymbolNamesJoined(analysis.WrittenOutside))
+        End Sub
+
+        <WorkItem(542629, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542629")>
         <Fact()>
         Public Sub TestRegionControlFlowAnalysisInsideLambda()
             Dim controlFlowAnalysis = CompileAndAnalyzeControlFlow(
@@ -7310,7 +7435,7 @@ End Module
             Assert.False(controlFlowAnalysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(542629, "DevDiv")>
+        <WorkItem(542629, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542629")>
         <Fact()>
         Public Sub TestRegionControlFlowAnalysisInsideLambda2()
             Dim controlFlowAnalysis = CompileAndAnalyzeControlFlow(
@@ -7332,7 +7457,7 @@ End Module
             Assert.False(controlFlowAnalysis.EndPointIsReachable)
         End Sub
 
-        <WorkItem(542629, "DevDiv")>
+        <WorkItem(542629, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542629")>
         <Fact()>
         Public Sub TestRegionControlFlowAnalysisInsideLambda3()
             Dim controlFlowAnalysis = CompileAndAnalyzeControlFlow(
@@ -7436,6 +7561,8 @@ End Class
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("lambda", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("local", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("local", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("lambda, p, at", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("local", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("p", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7452,24 +7579,24 @@ End Class
        <file name="a.vb">
 Imports System
 
-Interface IFoo
+Interface IGoo
     Delegate Sub DS(ByRef p As Char)
 End Interface
 
-Class CFoo
-    Implements IFoo
+Class CGoo
+    Implements IGoo
 End Class
 
 Friend Module AM
     Sub Main(args As String())
-        Dim ifoo As IFoo = New CFoo()
-        Dim at1 As New With {.if = ifoo}
+        Dim igoo As IGoo = New CGoo()
+        Dim at1 As New With {.if = igoo}
 [|
-        Dim at2 As New With {.if = at1, ifoo,
+        Dim at2 As New With {.if = at1, igoo,
             .friend = New With {Key args, .lambda = DirectCast(Sub(ByRef p As Char)
                                                                    args(0) = p &amp; p
                                                                    p = "Q"c
-                                                               End Sub, IFoo.DS)}}
+                                                               End Sub, IGoo.DS)}}
 |]
      Console.Write(args(0))
     End Sub
@@ -7483,13 +7610,15 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("at2", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("args", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("args", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("at2, p", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
-            Assert.Equal("args, ifoo, at1", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
+            Assert.Equal("args, igoo, at1", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("p", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
-            Assert.Equal("args, ifoo, at1, p", GetSymbolNamesJoined(dataFlowResults.ReadInside))
+            Assert.Equal("args, igoo, at1, p", GetSymbolNamesJoined(dataFlowResults.ReadInside))
             Assert.Equal("at2, p", GetSymbolNamesJoined(dataFlowResults.WrittenInside))
-            Assert.Equal("args, ifoo", GetSymbolNamesJoined(dataFlowResults.ReadOutside))
-            Assert.Equal("args, ifoo, at1", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
+            Assert.Equal("args, igoo", GetSymbolNamesJoined(dataFlowResults.ReadOutside))
+            Assert.Equal("args, igoo, at1", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
         <Fact()>
@@ -7499,7 +7628,7 @@ End Module
        <file name="a.vb">
 Imports System
 
-Interface IFoo
+Interface IGoo
     Delegate Sub DS(ByRef p As Char)
 End Interface
 
@@ -7509,7 +7638,7 @@ Friend Module AM
        Dim at1 As New With {.friend = New With {args, Key.lambda = DirectCast(Sub(ByRef p As Char)
                                                                                   args(0) = p &amp; p
                                                                                   p = "Q"c
-                                                                              End Sub, IFoo.DS) }
+                                                                              End Sub, IGoo.DS) }
                           }
        Dim at2 As New With { Key .a= at1, .friend = New With { [| at1 |] }}
        Console.Write(args(0))
@@ -7522,6 +7651,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("args", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal("args", GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("at1", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7556,6 +7687,8 @@ End Class
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("ary", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("Me, args", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("ary", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7587,6 +7720,8 @@ End Class
 
             Assert.Null(GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Null(GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Null(GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Null(GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Null(GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Null(GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Null(GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7632,6 +7767,8 @@ End Class
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("Me, x", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7675,6 +7812,8 @@ End Class
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7736,6 +7875,8 @@ End Module
 
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("s", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -7745,7 +7886,7 @@ End Module
             Assert.Equal("Me, an", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(543046, "DevDiv")>
+        <WorkItem(543046, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543046")>
         <Fact()>
         Public Sub Lambda()
             ' The region is not correct and it is not clear if there is a way to fix the test
@@ -7759,7 +7900,7 @@ Imports System
 Imports System.Runtime.InteropServices
 Public Class S1
     [|Const str As String = "" &lt; MyAttribute(Me.color.blue) &gt;
-    Sub foo()
+    Sub goo()
     End Sub|]
     Shared Sub main()
     End Sub
@@ -7779,7 +7920,7 @@ End Class
                 End Sub)
         End Sub
 
-        <WorkItem(543684, "DevDiv")>
+        <WorkItem(543684, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543684")>
         <Fact()>
         Public Sub AddressOfExpr()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7796,7 +7937,7 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
         End Sub
 
-        <WorkItem(543741, "DevDiv")>
+        <WorkItem(543741, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543741")>
         <Fact()>
         Public Sub AddressOfExpr2()
             Dim dataFlowResults = CompileAndAnalyzeDataFlow(
@@ -7818,7 +7959,7 @@ End Module
 
         <Fact()>
         Public Sub XmlEmbeddedExpression()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(
       <compilation>
           <file name="c.vb"><![CDATA[
 Option Strict On
@@ -7835,7 +7976,7 @@ Module M
     End Function
 End Module
     ]]></file>
-      </compilation>, additionalRefs:=XmlReferences)
+      </compilation>, references:=XmlReferences)
             Dim tree = compilation.SyntaxTrees.First()
             Dim model = compilation.GetSemanticModel(tree)
             Dim root = tree.GetCompilationUnitRoot()
@@ -7854,7 +7995,7 @@ End Module
 
         <Fact()>
         Public Sub XmlMemberAccess()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(
       <compilation>
           <file name="c.vb"><![CDATA[
 Option Strict On
@@ -7866,7 +8007,7 @@ Module M
     End Function
 End Module
     ]]></file>
-      </compilation>, additionalRefs:=XmlReferences)
+      </compilation>, references:=XmlReferences)
             Dim tree = compilation.SyntaxTrees.First()
             Dim model = compilation.GetSemanticModel(tree)
             Dim root = tree.GetCompilationUnitRoot()
@@ -7898,43 +8039,7 @@ Module M
 End Module
     ]]></file>
                 </compilation>
-            Dim compilation = CreateCompilationWithMscorlib(source)
-            Dim tree = compilation.SyntaxTrees.First()
-            Dim model = compilation.GetSemanticModel(tree)
-            Dim root = tree.GetCompilationUnitRoot()
-            Dim node = DirectCast(root.FindToken(root.ToFullString().IndexOf("Dim", StringComparison.Ordinal)).Parent, StatementSyntax)
-            Dim dataFlowAnalysis = model.AnalyzeDataFlow(node, node)
-            Assert.True(dataFlowAnalysis.Succeeded)
-            Assert.Equal("o", GetSymbolNamesJoined(dataFlowAnalysis.VariablesDeclared))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.AlwaysAssigned))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.DataFlowsIn))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.DataFlowsOut))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.ReadInside))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.WrittenInside))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.ReadOutside))
-            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowAnalysis.WrittenOutside))
-        End Sub
-
-        <WorkItem(529322, "DevDiv")>
-        <Fact(Skip:="529322")>
-        Public Sub GenericStructureCycleFromMetadata()
-            Dim ilSource = <![CDATA[
-.class public sealed S<T> extends System.ValueType
-{
-  .field public valuetype S<valuetype S<!T>> F
-}
-]]>.Value
-            Dim source =
-                <compilation>
-                    <file name="c.vb"><![CDATA[
-Module M
-    Sub M()
-        Dim o As S(Of Object)
-    End Sub
-End Module
-    ]]></file>
-                </compilation>
-            Dim compilation = CreateCompilationWithCustomILSource(source, ilSource)
+            Dim compilation = CreateCompilationWithMscorlib40(source)
             Dim tree = compilation.SyntaxTrees.First()
             Dim model = compilation.GetSemanticModel(tree)
             Dim root = tree.GetCompilationUnitRoot()
@@ -7981,6 +8086,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("Me, i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("Me, i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8016,6 +8123,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("Me, i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("Me, i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8055,6 +8164,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("Me, i", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("Me, i", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8117,6 +8228,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8156,6 +8269,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8192,6 +8307,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8228,6 +8345,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8268,6 +8387,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8309,6 +8430,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8350,6 +8473,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8392,6 +8517,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8434,6 +8561,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8488,6 +8617,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8542,6 +8673,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8592,6 +8725,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8642,6 +8777,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8692,6 +8829,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8742,6 +8881,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8792,6 +8933,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8844,6 +8987,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8897,6 +9042,8 @@ End Class
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("Me", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -8936,6 +9083,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -8977,6 +9126,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj1, obj2", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9018,6 +9169,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("obj3, obj4", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9067,6 +9220,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj5, obj5", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj1, obj2", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("obj3, obj4", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9117,6 +9272,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("obj2, obj4, obj5", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj5", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9159,6 +9316,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj1, obj2", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9203,6 +9362,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("obj3, obj4", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj1, obj2", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9252,6 +9413,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj5, obj5", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj1, obj2, obj3", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("obj3, obj4", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9296,6 +9459,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("obj1, obj2, obj3", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9327,6 +9492,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
             Assert.Equal("obj2", GetSymbolNamesJoined(dataFlowResults.ReadInside))
@@ -9375,6 +9542,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("obj2, obj4, obj5", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal("obj5", GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal("obj4", GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9384,7 +9553,7 @@ End Module
             Assert.Equal("obj1, obj2, obj3, obj4, obj5", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(529089, "DevDiv")>
+        <WorkItem(529089, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529089")>
         <Fact>
         Public Sub CaseClauseNotReachable()
             Dim analysis = CompileAndAnalyzeControlAndDataFlow(
@@ -9412,6 +9581,8 @@ End Module
             Assert.True(dataFlowResults.Succeeded)
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.AlwaysAssigned))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.Captured))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedInside))
+            Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.CapturedOutside))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.VariablesDeclared))
             Assert.Equal("x", GetSymbolNamesJoined(dataFlowResults.DataFlowsIn))
             Assert.Equal(Nothing, GetSymbolNamesJoined(dataFlowResults.DataFlowsOut))
@@ -9421,10 +9592,10 @@ End Module
             Assert.Equal("args, x", GetSymbolNamesJoined(dataFlowResults.WrittenOutside))
         End Sub
 
-        <WorkItem(543402, "DevDiv")>
+        <WorkItem(543402, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543402")>
         <Fact()>
         Public Sub EndSelectStatement()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -9444,10 +9615,10 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <WorkItem(543434, "DevDiv")>
+        <WorkItem(543434, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543434")>
         <Fact()>
         Public Sub SelectCaseStatement()
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
    <compilation>
        <file name="a.vb">
 Module Program
@@ -9467,7 +9638,7 @@ End Module
             Assert.False(analysis.Succeeded)
         End Sub
 
-        <Fact, WorkItem(543492, "DevDiv")>
+        <Fact, WorkItem(543492, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543492")>
         Public Sub MyBaseExpressionSyntax()
             Dim source =
 <compilation>
@@ -9489,25 +9660,29 @@ Public Class MyClass : Inherits BaseClass
 End Class
     </file>
 </compilation>
-            Dim comp = CreateCompilationWithMscorlib(source)
+            Dim comp = CreateCompilationWithMscorlib40(source)
             Dim tree = comp.SyntaxTrees.Single()
             Dim model = comp.GetSemanticModel(tree)
 
             Dim invocation = tree.GetCompilationUnitRoot().DescendantNodes().OfType(Of InvocationExpressionSyntax)().Single()
             Dim flowAnalysis = model.AnalyzeDataFlow(invocation)
             Assert.Empty(flowAnalysis.Captured)
-            Assert.Equal("[Me] As [MyClass]", flowAnalysis.DataFlowsIn.Single().ToTestDisplayString())
+            Assert.Empty(flowAnalysis.CapturedInside)
+            Assert.Empty(flowAnalysis.CapturedOutside)
+            Assert.Equal("Me As [MyClass]", flowAnalysis.DataFlowsIn.Single().ToTestDisplayString())
             Assert.Empty(flowAnalysis.DataFlowsOut)
-            Assert.Equal("[Me] As [MyClass]", flowAnalysis.ReadInside.Single().ToTestDisplayString())
+            Assert.Equal("Me As [MyClass]", flowAnalysis.ReadInside.Single().ToTestDisplayString())
             Assert.Empty(flowAnalysis.WrittenInside)
-            Assert.Equal("[Me] As [MyClass]", flowAnalysis.WrittenOutside.Single().ToTestDisplayString())
+            Assert.Equal("Me As [MyClass]", flowAnalysis.WrittenOutside.Single().ToTestDisplayString())
 
             Dim lambda = tree.GetCompilationUnitRoot().DescendantNodes().OfType(Of LambdaExpressionSyntax)().Single()
             flowAnalysis = model.AnalyzeDataFlow(lambda)
-            Assert.Equal("[Me] As [MyClass]", flowAnalysis.Captured.Single().ToTestDisplayString())
-            Assert.Equal("[Me] As [MyClass]", flowAnalysis.DataFlowsIn.Single().ToTestDisplayString())
+            Assert.Equal("Me As [MyClass]", flowAnalysis.Captured.Single().ToTestDisplayString())
+            Assert.Equal("Me As [MyClass]", flowAnalysis.CapturedInside.Single().ToTestDisplayString())
+            Assert.Empty(flowAnalysis.CapturedOutside)
+            Assert.Equal("Me As [MyClass]", flowAnalysis.DataFlowsIn.Single().ToTestDisplayString())
             Assert.Empty(flowAnalysis.DataFlowsOut)
-            Assert.Equal("[Me] As [MyClass]", flowAnalysis.ReadInside.Single().ToTestDisplayString())
+            Assert.Equal("Me As [MyClass]", flowAnalysis.ReadInside.Single().ToTestDisplayString())
             Assert.Empty(flowAnalysis.WrittenInside)
             Assert.Equal("Me, f", GetSymbolNamesJoined(flowAnalysis.WrittenOutside))
         End Sub
@@ -9546,7 +9721,9 @@ End Module
                 Optional readOutside() As String = Nothing,
                 Optional variablesDeclared() As String = Nothing,
                 Optional writtenInside() As String = Nothing,
-                Optional writtenOutside() As String = Nothing)
+                Optional writtenOutside() As String = Nothing,
+                Optional capturedInside() As String = Nothing,
+                Optional capturedOutside() As String = Nothing)
             VerifyDataFlowAnalysis(GetSourceXElementFromTemplate(code),
                                    alwaysAssigned,
                                    captured,
@@ -9556,7 +9733,9 @@ End Module
                                    readOutside,
                                    variablesDeclared,
                                    writtenInside,
-                                   writtenOutside)
+                                   writtenOutside,
+                                   capturedInside,
+                                   capturedOutside)
         End Sub
 
 #End Region

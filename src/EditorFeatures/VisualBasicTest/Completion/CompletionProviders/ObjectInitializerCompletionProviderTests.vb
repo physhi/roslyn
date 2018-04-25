@@ -1,6 +1,5 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.Completion
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
@@ -13,14 +12,22 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
             MyBase.New(workspaceFixture)
         End Sub
 
-        Protected Overrides Async Function VerifyWorkerAsync(code As String, position As Integer, expectedItemOrNull As String, expectedDescriptionOrNull As String, sourceCodeKind As SourceCodeKind, usePreviousCharAsTrigger As Boolean, checkForAbsence As Boolean, experimental As Boolean, glyph As Integer?) As Threading.Tasks.Task
+        Protected Overrides Async Function VerifyWorkerAsync(
+                code As String, position As Integer,
+                expectedItemOrNull As String, expectedDescriptionOrNull As String,
+                sourceCodeKind As SourceCodeKind, usePreviousCharAsTrigger As Boolean,
+                checkForAbsence As Boolean, glyph As Integer?, matchPriority As Integer?,
+                hasSuggestionItem As Boolean?) As Task
             ' Script/interactive support removed for now.
             ' TODO: Re-enable these when interactive is back in the product.
             If sourceCodeKind <> SourceCodeKind.Regular Then
                 Return
             End If
 
-            Await BaseVerifyWorkerAsync(code, position, expectedItemOrNull, expectedDescriptionOrNull, sourceCodeKind, usePreviousCharAsTrigger, checkForAbsence, glyph, experimental)
+            Await BaseVerifyWorkerAsync(
+                code, position, expectedItemOrNull, expectedDescriptionOrNull,
+                sourceCodeKind, usePreviousCharAsTrigger, checkForAbsence, glyph,
+                matchPriority, hasSuggestionItem)
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -29,7 +36,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new C With { .$$
     End Sub
 End Class</a>.Value
@@ -37,7 +44,7 @@ End Class</a>.Value
             Await VerifyNoItemsExistAsync(text)
         End Function
 
-        <WorkItem(530075)>
+        <WorkItem(530075, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530075")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestNotInArgumentList() As Task
             Dim text = <a>Public Class C
@@ -45,7 +52,7 @@ End Class</a>.Value
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a = new C(1, .$$
     End Sub
 End Class</a>.Value
@@ -60,7 +67,7 @@ End Class</a>.Value
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new C With { .$$
     End Sub
 End Program</a>.Value
@@ -72,24 +79,24 @@ End Program</a>.Value
         Public Async Function TestFieldAndProperty() As Task
             Dim text = <a>Public Class C
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new C With { .$$
     End Sub
 End Program</a>.Value
 
             Await VerifyItemExistsAsync(text, "bar")
-            Await VerifyItemExistsAsync(text, "foo")
+            Await VerifyItemExistsAsync(text, "goo")
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestFieldAndPropertyBaseTypes() As Task
             Dim text = <a>Public Class C
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Public Class D
@@ -97,13 +104,13 @@ Public Class D
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as D = new D With { .$$
     End Sub
 End Program</a>.Value
 
             Await VerifyItemExistsAsync(text, "bar")
-            Await VerifyItemExistsAsync(text, "foo")
+            Await VerifyItemExistsAsync(text, "goo")
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
@@ -115,46 +122,46 @@ Public Class D
     Inherits C
 
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new D With { .$$
     End Sub
 End Program</a>.Value
 
             Await VerifyItemExistsAsync(text, "bar")
-            Await VerifyItemExistsAsync(text, "foo")
+            Await VerifyItemExistsAsync(text, "goo")
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestOneItemAfterComma() As Task
             Dim text = <a>Public Class C
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Class Program
-    Sub foo()
-        Dim a as C = new C With { .foo = 3, .b$$
+    Sub goo()
+        Dim a as C = new C With { .goo = 3, .b$$
     End Sub
 End Program</a>.Value
 
             Await VerifyItemExistsAsync(text, "bar")
-            Await VerifyItemIsAbsentAsync(text, "foo")
+            Await VerifyItemIsAbsentAsync(text, "goo")
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestNothingLeftToShow() As Task
             Dim text = <a>Public Class C
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Class Program
-    Sub foo()
-        Dim a as C = new C With { .foo = 3, .bar = 3, .$$
+    Sub goo()
+        Dim a as C = new C With { .goo = 3, .bar = 3, .$$
     End Sub
 End Program</a>.Value
 
@@ -165,36 +172,36 @@ End Program</a>.Value
         Public Async Function TestWithoutAsClause() As Task
             Dim text = <a>Public Class C
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a = new C With { .$$
     End Sub
 End Program</a>.Value
 
             Await VerifyItemExistsAsync(text, "bar")
-            Await VerifyItemExistsAsync(text, "foo")
+            Await VerifyItemExistsAsync(text, "goo")
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestWithoutAsClauseNothingLeftToShow() As Task
             Dim text = <a>Public Class C
     Public bar as Integer
-    Public Property foo as Integer
+    Public Property goo as Integer
 End Class
 
 Class Program
-    Sub foo()
-        Dim a = new C With { .foo = 3, .bar = 3, .$$
+    Sub goo()
+        Dim a = new C With { .goo = 3, .bar = 3, .$$
     End Sub
 End Program</a>.Value
 
             Await VerifyNoItemsExistAsync(text)
         End Function
 
-        <WorkItem(544326)>
+        <WorkItem(544326, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544326")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestInactiveInRValue() As Task
             Dim text = <a>Class C
@@ -213,21 +220,21 @@ End Module</a>.Value
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestNoBackingFields() As Task
             Dim text = <a>Class C
-    Public Property Foo As Integer
+    Public Property Goo As Integer
 
     Sub M()
         Dim c As New C With { .$$
     End Sub
 End Class</a>.Value
 
-            Await VerifyItemExistsAsync(text, "Foo")
-            Await VerifyItemIsAbsentAsync(text, "_Foo")
+            Await VerifyItemExistsAsync(text, "Goo")
+            Await VerifyItemIsAbsentAsync(text, "_Goo")
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestReadOnlyPropertiesAreNotPresentOnLeftSide() As Task
             Dim text = <a>Class C
-    Public Property Foo As Integer
+    Public Property Goo As Integer
     Public ReadOnly Property Bar As Integer
         Get
             Return 0
@@ -239,11 +246,11 @@ End Class</a>.Value
     End Sub
 End Class</a>.Value
 
-            Await VerifyItemExistsAsync(text, "Foo")
+            Await VerifyItemExistsAsync(text, "Goo")
             Await VerifyItemIsAbsentAsync(text, "Bar")
         End Function
 
-        <WorkItem(545881)>
+        <WorkItem(545881, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545881")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestNoReadonlyFieldsOrProperties() As Task
             Dim text = <a>Module M
@@ -255,7 +262,7 @@ End Module
             Await VerifyItemIsAbsentAsync(text, "Data")
         End Function
 
-        <WorkItem(545844)>
+        <WorkItem(545844, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545844")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestNoParameterizedProperties() As Task
             Dim text = <a>Module M
@@ -268,7 +275,7 @@ End Module
             Await VerifyItemIsAbsentAsync(text, "Item")
         End Function
 
-        <WorkItem(545844)>
+        <WorkItem(545844, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545844")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestShowParameterizedPropertiesWithAllOptionalArguments() As Task
             Dim text = <a>Imports System
@@ -283,7 +290,7 @@ Public Class AImpl
         End Set
     End Property
 
-    Sub Foo()
+    Sub Goo()
         Dim z = New AImpl With {.$$
     End Sub
 End Class</a>.Value
@@ -291,7 +298,7 @@ End Class</a>.Value
             Await VerifyItemExistsAsync(text, "P")
         End Function
 
-        <WorkItem(545844)>
+        <WorkItem(545844, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545844")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestDoNotShowParameterizedPropertiesWithSomeMandatoryArguments() As Task
             Dim text = <a>Imports System
@@ -306,7 +313,7 @@ Public Class AImpl
         End Set
     End Property
 
-    Sub Foo()
+    Sub Goo()
         Dim z = New AImpl With {.$$
     End Sub
 End Class</a>.Value
@@ -314,7 +321,7 @@ End Class</a>.Value
             Await VerifyItemIsAbsentAsync(text, "P")
         End Function
 
-        <WorkItem(545844)>
+        <WorkItem(545844, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545844")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestParameterizedPropertiesWithParamArrays() As Task
             Dim text = <a>Option Strict On
@@ -343,7 +350,7 @@ End Class
             Await VerifyItemIsAbsentAsync(text, "Q")
         End Function
 
-        <WorkItem(530491)>
+        <WorkItem(530491, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530491")>
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Async Function TestObjectInitializerOnInterface() As Task
             Dim text = <a><![CDATA[Option Strict On
@@ -370,14 +377,14 @@ End Class
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function IsCommitCharacterTest() As Threading.Tasks.Task
+        Public Async Function IsCommitCharacterTest() As Task
             Const code = "
 Public Class C
     Public bar as Integer
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new C With { .$$
     End Sub
 End Program"
@@ -395,33 +402,32 @@ Public Class C
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new C With { .$$
     End Sub
 End Program</Document>
                            </Project>
                        </Workspace>
 
-            Using workspace = Await TestWorkspaceFactory.CreateWorkspaceAsync(text)
+            Using workspace = TestWorkspace.Create(text)
                 Dim hostDocument = workspace.Documents.First()
                 Dim caretPosition = hostDocument.CursorPosition.Value
                 Dim document = workspace.CurrentSolution.GetDocument(hostDocument.Id)
-                Dim triggerInfo = CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo()
-
-                Dim completionList = Await GetCompletionListAsync(document, caretPosition, triggerInfo)
+                Dim service = GetCompletionService(workspace)
+                Dim completionList = Await GetCompletionListAsync(service, document, caretPosition, CompletionTrigger.Invoke)
                 Assert.True(completionList Is Nothing OrElse completionList.IsExclusive, "Expected always exclusive")
             End Using
         End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
-        Public Async Function SendEnterThroughToEditorTest() As Threading.Tasks.Task
+        Public Async Function SendEnterThroughToEditorTest() As Task
             Const code = "
 Public Class C
     Public bar as Integer
 End Class
 
 Class Program
-    Sub foo()
+    Sub goo()
         Dim a as C = new C With { .$$
     End Sub
 End Program"
@@ -429,7 +435,7 @@ End Program"
             Await VerifySendEnterThroughToEditorAsync(code, "bar", expected:=False)
         End Function
 
-        Friend Overrides Function CreateCompletionProvider() As CompletionListProvider
+        Friend Overrides Function CreateCompletionProvider() As CompletionProvider
             Return New ObjectInitializerCompletionProvider()
         End Function
     End Class

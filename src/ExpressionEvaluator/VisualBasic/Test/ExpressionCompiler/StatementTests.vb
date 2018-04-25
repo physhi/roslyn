@@ -4,14 +4,13 @@ Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.ExpressionEvaluator
-Imports Microsoft.CodeAnalysis.Test.Utilities
-Imports Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
+Imports Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
+Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests
 Imports Microsoft.VisualStudio.Debugger.Evaluation
-Imports Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
-Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
+Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.UnitTests
 
     Public Class StatementTests
         Inherits ExpressionCompilerTestBase
@@ -823,7 +822,7 @@ End Class
                 compilationFlags = DkmEvaluationFlags.TreatAsExpression
                 expr = expr.Substring(1)
             End If
-            Dim compilation0 = CreateCompilationWithReferences(
+            Dim compilation0 = CreateEmptyCompilationWithReferences(
                 {Parse(source)},
                 {MscorlibRef_v4_0_30316_17626, SystemRef, MsvbRef},
                 options:=TestOptions.DebugDll)

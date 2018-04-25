@@ -265,7 +265,7 @@ class TestClass
         }
 
         [Fact]
-        [WorkItem(569089, "DevDiv"), WorkItem(575948, "DevDiv")]
+        [WorkItem(569089, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/569089"), WorkItem(575948, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/575948")]
         public void NullArrays()
         {
             var source1 = @"
@@ -290,8 +290,8 @@ public class C
             var source2 = @"
 ";
 
-            var c1 = CreateCompilation(source1, new[] { OldMsCorLib });
-            var c2 = CreateCompilation(source2, new MetadataReference[] { NewMsCorLib, new CSharpCompilationReference(c1) });
+            var c1 = CreateEmptyCompilation(source1, new[] { OldMsCorLib });
+            var c2 = CreateEmptyCompilation(source2, new MetadataReference[] { NewMsCorLib, new CSharpCompilationReference(c1) });
 
             var c = c2.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             Assert.IsType<RetargetingNamedTypeSymbol>(c);

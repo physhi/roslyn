@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Text
@@ -9,7 +8,7 @@ namespace Microsoft.CodeAnalysis.Text
     /// <summary>
     /// Information about the character boundaries of a single line of text.
     /// </summary>
-    public struct TextLine : IEquatable<TextLine>
+    public readonly struct TextLine : IEquatable<TextLine>
     {
         private readonly SourceText _text;
         private readonly int _start;

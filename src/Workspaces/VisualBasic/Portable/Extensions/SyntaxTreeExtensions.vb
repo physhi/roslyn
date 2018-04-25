@@ -8,6 +8,7 @@ Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.Shared.Collections
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
@@ -15,6 +16,7 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Microsoft.CodeAnalysis.VisualBasic.Utilities
 Imports Microsoft.CodeAnalysis.Shared.Extensions
+Imports System.Collections.Immutable
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
     Friend Module SyntaxTreeExtensions
@@ -114,6 +116,13 @@ recurse:
                 Return True
             End If
 
+            ' If it is a numeric literal, all checks are done and we're okay. 
+            If token.IsKind(SyntaxKind.IntegerLiteralToken, SyntaxKind.DecimalLiteralToken,
+                            SyntaxKind.DateLiteralToken, SyntaxKind.FloatingLiteralToken) Then
+                Return False
+            End If
+
+            ' For char or string literals, check if we're at the end of an incomplete literal.
             Dim lastChar = If(token.IsKind(SyntaxKind.CharacterLiteralToken), "'", """")
 
             Return AtEndOfIncompleteStringOrCharLiteral(token, position, lastChar)
@@ -207,38 +216,6 @@ recurse:
             Return IsGlobalStatementContext(token, position)
         End Function
 
-        ''' <summary>
-        ''' If the position is inside of token, return that token; otherwise, return the token to right.
-        ''' </summary>
-        <Extension()>
-        Public Function FindTokenOnRightOfPosition(
-            syntaxTree As SyntaxTree,
-            position As Integer,
-            cancellationToken As CancellationToken,
-            Optional includeSkipped As Boolean = True,
-            Optional includeDirectives As Boolean = False,
-            Optional includeDocumentationComments As Boolean = False) As SyntaxToken
-
-            Return syntaxTree.GetRoot(cancellationToken).FindTokenOnRightOfPosition(
-                position, includeSkipped, includeDirectives, includeDocumentationComments)
-        End Function
-
-        ''' <summary>
-        ''' If the position is inside of token, return that token; otherwise, return the token to left. 
-        ''' </summary>
-        <Extension()>
-        Public Function FindTokenOnLeftOfPosition(
-            syntaxTree As SyntaxTree,
-            position As Integer,
-            cancellationToken As CancellationToken,
-            Optional includeSkipped As Boolean = True,
-            Optional includeDirectives As Boolean = False,
-            Optional includeDocumentationComments As Boolean = False) As SyntaxToken
-
-            Return syntaxTree.GetRoot(cancellationToken).FindTokenOnLeftOfPosition(
-                position, includeSkipped, includeDirectives, includeDocumentationComments)
-        End Function
-
         <Extension()>
         Public Function IsRightOfDot(syntaxTree As SyntaxTree, position As Integer, cancellationToken As CancellationToken) As Boolean
             Dim token = syntaxTree.FindTokenOnLeftOfPosition(position, cancellationToken)
@@ -248,11 +225,6 @@ recurse:
 
             token = token.GetPreviousTokenIfTouchingWord(position)
             Return token.Kind = SyntaxKind.DotToken
-        End Function
-
-        <Extension()>
-        Public Function [With](token As SyntaxToken, leading As SyntaxTriviaList, trailing As SyntaxTriviaList) As SyntaxToken
-            Return token.WithLeadingTrivia(leading).WithTrailingTrivia(trailing)
         End Function
 
         <Extension()>
@@ -281,12 +253,10 @@ recurse:
         End Function
 
         <Extension()>
-        Public Function GetMembersInSpan(
-            syntaxTree As SyntaxTree,
-            textSpan As TextSpan,
-            cancellationToken As CancellationToken) As IList(Of StatementSyntax)
+        Public Function GetMembersInSpan(root As SyntaxNode,
+                                         textSpan As TextSpan) As ImmutableArray(Of StatementSyntax)
 
-            Dim token = syntaxTree.GetRoot(cancellationToken).FindToken(textSpan.Start)
+            Dim token = root.FindToken(textSpan.Start)
             Dim firstMember = token.GetAncestors(Of StatementSyntax).
                                     Where(Function(s) TypeOf s.Parent Is TypeBlockSyntax).
                                     FirstOrDefault()
@@ -295,41 +265,41 @@ recurse:
                 If containingType IsNot Nothing AndAlso
                    firstMember IsNot containingType.BlockStatement AndAlso
                    firstMember IsNot containingType.EndBlockStatement Then
-                    Dim members = GetMembersInSpan(textSpan, containingType, firstMember)
-                    If members IsNot Nothing Then
-                        Return members
-                    End If
+                    Return GetMembersInSpan(textSpan, containingType, firstMember)
                 End If
             End If
 
-            Return SpecializedCollections.EmptyList(Of StatementSyntax)()
+            Return ImmutableArray(Of StatementSyntax).Empty
         End Function
 
         Private Function GetMembersInSpan(
             textSpan As TextSpan,
             containingType As TypeBlockSyntax,
-            firstMember As StatementSyntax) As List(Of StatementSyntax)
-            Dim selectedMembers As List(Of StatementSyntax) = Nothing
+            firstMember As StatementSyntax) As ImmutableArray(Of StatementSyntax)
+            Dim selectedMembers = ArrayBuilder(Of StatementSyntax).GetInstance()
 
-            Dim members = containingType.Members
-            Dim fieldIndex = members.IndexOf(firstMember)
-            If fieldIndex < 0 Then
-                Return Nothing
-            End If
-
-            For i = fieldIndex To members.Count - 1
-                Dim member = members(i)
-                If textSpan.Contains(member.Span) Then
-                    selectedMembers = If(selectedMembers, New List(Of StatementSyntax))
-                    selectedMembers.Add(member)
-                ElseIf (textSpan.OverlapsWith(member.Span)) Then
-                    Return Nothing
-                Else
-                    Exit For
+            Try
+                Dim members = containingType.Members
+                Dim fieldIndex = members.IndexOf(firstMember)
+                If fieldIndex < 0 Then
+                    Return ImmutableArray(Of StatementSyntax).Empty
                 End If
-            Next
 
-            Return selectedMembers
+                For i = fieldIndex To members.Count - 1
+                    Dim member = members(i)
+                    If textSpan.Contains(member.Span) Then
+                        selectedMembers.Add(member)
+                    ElseIf (textSpan.OverlapsWith(member.Span)) Then
+                        Return ImmutableArray(Of StatementSyntax).Empty
+                    Else
+                        Exit For
+                    End If
+                Next
+
+                Return selectedMembers.ToImmutable()
+            Finally
+                selectedMembers.Free()
+            End Try
         End Function
 
         <Extension()>

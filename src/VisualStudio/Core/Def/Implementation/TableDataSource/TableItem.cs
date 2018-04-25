@@ -79,7 +79,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             }
         }
 
-        private Workspace Workspace
+        private Microsoft.CodeAnalysis.Workspace Workspace
         {
             get
             {
@@ -94,17 +94,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                 var projectId = Extensions.GetProjectId(Primary);
                 if (projectId == null)
                 {
+                    // this item doesn't have project at the first place
                     return null;
                 }
 
                 if (_cache == null)
                 {
                     // return single project name
-                    return Workspace.GetProjectName(projectId);
+                    return Workspace.GetProjectName(projectId) ?? ServicesVSResources.Unknown2;
                 }
 
                 // return joined project names
-                return _cache.GetProjectName(Workspace);
+                return _cache.GetProjectName(Workspace) ?? ServicesVSResources.Unknown2;
             }
         }
 

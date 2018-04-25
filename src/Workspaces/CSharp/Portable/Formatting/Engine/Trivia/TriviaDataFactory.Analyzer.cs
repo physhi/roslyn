@@ -35,7 +35,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             {
                 if (!token1.HasTrailingTrivia && !token2.HasLeadingTrivia)
                 {
-                    return default(AnalysisResult);
+                    return default;
                 }
 
                 var result = default(AnalysisResult);
@@ -59,11 +59,29 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                     // newline.  If so, we keep track of that so we'll appropriately indent later
                     // on. 
 
-                    var previousNonMissingToken = token1.GetPreviousToken();
-                    if (previousNonMissingToken.TrailingTrivia.Count > 0 &&
-                        previousNonMissingToken.TrailingTrivia.Last().Kind() == SyntaxKind.EndOfLineTrivia)
+                    // Keep walking backward until we hit a token whose *full width* is greater than
+                    // 0.  See if this token has an end of line trivia at the end of it.  Note:
+                    // we need to "includeZeroWidth" tokens because we can have zero width tokens
+                    // that still have a full width that is non-zero.  i.e. a missing token that
+                    // still has trailing trivia on it.
+
+                    for (var currentToken = token1; !currentToken.IsKind(SyntaxKind.None);)
                     {
-                        result.LineBreaks = 1;
+                        var previousToken = currentToken.GetPreviousToken(includeSkipped: false, includeZeroWidth: true);
+                        if (previousToken.FullWidth() == 0)
+                        {
+                            currentToken = previousToken;
+                            continue;
+                        }
+
+                        // Finally hit the first previous token with non-zero full width.
+                        if (previousToken.TrailingTrivia.Count > 0 &&
+                            previousToken.TrailingTrivia.Last().Kind() == SyntaxKind.EndOfLineTrivia)
+                        {
+                            result.LineBreaks = 1;
+                        }
+
+                        break;
                     }
                 }
                 else
@@ -105,6 +123,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                              trivia.Kind() == SyntaxKind.PreprocessingMessageTrivia)
                     {
                         result.HasSkippedOrDisabledText = true;
+                    }
+                    else if (trivia.Kind() == SyntaxKind.ConflictMarkerTrivia)
+                    {
+                        result.HasConflictMarker = true;
                     }
                     else
                     {
@@ -183,6 +205,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 internal bool HasSkippedTokens { get; set; }
                 internal bool HasSkippedOrDisabledText { get; set; }
 
+                internal bool HasConflictMarker { get; set; }
                 internal bool HasComments { get; set; }
                 internal bool HasPreprocessor { get; set; }
 

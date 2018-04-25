@@ -1,57 +1,57 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations.Declarations
     Public Class HandlesKeywordRecommenderTests
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub HandlesAfterMethodInClass()
-            VerifyRecommendationsContain(<File>
-Class Foo
-Sub Foo() |
+        Public Async Function HandlesAfterMethodInClassTest() As Task
+            Await VerifyRecommendationsContainAsync(<File>
+Class Goo
+Sub Goo() |
 |</File>, "Handles")
-        End Sub
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub HandlesAfterMethodInModule()
-            VerifyRecommendationsContain(<File>
-Module Foo
-Sub Foo() |
+        Public Async Function HandlesAfterMethodInModuleTest() As Task
+            Await VerifyRecommendationsContainAsync(<File>
+Module Goo
+Sub Goo() |
 |</File>, "Handles")
-        End Sub
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub HandlesAfterFunction()
-            VerifyRecommendationsContain(<File>
-Module Foo
-Function Foo() As Integer |
+        Public Async Function HandlesAfterFunctionTest() As Task
+            Await VerifyRecommendationsContainAsync(<File>
+Module Goo
+Function Goo() As Integer |
 |</File>, "Handles")
-        End Sub
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub HandlesNotAfterMethodInStructure()
-            VerifyRecommendationsMissing(<File>
-Structure Foo
-Sub Foo() |
+        Public Async Function HandlesNotAfterMethodInStructureTest() As Task
+            Await VerifyRecommendationsMissingAsync(<File>
+Structure Goo
+Sub Goo() |
 |</File>, "Handles")
-        End Sub
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub HandlesNotAfterNewLine()
-            VerifyRecommendationsMissing(<File>
-Class Foo
-Sub Foo() 
+        Public Async Function HandlesNotAfterNewLineTest() As Task
+            Await VerifyRecommendationsMissingAsync(<File>
+Class Goo
+Sub Goo() 
         |
 </File>, "Handles")
-        End Sub
+        End Function
 
-        <WorkItem(577941)>
+        <WorkItem(577941, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/577941")>
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoHandlesAfterIterator()
-            VerifyRecommendationsMissing(<File>
+        Public Async Function NoHandlesAfterIteratorTest() As Task
+            Await VerifyRecommendationsMissingAsync(<File>
 Class C
     Private Iterator Function TestIterator() |
 </File>, "Handles")
-        End Sub
-
+        End Function
     End Class
 End Namespace

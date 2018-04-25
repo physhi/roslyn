@@ -1339,7 +1339,7 @@ void Method() {
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537895, "DevDiv")]
+        [WorkItem(537895, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537895")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Preprocessor9()
         {
@@ -1371,7 +1371,7 @@ void Method() {
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537895, "DevDiv")]
+        [WorkItem(537895, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537895")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Preprocessor10()
         {
@@ -1401,13 +1401,13 @@ void Method() {
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537765, "DevDiv")]
+        [WorkItem(537765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537765")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Comment25()
         {
             var content = @"class C 
 {
-            void Foo()//method
+            void Goo()//method
 {
     int x;//variable
 double y;
@@ -1417,7 +1417,7 @@ double y;
 
             var expected = @"class C
 {
-    void Foo()//method
+    void Goo()//method
     {
         int x;//variable
         double y;
@@ -1428,13 +1428,13 @@ double y;
             await AssertFormatAsync(expected, content);
         }
 
-        [WorkItem(537765, "DevDiv")]
+        [WorkItem(537765, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537765")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Comment26()
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
 /**/int x;
     }
@@ -1442,7 +1442,7 @@ double y;
 
             var expected = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         /**/
         int x;
@@ -1457,7 +1457,7 @@ double y;
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         //      
         // 
@@ -1472,7 +1472,7 @@ double y;
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         //      
             
@@ -1483,7 +1483,7 @@ double y;
 
             var expected = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         //      
 
@@ -1499,7 +1499,7 @@ double y;
         {
             var content = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         int			/**/ i = 10;
     }
@@ -1507,7 +1507,7 @@ double y;
 
             var code = @"public class Class1
 {
-    void Foo()
+    void Goo()
     {
         int         /**/ i = 10;
     }
@@ -1556,7 +1556,7 @@ class Program
             await AssertFormatAsync(code, content);
         }
 
-        [WorkItem(538703, "DevDiv")]
+        [WorkItem(538703, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538703")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task Comment32()
         {
@@ -1581,7 +1581,7 @@ class Program
             await AssertFormatAsync(code, content);
         }
 
-        [WorkItem(542316, "DevDiv")]
+        [WorkItem(542316, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542316")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task CommentInExpression()
         {
@@ -1618,7 +1618,7 @@ class Program
             await AssertFormatAsync(code, content);
         }
 
-        [WorkItem(542546, "DevDiv")]
+        [WorkItem(542546, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542546")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task FormatInvalidCode_1()
         {
@@ -1626,7 +1626,7 @@ class Program
             await AssertFormatAsync(content, content);
         }
 
-        [WorkItem(542546, "DevDiv")]
+        [WorkItem(542546, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542546")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task FormatInvalidCode_2()
         {
@@ -1635,7 +1635,7 @@ class Program
             await AssertFormatAsync(expectedContent, content);
         }
 
-        [WorkItem(537895, "DevDiv")]
+        [WorkItem(537895, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537895")]
         [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
         public async Task EmbededStatement1()
         {

@@ -96,20 +96,20 @@ class Program
 {
     static void Main()
     {
-        Foo(new A.C());
+        Goo(new A.C());
     }
 
-    static void Foo<T>(I<T> x)
+    static void Goo<T>(I<T> x)
     {
-        Console.WriteLine(""Foo<T>(I<T> x)"");
+        Console.WriteLine(""Goo<T>(I<T> x)"");
     }
-    static void Foo<T>(J<T> x)
+    static void Goo<T>(J<T> x)
     {
-        Console.WriteLine(""Foo<T>(J<T> x)"");
+        Console.WriteLine(""Goo<T>(J<T> x)"");
     }
 }
 ";
-            var compilationVerifier = CompileAndVerify(source, expectedOutput: @"Foo<T>(J<T> x)
+            var compilationVerifier = CompileAndVerify(source, expectedOutput: @"Goo<T>(J<T> x)
 ");
         }
 
@@ -147,7 +147,7 @@ class Program
             CompileAndVerify(csSource, expectedOutput: "hello");
         }
 
-        [WorkItem(544427, "DevDiv")]
+        [WorkItem(544427, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544427")]
         [Fact]
         public void WrongOrderConversion()
         {
@@ -181,7 +181,7 @@ public class Test
 }");
         }
 
-        [WorkItem(602009, "DevDiv")]
+        [WorkItem(602009, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/602009")]
         [Fact]
         public void DefaultParameterValue_DateTimeConstant()
         {
@@ -278,11 +278,11 @@ null
             var verifier1 = CompileAndVerify(source1 + source2, expectedOutput: expectedOutput);
 
             // When the method with the attribute is from metadata.
-            var comp2 = CreateCompilationWithMscorlib(source2, new[] { MetadataReference.CreateFromImage(verifier1.EmittedAssemblyData) }, TestOptions.ReleaseExe);
+            var comp2 = CreateCompilation(source2, new[] { MetadataReference.CreateFromImage(verifier1.EmittedAssemblyData) }, TestOptions.ReleaseExe);
             CompileAndVerify(comp2, expectedOutput: expectedOutput);
         }
 
-        [WorkItem(602009, "DevDiv")]
+        [WorkItem(602009, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/602009")]
         [Fact]
         public void DefaultParameterValue_DecimalConstant()
         {
@@ -376,11 +376,11 @@ null
             var verifier1 = CompileAndVerify(source1 + source2, expectedOutput: expectedOutput);
 
             // When the method with the attribute is from metadata.
-            var comp2 = CreateCompilationWithMscorlib(source2, new[] { MetadataReference.CreateFromImage(verifier1.EmittedAssemblyData) }, TestOptions.ReleaseExe);
+            var comp2 = CreateCompilation(source2, new[] { MetadataReference.CreateFromImage(verifier1.EmittedAssemblyData) }, TestOptions.ReleaseExe);
             CompileAndVerify(comp2, expectedOutput: expectedOutput);
         }
 
-        [WorkItem(659424, "DevDiv")]
+        [WorkItem(659424, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/659424")]
         [Fact]
         public void FloatConversion001()
         {
@@ -411,7 +411,7 @@ public class Program
 }");
         }
 
-        [WorkItem(659424, "DevDiv")]
+        [WorkItem(659424, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/659424")]
         [Fact]
         public void FloatConversion002()
         {
@@ -459,7 +459,7 @@ class Program
 }");
         }
 
-        [WorkItem(659424, "DevDiv")]
+        [WorkItem(659424, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/659424")]
         [Fact]
         public void FloatConversion003()
         {
@@ -507,7 +507,7 @@ class Program
 }");
         }
 
-        [WorkItem(448900, "DevDiv")]
+        [WorkItem(448900, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/448900")]
         [Fact]
         public void Regress448900()
         {
@@ -568,7 +568,7 @@ class MyClass
 }");
         }
 
-        [WorkItem(448900, "DevDiv")]
+        [WorkItem(448900, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/448900")]
         [Fact]
         public void Regress448900_Optimized()
         {
@@ -617,7 +617,7 @@ class MyClass
 }");
         }
 
-        [WorkItem(448900, "DevDiv")]
+        [WorkItem(448900, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/448900")]
         [Fact]
         public void Regress448900_Folded()
         {
@@ -657,7 +657,7 @@ class MyClass
 }");
         }
 
-        [WorkItem(674803, "DevDiv")]
+        [WorkItem(674803, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/674803")]
         [Fact]
         public void CastFrom0ToExplicitConversionViaEnum01()
         {
@@ -675,10 +675,10 @@ class C
             // The native compiler does not consider an encompassing conversion from
             // a constant zero to an enum type to exist.  We reproduce that bug in
             // Roslyn for compatibility.
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics();
+            CreateCompilation(text).VerifyDiagnostics();
         }
 
-        [WorkItem(844635, "DevDiv")]
+        [WorkItem(844635, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/844635")]
         [Fact]
         public void RuntimeTypeCheckForGenericEnum()
         {
@@ -689,10 +689,10 @@ class Program
 {
     static void Main()
     {
-        Foo(new G<int>.E(), new G<int>.E());
+        Goo(new G<int>.E(), new G<int>.E());
     }
 
-    static void Foo<T>(G<T>.E x, G<int>.E y)
+    static void Goo<T>(G<T>.E x, G<int>.E y)
     {
         Console.Write(x is G<int>.E);
         Console.Write(y is G<T>.E);
@@ -706,7 +706,7 @@ class G<T>
 ";
 
             var compilation = CompileAndVerify(source, expectedOutput: "TrueTrue");
-            compilation.VerifyIL("Program.Foo<T>(G<T>.E, G<int>.E)",
+            compilation.VerifyIL("Program.Goo<T>(G<T>.E, G<int>.E)",
 @"
 {
   // Code size       39 (0x27)
@@ -727,8 +727,8 @@ class G<T>
 }");
         }
 
-        [WorkItem(864605, "DevDiv")]
-        [WorkItem(864740, "DevDiv")]
+        [WorkItem(864605, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/864605")]
+        [WorkItem(864740, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/864740")]
         [Fact]
         public void MethodGroupIsExpression()
         {
@@ -744,14 +744,14 @@ class Program
 }
 ";
 
-            CreateCompilationWithMscorlib(source).VerifyEmitDiagnostics(
+            CreateCompilation(source).VerifyEmitDiagnostics(
                 // (8,17): error CS0837: The first operand of an 'is' or 'as' operator may not be a lambda expression, anonymous method, or method group.
                 //         var x = ICloneable.Clone is object;
                 Diagnostic(ErrorCode.ERR_LambdaInIsAs, "ICloneable.Clone is object").WithLocation(8, 17));
         }
 
         [Fact]
-        [WorkItem(1084278, "DevDiv")]
+        [WorkItem(1084278, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1084278")]
         public void NullableConversionFromConst()
         {
             var source =
@@ -917,6 +917,43 @@ class C
         }
 
         [Fact]
+        public void NullableNumericToIntPtr1()
+        {
+            var source =
+@"
+using System;
+
+class C
+{
+    static void Test()
+    {
+        byte? b = 0 + 1;
+        IntPtr p = (IntPtr)b;
+        Console.WriteLine(p);
+    }
+}";
+
+            var compilation = CompileAndVerify(source);
+            compilation.VerifyIL("C.Test()", @"
+{
+  // Code size       32 (0x20)
+  .maxstack  2
+  .locals init (byte? V_0) //b
+  IL_0000:  ldloca.s   V_0
+  IL_0002:  ldc.i4.1
+  IL_0003:  conv.u1
+  IL_0004:  call       ""byte?..ctor(byte)""
+  IL_0009:  ldloca.s   V_0
+  IL_000b:  call       ""byte byte?.Value.get""
+  IL_0010:  call       ""System.IntPtr System.IntPtr.op_Explicit(int)""
+  IL_0015:  box        ""System.IntPtr""
+  IL_001a:  call       ""void System.Console.WriteLine(object)""
+  IL_001f:  ret
+}");
+        }
+
+
+        [Fact]
         public void NumericToNullableIntPtr()
         {
             var source =
@@ -951,7 +988,7 @@ class C
         }
 
         [Fact]
-        [WorkItem(1210529, "DevDiv")]
+        [WorkItem(1210529, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1210529")]
         public void LiftedIntToIntPtr()
         {
             var source =
@@ -994,7 +1031,155 @@ class C
   IL_002b:  call       ""void C.Use(System.IntPtr?)""
   IL_0030:  ret
 }");
+        }
 
+        [Fact]
+        [WorkItem(11751, "https://github.com/dotnet/roslyn/issues/11751")]
+        public void ExprTreeCOM_IntPtr()
+        {
+            var source =
+@"
+using System;
+using System.Linq.Expressions;
+using System.Runtime.InteropServices;
+
+unsafe class Program
+{
+
+    static void Main(string[] args)
+    {
+        IntPtr y = new IntPtr();
+                
+        IAaa i = null;
+
+        Expression<Action> e = () =>  i.Test((ulong)y, null);
+    }
+}
+
+[ComImport]
+[Guid(""A88A175D-2448-447A-B786-64682CBEF156"")]
+public interface IAaa
+{
+    void Test(ulong y, object z);
+}
+
+";
+
+            var compilation = CreateCompilationWithMscorlib45AndCSharp(source, options: TestOptions.ReleaseExe.WithAllowUnsafe(true));
+            CompileAndVerify(compilation);
+        }
+
+        [Fact, WorkItem(17756, "https://github.com/dotnet/roslyn/issues/17756")]
+        public void TestIdentityConversionNotLvalue()
+        {
+            var source = @"
+class Program
+{
+    struct S1
+    {
+        public int field;
+        public int Increment() => field++;
+    }
+
+    static void Main()
+    {
+        S1 v = default(S1);
+        v.Increment(); 
+
+        ((S1)v).Increment();
+
+        System.Console.WriteLine(v.field);
+    }
+}
+";
+            string expectedOutput = @"1";
+            CompileAndVerify(source, expectedOutput: expectedOutput);
+        }
+
+        [Fact, WorkItem(22533, "https://github.com/dotnet/roslyn/issues/22533")]
+        public void TestDoubleConversionEmitted()
+        {
+            var source = @"
+class Program
+{
+
+    static bool M()
+    {
+        double dValue = 600.1;
+        int iValue = 600;
+        byte mbytDeciWgt = 1;
+        bool value = (dValue > iValue + (10 ^ -mbytDeciWgt));
+        return value;
+    }
+}
+";
+            var comp = CompileAndVerify(source);
+            comp.VerifyIL("Program.M",
+@"{
+  // Code size       28 (0x1c)
+  .maxstack  4
+  .locals init (int V_0, //iValue
+                byte V_1) //mbytDeciWgt
+  IL_0000:  ldc.r8     600.1
+  IL_0009:  ldc.i4     0x258
+  IL_000e:  stloc.0
+  IL_000f:  ldc.i4.1
+  IL_0010:  stloc.1
+  IL_0011:  ldloc.0
+  IL_0012:  ldc.i4.s   10
+  IL_0014:  ldloc.1
+  IL_0015:  neg
+  IL_0016:  xor
+  IL_0017:  add
+  IL_0018:  conv.r8
+  IL_0019:  cgt
+  IL_001b:  ret
+}");
+        }
+
+        [Fact, WorkItem(22533, "https://github.com/dotnet/roslyn/issues/22533")]
+        public void TestExplicitDoubleConversionEmitted()
+        {
+            var source = @"
+class Program
+{
+
+    static bool M()
+    {
+        double dValue = 600.1;
+        int iValue = 600;
+        byte mbytDeciWgt = 1;
+        bool value = ((double)dValue > (double)((double)iValue + (double)System.Math.Pow(10, -mbytDeciWgt)));
+        return value;
+    }
+}
+";
+            var comp = CompileAndVerify(source);
+            comp.VerifyIL("Program.M",
+@"{
+  // Code size       43 (0x2b)
+  .maxstack  4
+  .locals init (int V_0, //iValue
+                byte V_1) //mbytDeciWgt
+  IL_0000:  ldc.r8     600.1
+  IL_0009:  ldc.i4     0x258
+  IL_000e:  stloc.0
+  IL_000f:  ldc.i4.1
+  IL_0010:  stloc.1
+  IL_0011:  conv.r8
+  IL_0012:  ldloc.0
+  IL_0013:  conv.r8
+  IL_0014:  ldc.r8     10
+  IL_001d:  ldloc.1
+  IL_001e:  neg
+  IL_001f:  conv.r8
+  IL_0020:  call       ""double System.Math.Pow(double, double)""
+  IL_0025:  conv.r8
+  IL_0026:  add
+  IL_0027:  conv.r8
+  IL_0028:  cgt
+  IL_002a:  ret
+}");
         }
     }
 }

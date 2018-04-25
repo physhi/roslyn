@@ -1,10 +1,11 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery;
 using Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.VisualStudio.Text.BraceCompletion;
 using Roslyn.Utilities;
 
@@ -65,11 +66,11 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.AutomaticCompletion.Sessions
                 return false;
             }
 
-            var tree = document.GetSyntaxTreeAsync(cancellationToken).WaitAndGetResult(cancellationToken);
-            var token = tree.GetRoot(cancellationToken).FindTokenOnLeftOfPosition(start);
+            var root = document.GetSyntaxRootSynchronously(cancellationToken);
+            var token = root.FindTokenOnLeftOfPosition(start);
 
-            return tree.IsExpressionContext(start, token, attributes: false, cancellationToken: cancellationToken)
-                || tree.IsStatementContext(start, token, cancellationToken);
+            return root.SyntaxTree.IsExpressionContext(start, token, attributes: false, cancellationToken: cancellationToken)
+                || root.SyntaxTree.IsStatementContext(start, token, cancellationToken);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
     public class PropertyAccessTests : CompilingTestBase
     {
         [Fact]
-        [WorkItem(1140706, "DevDiv")]
+        [WorkItem(1140706, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1140706")]
         public void SetArrayLength()
         {
             var text =
@@ -26,8 +26,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
         arr.Length = 0;
     }
 }";
-            var comp = CreateCompilation(
-                trees: new[] { Parse(text) },
+            var comp = CreateEmptyCompilation(
+                source: new[] { Parse(text) },
                 references: new[] { AacorlibRef });
 
             comp.VerifyEmitDiagnostics();

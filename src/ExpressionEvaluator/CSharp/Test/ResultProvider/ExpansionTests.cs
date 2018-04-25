@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
@@ -15,7 +16,7 @@ using Microsoft.VisualStudio.Debugger.Symbols;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.CSharp.UnitTests
+namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator.UnitTests
 {
     public class ExpansionTests : CSharpResultProviderTestBase
     {
@@ -57,9 +58,10 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             Verify(FormatResult("new Decimal()", CreateDkmClrValue(new Decimal())), EvalResult("new Decimal()", "0", "decimal", "new Decimal()", editableValue: "0M"));
             // System.DateTime
             // Set currentCulture to en-US for the test to pass in all locales
-            using (new CultureContext("en-US"))
+            using (new CultureContext(new CultureInfo("en-US", useUserOverride: false)))
             {
-                Verify(FormatResult("new DateTime()", CreateDkmClrValue(new DateTime())), EvalResult("new DateTime()", "{1/1/0001 12:00:00 AM}", "System.DateTime", "new DateTime()", DkmEvaluationResultFlags.Expandable));
+                // Skipped due to https://github.com/dotnet/roslyn/issues/21944
+                //Verify(FormatResult("new DateTime()", CreateDkmClrValue(new DateTime())), EvalResult("new DateTime()", "{1/1/0001 12:00:00 AM}", "System.DateTime", "new DateTime()", DkmEvaluationResultFlags.Expandable));
             }
 
             // System.String
@@ -665,12 +667,12 @@ class C
         /// This tests the managed address-of functionality.  When you take the address
         /// of a managed object, what you get back is an IntPtr*.  As in dev12, this
         /// exposes two pointers, the one to the IntPtr and the one to the actual data
-        /// (in the IntPtr).  For example, if you have a string "str", then "&str" yields
-        /// an IntPtr*.  The pointer is to the "string&" (typed as IntPtr, since Roslyn
+        /// (in the IntPtr).  For example, if you have a string "str", then "&amp;str" yields
+        /// an IntPtr*.  The pointer is to the "string&amp;" (typed as IntPtr, since Roslyn
         /// doesn't have a representation for reference types) and the IntPtr is a pointer
         /// to the actual string object on the heap.
         /// </summary>
-        [WorkItem(1022632)]
+        [WorkItem(1022632, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1022632")]
         [Fact]
         public void IntPtrPointer()
         {
@@ -715,7 +717,7 @@ unsafe class C
             }
         }
 
-        [WorkItem(1154608)]
+        [WorkItem(1154608, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1154608")]
         [Fact]
         public void VoidPointer()
         {
@@ -758,7 +760,7 @@ unsafe class C
             }
         }
 
-        [WorkItem(1064176)]
+        [WorkItem(1064176, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1064176")]
         [Fact]
         public void NullPointer()
         {
@@ -1042,7 +1044,7 @@ internal class P
             }
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void StaticMemberOfBaseType()
         {
@@ -1311,7 +1313,7 @@ class C
                 EvalResult("Static members", null, "", "System.Collections.Immutable.ImmutableArray<int>", DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ReadOnly, DkmEvaluationResultCategory.Class));
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void DeclaredTypeObject()
         {
@@ -1358,7 +1360,7 @@ class C
                 EvalResult("P", "3", "object {int}", "((B)c.o).P", DkmEvaluationResultFlags.ReadOnly));
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void DeclaredTypeObject_Array()
         {
@@ -1420,7 +1422,7 @@ class C
                 EvalResult("P", "4", "object {int}", "((B)c.o[0]).P", DkmEvaluationResultFlags.ReadOnly));
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void DeclaredTypeObject_Static()
         {
@@ -1459,7 +1461,7 @@ class C
                 EvalResult("G", "1", "object {int}", "((B)A.F).G"));
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void ExceptionThrownFlag()
         {
@@ -1487,7 +1489,7 @@ struct S
                 EvalResult("x", "0", "int", "s.x"));
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void ExceptionThrownFlag_ProxyType()
         {
@@ -1536,8 +1538,8 @@ class EProxy
                 EvalResult("Raw View", null, "", "s.This, raw", DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ReadOnly | DkmEvaluationResultFlags.ExceptionThrown, DkmEvaluationResultCategory.Data));
         }
 
-        [WorkItem(933845)]
-        [WorkItem(967366)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
+        [WorkItem(967366, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/967366")]
         [Fact]
         public void ExceptionThrownFlag_DerivedExceptionType()
         {
@@ -1561,7 +1563,7 @@ struct S
                 using (runtime.Load())
                 {
                     var type = runtime.GetType("S");
-                    var value = CreateDkmClrValue(type.Instantiate(), type: type);
+                    var value = type.Instantiate();
                     var children = GetChildren(FormatResult("s", value));
                     Verify(children,
                         EvalResult(
@@ -1580,7 +1582,7 @@ struct S
             }
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void ExceptionThrownFlag_DebuggerDisplay()
         {
@@ -1609,7 +1611,7 @@ class E : System.Exception
                 using (runtime.Load())
                 {
                     var type = runtime.GetType("S");
-                    var value = CreateDkmClrValue(type.Instantiate(), type: type);
+                    var value = type.Instantiate();
                     var children = GetChildren(FormatResult("s", value));
                     Verify(children,
                         EvalResult("This", "'s.This' threw an exception of type 'E'", "S {E}", "s.This", DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ReadOnly | DkmEvaluationResultFlags.ExceptionThrown),
@@ -1636,7 +1638,7 @@ class E : System.Exception
                     DkmEvaluationResultFlags.Expandable | DkmEvaluationResultFlags.ExceptionThrown));
         }
 
-        [WorkItem(1043730)]
+        [WorkItem(1043730, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1043730")]
         [Fact]
         public void ExceptionThrownFlag_Nullable()
         {
@@ -1651,9 +1653,9 @@ class E : System.Exception
             {
                 var runtime = new DkmClrRuntimeInstance(ReflectionUtilities.GetMscorlib());
                 var type = runtime.GetType(typeof(NullReferenceException));
-                var value = CreateDkmClrValue(
-                    type.Instantiate(),
-                    type: type,
+                var value = type.Instantiate(
+                    new object[0],
+                    alias: null,
                     evalFlags: DkmEvaluationResultFlags.ExceptionThrown);
                 var evalResult = FormatResult("c?.str.Length", value, runtime.GetType(typeof(int?)));
                 Verify(evalResult,
@@ -1674,7 +1676,7 @@ class E : System.Exception
             }
         }
 
-        [WorkItem(1043730)]
+        [WorkItem(1043730, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1043730")]
         [Fact]
         public void ExceptionThrownFlag_NullableMember()
         {
@@ -1733,7 +1735,7 @@ class E : System.Exception
                 EvalResult("c", "0x0007 '\\a'", "char", "c", editableValue: "'\\a'"));
         }
 
-        [WorkItem(1138095)]
+        [WorkItem(1138095, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1138095")]
         [Fact]
         public void UnicodeString()
         {
@@ -1743,7 +1745,7 @@ class E : System.Exception
                 EvalResult("s", $"\"{'\u1234'}\\u001f\\a\"", "string", "s", editableValue: $"\"{'\u1234'}\\u001f\\a\"", flags: DkmEvaluationResultFlags.RawString));
         }
 
-        [WorkItem(1002381)]
+        [WorkItem(1002381, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1002381")]
         [Fact]
         public void BaseTypeEditableValue()
         {
@@ -1770,7 +1772,7 @@ class C
                 EvalResult("s", "\"\"", "System.Collections.Generic.IEnumerable<char> {string}", "o.s", DkmEvaluationResultFlags.RawString, editableValue: "\"\""));
         }
 
-        [WorkItem(965892)]
+        [WorkItem(965892, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/965892")]
         [Fact]
         public void DeclaredTypeAndRuntimeTypeDifferent()
         {
@@ -1789,11 +1791,26 @@ class B : A { }
             Verify(children);
         }
 
+        [Fact]
+        public void DeclaredTypeAndRuntimeTypeDifferByCase()
+        {
+            var source =
+@"class Object { }";
+            var runtime = new DkmClrRuntimeInstance(ReflectionUtilities.GetMscorlib(GetAssembly(source)));
+            using (runtime.Load())
+            {
+                var value = runtime.GetType("Object").Instantiate();
+                var evalResult = FormatResult("o", value, declaredType: runtime.GetType("System.Object"));
+                Verify(evalResult,
+                    EvalResult("o", "{Object}", "object {Object}", "o", DkmEvaluationResultFlags.None));
+            }
+        }
+
         /// <summary>
         /// Full name should be null for members of thrown
         /// exception since there's no valid expression.
         /// </summary>
-        [WorkItem(1003260)]
+        [WorkItem(1003260, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1003260")]
         [Fact]
         public void ExceptionThrown_Member()
         {
@@ -1813,7 +1830,7 @@ class C
                 using (runtime.Load())
                 {
                     var type = runtime.GetType("C");
-                    var value = CreateDkmClrValue(type.Instantiate(), type: type);
+                    var value = type.Instantiate();
                     var evalResult = FormatResult("o", value);
                     Verify(evalResult,
                         EvalResult("o", "{C}", "C", "o", DkmEvaluationResultFlags.Expandable));
@@ -1835,7 +1852,7 @@ class C
             }
         }
 
-        [WorkItem(1026721)]
+        [WorkItem(1026721, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1026721")]
         [Fact]
         public void ExceptionThrown_ReadOnly()
         {
@@ -2063,7 +2080,7 @@ class C : B
                 EvalResult("S", "42", "int", "A.S"));
         }
 
-        [Fact, WorkItem(1074435)]
+        [Fact, WorkItem(1074435, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1074435")]
         public void NameConflictsWithExplicitInterfaceImplementation()
         {
             var source = @"
@@ -2102,7 +2119,7 @@ class C : B, I
                 EvalResult("I.P", "3", "int", "((I)b).P", DkmEvaluationResultFlags.ReadOnly));
         }
 
-        [Fact, WorkItem(1074435)]
+        [Fact, WorkItem(1074435, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1074435")]
         public void NameConflictsWithInterfaceReimplementation()
         {
             var source = @"
@@ -2171,7 +2188,7 @@ class D : C
         /// <summary>
         /// Do not copy state from parent.
         /// </summary>
-        [WorkItem(1028624)]
+        [WorkItem(1028624, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1028624")]
         [Fact]
         public void DoNotCopyParentState()
         {
@@ -2189,22 +2206,22 @@ class D : C
     internal A _3 = new A();
     public A _4 = new A();
 }";
-            var compilationA = CSharpTestBase.CreateCompilationWithMscorlib(sourceA, options: TestOptions.ReleaseDll);
+            var compilationA = CSharpTestBase.CreateCompilation(sourceA, options: TestOptions.ReleaseDll);
             var bytesA = compilationA.EmitToArray();
             var referenceA = MetadataReference.CreateFromImage(bytesA);
 
-            var compilationB = CSharpTestBase.CreateCompilationWithMscorlib(sourceB, options: TestOptions.DebugDll, references: new MetadataReference[] { referenceA });
+            var compilationB = CSharpTestBase.CreateCompilation(sourceB, options: TestOptions.DebugDll, references: new MetadataReference[] { referenceA });
             var bytesB = compilationB.EmitToArray();
             var assemblyA = ReflectionUtilities.Load(bytesA);
             var assemblyB = ReflectionUtilities.Load(bytesB);
 
             DkmClrRuntimeInstance runtime = null;
-            GetModuleDelegate getModule = (r, a) => (a == assemblyB) ? new DkmClrModuleInstance(r, a, new DkmModule(a.GetName().Name + ".dll")) : null;
+            DkmClrModuleInstance getModule(DkmClrRuntimeInstance r, System.Reflection.Assembly a) => (a == assemblyB) ? new DkmClrModuleInstance(r, a, new DkmModule(a.GetName().Name + ".dll")) : null;
             runtime = new DkmClrRuntimeInstance(ReflectionUtilities.GetMscorlibAndSystemCore(assemblyA, assemblyB), getModule: getModule);
             using (runtime.Load())
             {
                 var type = runtime.GetType("B");
-                var value = CreateDkmClrValue(type.Instantiate(), type: type);
+                var value = type.Instantiate();
                 // Format with "Just my code".
                 var inspectionContext = CreateDkmInspectionContext(DkmEvaluationFlags.HideNonPublicMembers, runtimeInstance: runtime);
                 var evalResult = FormatResult("o", value, inspectionContext: inspectionContext);
@@ -2233,7 +2250,7 @@ class D : C
             }
         }
 
-        [WorkItem(1130978)]
+        [WorkItem(1130978, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1130978")]
         [Fact]
         public void NullableValue_Error()
         {
@@ -2251,16 +2268,58 @@ class D : C
     }
 }";
             DkmClrRuntimeInstance runtime = null;
-            GetMemberValueDelegate getMemberValue = (v, m) => (m == "P") ? CreateErrorValue(runtime.GetType(typeof(int?)), "Function evaluation timed out") : null;
+            VisualStudio.Debugger.Evaluation.ClrCompilation.DkmClrValue getMemberValue(VisualStudio.Debugger.Evaluation.ClrCompilation.DkmClrValue v, string m) => (m == "P") ? CreateErrorValue(runtime.GetType(typeof(int?)), "Function evaluation timed out") : null;
             runtime = new DkmClrRuntimeInstance(ReflectionUtilities.GetMscorlibAndSystemCore(GetAssembly(source)), getMemberValue: getMemberValue);
             using (runtime.Load())
             {
                 var type = runtime.GetType("C");
-                var value = CreateDkmClrValue(type.Instantiate(), type: type);
+                var value = type.Instantiate();
                 var memberValue = value.GetMemberValue("P", (int)System.Reflection.MemberTypes.Property, "C", DefaultInspectionContext);
                 var evalResult = FormatResult("o.P", memberValue);
                 Verify(evalResult,
                     EvalFailedResult("o.P", "Function evaluation timed out", "int?", "o.P"));
+            }
+        }
+
+        [Fact]
+        public void RootCastExpression()
+        {
+            var source =
+@"class C
+{
+    object F = 3;
+}";
+            var runtime = new DkmClrRuntimeInstance(ReflectionUtilities.GetMscorlib(GetAssembly(source)));
+            using (runtime.Load())
+            {
+                var typeC = runtime.GetType("C");
+
+                // var o = (object)new C(); var e = (C)o;
+                var value = typeC.Instantiate();
+                var evalResult = FormatResult("(C)o", value);
+                Verify(evalResult,
+                    EvalResult("(C)o", "{C}", "C", "(C)o", DkmEvaluationResultFlags.Expandable));
+                var children = GetChildren(evalResult);
+                Verify(children,
+                    EvalResult("F", "3", "object {int}", "((C)o).F"));
+
+                // var c = new C(); var e = (C)((object)c);
+                value = typeC.Instantiate();
+                evalResult = FormatResult("(C)((object)c)", value);
+                Verify(evalResult,
+                    EvalResult("(C)((object)c)", "{C}", "C", "(C)((object)c)", DkmEvaluationResultFlags.Expandable));
+                children = GetChildren(evalResult);
+                Verify(children,
+                    EvalResult("F", "3", "object {int}", "((C)((object)c)).F"));
+
+                // var a = (object)new[] { new C() }; var e = ((C[])o)[0];
+                value = typeC.Instantiate();
+                evalResult = FormatResult("((C[])o)[0]", value);
+                Verify(evalResult,
+                    EvalResult("((C[])o)[0]", "{C}", "C", "((C[])o)[0]", DkmEvaluationResultFlags.Expandable));
+                children = GetChildren(evalResult);
+                Verify(children,
+                    EvalResult("F", "3", "object {int}", "((C[])o)[0].F"));
             }
         }
 
@@ -2308,7 +2367,7 @@ class C
                 int n = 10;
                 var type = runtime.GetType("C");
                 // C[] with alternating null and non-null values.
-                var value = CreateDkmClrValue(Enumerable.Range(0, n).Select(i => (i % 2) == 0 ? type.Instantiate() : null).ToArray());
+                var value = CreateDkmClrValue(Enumerable.Range(0, n).Select(i => (i % 2) == 0 ? type.UnderlyingType.Instantiate() : null).ToArray());
                 var evalResult = FormatResult("a", value);
 
                 IDkmClrResultProvider resultProvider = new CSharpResultProvider();
@@ -2355,7 +2414,7 @@ class C
                 int n = 10;
                 int nFailures = 2;
                 var type = runtime.GetType("C");
-                var value = CreateDkmClrValue(Enumerable.Range(0, n).Select(i => type.Instantiate(i)).ToArray());
+                var value = CreateDkmClrValue(Enumerable.Range(0, n).Select(i => type.UnderlyingType.Instantiate(i)).ToArray());
                 var evalResult = FormatResult("a", value);
 
                 IDkmClrResultProvider resultProvider = new CSharpResultProvider();
@@ -2379,6 +2438,48 @@ class C
                 Assert.Equal(items.Length, n);
                 Assert.Equal(items.OfType<DkmFailedEvaluationResult>().Count(), nFailures);
             }
+        }
+
+        [Fact]
+        public void NullFormatSpecifiers()
+        {
+            var value = CreateDkmClrValue(3);
+            // With no format specifiers in full name.
+            DkmEvaluationResult evalResult = null;
+            value.GetResult(
+                new DkmWorkList(),
+                DeclaredType: value.Type,
+                CustomTypeInfo: null,
+                InspectionContext: DefaultInspectionContext,
+                FormatSpecifiers: null,
+                ResultName: "o",
+                ResultFullName: "o",
+                CompletionRoutine: asyncResult => evalResult = asyncResult.Result);
+            Verify(evalResult,
+                EvalResult("o", "3", "int", "o"));
+            // With format specifiers in full name.
+            evalResult = null;
+            value.GetResult(
+                new DkmWorkList(),
+                DeclaredType: value.Type,
+                CustomTypeInfo: null,
+                InspectionContext: DefaultInspectionContext,
+                FormatSpecifiers: null,
+                ResultName: "o",
+                ResultFullName: "o, nq",
+                CompletionRoutine: asyncResult => evalResult = asyncResult.Result);
+            Verify(evalResult,
+                EvalResult("o", "3", "int", "o, nq"));
+        }
+
+        [Fact(Skip = "9895"), WorkItem(9895, "https://github.com/dotnet/roslyn/issues/9895")]
+        public void ErrorValueWithNoType()
+        {
+            var rootExpr = "e";
+            var message = "The system is down.";
+            var value = CreateErrorValue(type: null, message: message);
+            Verify(FormatResult(rootExpr, value),
+                EvalResult(rootExpr, message, "", rootExpr));
         }
     }
 }

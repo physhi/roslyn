@@ -160,7 +160,7 @@ End Module
     </file>
 </compilation>
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(compilationDef)
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(compilationDef)
 
             CompilationUtils.AssertTheseDiagnostics(compilation,
 <expected>
@@ -638,7 +638,7 @@ End Module
     </file>
 </compilation>
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(compilationDef, options:=TestOptions.ReleaseExe)
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(compilationDef, options:=TestOptions.ReleaseExe)
 
             Dim verifier = CompileAndVerify(compilation,
                              expectedOutput:=
@@ -648,7 +648,7 @@ End Module
 ]]>)
         End Sub
 
-        <Fact(), WorkItem(544313, "DevDiv")>
+        <Fact(), WorkItem(544313, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544313")>
         Public Sub IsTrueIsFalseInOverloadResolutionTakeWhile()
             Dim compilationDef =
 <compilation name="IsTrueIsFalseInOverloadResolutionTakeWhile">
@@ -723,7 +723,7 @@ Module Program
     ]]></file>
 </compilation>
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(compilationDef, additionalRefs:={SystemCoreRef}, options:=TestOptions.ReleaseExe)
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(compilationDef, references:={SystemCoreRef}, options:=TestOptions.ReleaseExe)
 
             CompileAndVerify(compilation,
                              expectedOutput:=

@@ -1,130 +1,130 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations.Expressions
     Public Class GetTypeKeywordRecommenderTests
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeHelpText()
-            VerifyRecommendationDescriptionTextIs(<MethodBody>Return |</MethodBody>, "GetType",
-$"{VBFeaturesResources.GettypeFunction}
-{ReturnsSystemTypeObject}
-GetType({VBWorkspaceResources.Typename}) As Type")
-        End Sub
+        Public Async Function GetTypeHelpTextTest() As Task
+            Await VerifyRecommendationDescriptionTextIsAsync(<MethodBody>Return |</MethodBody>, "GetType",
+$"{VBFeaturesResources.GetType_function}
+{VBWorkspaceResources.Returns_a_System_Type_object_for_the_specified_type_name}
+GetType({VBWorkspaceResources.typeName}) As Type")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoneInClassDeclaration()
-            VerifyRecommendationsMissing(<ClassDeclaration>|</ClassDeclaration>, "GetType")
-        End Sub
+        Public Async Function NoneInClassDeclarationTest() As Task
+            Await VerifyRecommendationsMissingAsync(<ClassDeclaration>|</ClassDeclaration>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeInStatement()
-            VerifyRecommendationsContain(<MethodBody>|</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeInStatementTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>|</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterReturn()
-            VerifyRecommendationsContain(<MethodBody>Return |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterReturnTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Return |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterArgument1()
-            VerifyRecommendationsContain(<MethodBody>Foo(|</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterArgument1Test() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Goo(|</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterArgument2()
-            VerifyRecommendationsContain(<MethodBody>Foo(bar, |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterArgument2Test() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Goo(bar, |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterBinaryExpression()
-            VerifyRecommendationsContain(<MethodBody>Foo(bar + |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterBinaryExpressionTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Goo(bar + |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterNot()
-            VerifyRecommendationsContain(<MethodBody>Foo(Not |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterNotTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Goo(Not |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterTypeOf()
-            VerifyRecommendationsContain(<MethodBody>If TypeOf |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterTypeOfTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>If TypeOf |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterDoWhile()
-            VerifyRecommendationsContain(<MethodBody>Do While |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterDoWhileTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Do While |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterDoUntil()
-            VerifyRecommendationsContain(<MethodBody>Do Until |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterDoUntilTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Do Until |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterLoopWhile()
-            VerifyRecommendationsContain(<MethodBody>
+        Public Async Function GetTypeAfterLoopWhileTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>
 Do
 Loop While |</MethodBody>, "GetType")
-        End Sub
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterLoopUntil()
-            VerifyRecommendationsContain(<MethodBody>
+        Public Async Function GetTypeAfterLoopUntilTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>
 Do
 Loop Until |</MethodBody>, "GetType")
-        End Sub
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterIf()
-            VerifyRecommendationsContain(<MethodBody>If |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterIfTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>If |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterElseIf()
-            VerifyRecommendationsContain(<MethodBody>ElseIf |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterElseIfTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>ElseIf |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterElseSpaceIf()
-            VerifyRecommendationsContain(<MethodBody>Else If |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterElseSpaceIfTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Else If |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterError()
-            VerifyRecommendationsContain(<MethodBody>Error |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterErrorTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Error |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterThrow()
-            VerifyRecommendationsContain(<MethodBody>Throw |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterThrowTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Throw |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterInitializer()
-            VerifyRecommendationsContain(<MethodBody>Dim x = |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterInitializerTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Dim x = |</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterArrayInitializerSquiggle()
-            VerifyRecommendationsContain(<MethodBody>Dim x = {|</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterArrayInitializerSquiggleTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Dim x = {|</MethodBody>, "GetType")
+        End Function
 
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub GetTypeAfterArrayInitializerComma()
-            VerifyRecommendationsContain(<MethodBody>Dim x = {0, |</MethodBody>, "GetType")
-        End Sub
+        Public Async Function GetTypeAfterArrayInitializerCommaTest() As Task
+            Await VerifyRecommendationsContainAsync(<MethodBody>Dim x = {0, |</MethodBody>, "GetType")
+        End Function
 
-        <WorkItem(543270)>
+        <WorkItem(543270, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543270")>
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NotInDelegateCreation()
+        Public Async Function NotInDelegateCreationTest() As Task
             Dim code =
 <File>
 Module Program
     Sub Main(args As String())
-        Dim f1 As New Foo2( |
+        Dim f1 As New Goo2( |
     End Sub
 
-    Delegate Sub Foo2()
+    Delegate Sub Goo2()
 
     Function Bar2() As Object
         Return Nothing
@@ -132,8 +132,7 @@ Module Program
 End Module
 </File>
 
-            VerifyRecommendationsMissing(code, "GetType")
-        End Sub
-
+            Await VerifyRecommendationsMissingAsync(code, "GetType")
+        End Function
     End Class
 End Namespace

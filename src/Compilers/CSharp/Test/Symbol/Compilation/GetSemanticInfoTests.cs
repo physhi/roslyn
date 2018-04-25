@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
@@ -16,7 +17,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     public partial class GetSemanticInfoTests : SemanticModelTestBase
     {
-        [WorkItem(544320, "DevDiv")]
+        [WorkItem(544320, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544320")]
         [Fact]
         public void TestBug12592()
         {
@@ -31,7 +32,7 @@ class D : B
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
             var sym = model.GetSymbolInfo(expr);
@@ -40,7 +41,7 @@ class D : B
             Assert.Equal("x", sym.Symbol.Name);
         }
 
-        [WorkItem(541948, "DevDiv")]
+        [WorkItem(541948, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541948")]
         [Fact]
         public void DelegateArgumentType()
         {
@@ -61,7 +62,7 @@ class Test
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -73,7 +74,7 @@ class Test
             Assert.NotNull(info.ConvertedType);
         }
 
-        [WorkItem(541949, "DevDiv")]
+        [WorkItem(541949, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541949")]
         [Fact]
         public void LambdaWithParenthesis_BindOutsideOfParenthesis()
         {
@@ -90,7 +91,7 @@ public class Test
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -106,8 +107,8 @@ public class Test
             Assert.Equal("Test.D", info.ConvertedType.ToTestDisplayString());
         }
 
-        [WorkItem(529056, "DevDiv")]
-        [WorkItem(529056, "DevDiv")]
+        [WorkItem(529056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529056")]
+        [WorkItem(529056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529056")]
         [Fact]
         public void LambdaWithParenthesis_BindInsideOfParenthesis()
         {
@@ -124,7 +125,7 @@ public class Test
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -140,7 +141,7 @@ public class Test
             Assert.Equal("Test.D", info.ConvertedType.ToTestDisplayString());
         }
 
-        [Fact, WorkItem(528656, "DevDiv")]
+        [Fact, WorkItem(528656, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528656")]
         public void SemanticInfoForInvalidExpression()
         {
             var text = @"
@@ -153,7 +154,7 @@ public class A
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -161,7 +162,7 @@ public class A
             Assert.Null(sym.Symbol);
         }
 
-        [WorkItem(541973, "DevDiv")]
+        [WorkItem(541973, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541973")]
         [Fact]
         public void LambdaAsAttributeArgumentErr()
         {
@@ -179,7 +180,7 @@ public class A
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -230,7 +231,7 @@ public class Test
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var testClass = tree.GetCompilationUnitRoot().Members[1] as TypeDeclarationSyntax;
@@ -274,16 +275,16 @@ public class Test
             const string template = @"
 class C
 {{
-    static void Foo({1} v) {{ }}
+    static void Goo({1} v) {{ }}
 
-    static void Main() {{ {0} v = default({0}); Foo({2}v); }}
+    static void Main() {{ {0} v = default({0}); Goo({2}v); }}
 }}
 ";
 
             var isExplicitConversion = ck == ConversionKind.ExplicitNumeric;
             var source = string.Format(template, from, to, isExplicitConversion ? "(" + to + ")" : "");
             var tree = Parse(source);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             comp.VerifyDiagnostics();
 
             var model = comp.GetSemanticModel(tree);
@@ -336,7 +337,7 @@ class C
             }
         }
 
-        [WorkItem(527486, "DevDiv")]
+        [WorkItem(527486, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527486")]
         [Fact]
         public void ClassifyConversionExplicit()
         {
@@ -362,7 +363,7 @@ public class Test
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var testClass = tree.GetCompilationUnitRoot().Members[0] as TypeDeclarationSyntax;
@@ -404,7 +405,7 @@ public class Test
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var errs = model.GetDiagnostics();
@@ -431,7 +432,7 @@ public class Test
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var errs = model.GetDiagnostics();
@@ -465,7 +466,7 @@ public class Test
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var testClass = tree.GetCompilationUnitRoot().Members[0] as TypeDeclarationSyntax;
@@ -489,7 +490,7 @@ public class Test
             Assert.Equal(0, errs.Count());
         }
 
-        [WorkItem(527767, "DevDiv")]
+        [WorkItem(527767, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527767")]
         [Fact]
         public void ClassifyConversionNullable()
         {
@@ -518,7 +519,7 @@ enum E { zero, one }
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var testClass = tree.GetCompilationUnitRoot().Members[0] as TypeDeclarationSyntax;
@@ -529,7 +530,7 @@ enum E { zero, one }
 
             // sbyte? nullable = null;
             var v1 = (mainStats[0] as LocalDeclarationStatementSyntax).Declaration.Variables;
-            ConversionTestHelper(model, v1[0].Initializer.Value, ConversionKind.NullLiteral, ConversionKind.NoConversion);
+            ConversionTestHelper(model, v1[0].Initializer.Value, ConversionKind.DefaultOrNullLiteral, ConversionKind.NoConversion);
             // uint? nullable01 = 100;
             var v2 = (mainStats[1] as LocalDeclarationStatementSyntax).Declaration.Variables;
             ConversionTestHelper(model, v2[0].Initializer.Value, ConversionKind.ImplicitNullable, ConversionKind.ExplicitNullable);
@@ -547,7 +548,7 @@ enum E { zero, one }
             ConversionTestHelper(model, v5[0].Initializer.Value, ConversionKind.ImplicitEnumeration, ConversionKind.ExplicitNullable);
         }
 
-        [Fact, WorkItem(543994, "DevDiv")]
+        [Fact, WorkItem(543994, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543994")]
         public void ClassifyConversionImplicitUserDef()
         {
             var text = @"using System;
@@ -585,7 +586,7 @@ class MyClass
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprs = GetBindingNodes<ExpressionSyntax>(comp);
             var expr1 = exprs.First();
@@ -605,7 +606,7 @@ class MyClass
             Assert.Equal(impconv, conv);
         }
 
-        [Fact, WorkItem(1019372, "DevDiv")]
+        [Fact, WorkItem(1019372, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1019372")]
         public void ClassifyConversionImplicitUserDef02()
         {
             var text = @"
@@ -616,7 +617,7 @@ class C {
     }
 }";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprs = GetBindingNodes<ExpressionSyntax>(comp);
             var expr1 = exprs.First();
@@ -633,7 +634,7 @@ class C {
             Assert.True(conv.IsUserDefined);
         }
 
-        [Fact, WorkItem(544151, "DevDiv")]
+        [Fact, WorkItem(544151, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544151")]
         public void PublicViewOfPointerConversions()
         {
             ValidateConversion(Conversion.PointerToVoid, ConversionKind.PointerToVoid);
@@ -680,7 +681,7 @@ class C {
                     Assert.False(conv.IsExplicit);
                     Assert.True(conv.IsNullable);
                     break;
-                case ConversionKind.NullLiteral:
+                case ConversionKind.DefaultOrNullLiteral:
                     Assert.True(conv.Exists);
                     Assert.True(conv.IsImplicit);
                     Assert.False(conv.IsExplicit);
@@ -819,7 +820,7 @@ class C {
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="binding"></param>
+        /// <param name="semanticModel"></param>
         /// <param name="expr"></param>
         /// <param name="ept1">expr -> TypeInParent</param>
         /// <param name="ept2">Type(expr) -> TypeInParent</param>
@@ -942,7 +943,7 @@ class C {
         [Fact]
         public void TestGetSemanticInfoInParentInIf()
         {
-            var compilation = CreateCompilationWithMscorlib(@"
+            var compilation = CreateCompilation(@"
 class C 
 {
   void M(int x)
@@ -966,7 +967,7 @@ class C
         [Fact]
         public void TestGetSemanticInfoInParentInFor()
         {
-            var compilation = CreateCompilationWithMscorlib(@"
+            var compilation = CreateCompilation(@"
 class C 
 {
   void M(int x)
@@ -987,7 +988,7 @@ class C
             Assert.Equal(0, info.CandidateSymbols.Length);
         }
 
-        [WorkItem(540279, "DevDiv")]
+        [WorkItem(540279, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540279")]
         [Fact]
         public void NoMembersForVoidReturnType()
         {
@@ -1001,7 +1002,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
             var bindInfo = model.GetSemanticInfoSummary(exprSyntaxToBind);
@@ -1011,7 +1012,7 @@ class C
             Assert.Equal(0, symbols.Length);
         }
 
-        [WorkItem(540767, "DevDiv")]
+        [WorkItem(540767, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540767")]
         [Fact]
         public void BindIncompleteVarDeclWithDoKeyword()
         {
@@ -1022,7 +1023,7 @@ class Test
     {
         do";
 
-            var compilation = CreateCompilationWithMscorlib(code);
+            var compilation = CreateCompilation(code);
             var tree = compilation.SyntaxTrees[0];
             var model = compilation.GetSemanticModel(tree);
             var exprSyntaxList = GetExprSyntaxList(tree);
@@ -1076,7 +1077,7 @@ class C
             Assert.Equal("C..ctor(System.Int32 x)", baseConstructor.ToTestDisplayString());
         }
 
-        [WorkItem(540862, "DevDiv")]
+        [WorkItem(540862, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540862")]
         [Fact]
         public void BindThisStaticConstructorInitializer()
         {
@@ -1099,7 +1100,7 @@ class MyClass
             Assert.Equal("MyClass..ctor()", invokedConstructor.ToTestDisplayString());
         }
 
-        [WorkItem(541053, "DevDiv")]
+        [WorkItem(541053, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541053")]
         [Fact]
         public void CheckAndAdjustPositionOutOfRange()
         {
@@ -1109,7 +1110,7 @@ using System;
 > 1
 ";
             var tree = Parse(text, options: TestOptions.Script);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var root = tree.GetCompilationUnitRoot();
@@ -1140,7 +1141,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
             var bindInfo = model.GetSemanticInfoSummary(exprSyntaxToBind);
@@ -1169,7 +1170,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
             var bindInfo = model.GetSemanticInfoSummary(exprSyntaxToBind);
@@ -1193,7 +1194,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1216,7 +1217,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1242,7 +1243,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1270,7 +1271,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1298,7 +1299,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1325,7 +1326,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1352,7 +1353,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1383,7 +1384,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1421,7 +1422,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1459,7 +1460,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1480,7 +1481,7 @@ class C
             Assert.Null(bindInfo.ConstantValue.Value);
         }
 
-        [WorkItem(542296, "DevDiv")]
+        [WorkItem(542296, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542296")]
         [Fact]
         public void TypeArgumentsOnFieldAccess1()
         {
@@ -1495,7 +1496,7 @@ public class Test
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1511,7 +1512,7 @@ public class Test
             Assert.Equal("Fld", candidate.Name);
         }
 
-        [WorkItem(542296, "DevDiv")]
+        [WorkItem(542296, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542296")]
         [Fact]
         public void TypeArgumentsOnFieldAccess2()
         {
@@ -1526,7 +1527,7 @@ public class Test
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1540,7 +1541,7 @@ public class Test
             Assert.Equal("Test", symbol.Name);
         }
 
-        [WorkItem(528785, "DevDiv")]
+        [WorkItem(528785, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528785")]
         [Fact]
         public void TopLevelIndexer()
         {
@@ -1548,7 +1549,7 @@ public class Test
 this[double E] { get { return /*<bind>*/E/*</bind>*/; } }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1562,23 +1563,23 @@ this[double E] { get { return /*<bind>*/E/*</bind>*/; } }
             Assert.Equal("E", symbol.Name);
         }
 
-        [WorkItem(542360, "DevDiv")]
+        [WorkItem(542360, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542360")]
         [Fact]
         public void TypeAndMethodHaveSameTypeParameterName()
         {
             var text = @"
 interface I<T>
 {
-    void Foo<T>();
+    void Goo<T>();
 }
  
 class A<T> : I<T>
 {
-    void I</*<bind>*/T/*</bind>*/>.Foo<T>() { }
+    void I</*<bind>*/T/*</bind>*/>.Goo<T>() { }
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1593,7 +1594,7 @@ class A<T> : I<T>
             Assert.Equal(comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A"), symbol.ContainingSymbol); //from the type, not the method
         }
 
-        [WorkItem(542436, "DevDiv")]
+        [WorkItem(542436, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542436")]
         [Fact]
         public void RecoveryFromBadNamespaceDeclaration()
         {
@@ -1603,17 +1604,17 @@ using alias = /*<bind>*/N/*</bind>*/;
 namespace N { }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
             Assert.Equal(SyntaxKind.IdentifierName, exprSyntaxToBind.Kind());
             var bindInfo = model.GetSemanticInfoSummary(exprSyntaxToBind);
         }
 
-        [WorkItem(542634, "DevDiv")]
         /// Test that binding a local declared with var binds the same way when localSymbol.Type is called before BindVariableDeclaration.
         /// Assert occurs if the two do not compute the same type.
         [Fact]
+        [WorkItem(542634, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542634")]
         public void VarInitializedWithStaticType()
         {
             var text =
@@ -1642,7 +1643,7 @@ class Program
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
             Assert.Equal(SyntaxKind.IdentifierName, exprSyntaxToBind.Kind());
@@ -1657,7 +1658,7 @@ class Program
             bindInfo = model.GetSemanticInfoSummary(varIdentifier);
         }
 
-        [WorkItem(542186, "DevDiv")]
+        [WorkItem(542186, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542186")]
         [Fact]
         public void IndexerParameter()
         {
@@ -1674,7 +1675,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1692,7 +1693,7 @@ class C
             Assert.Equal(symbol, lookupSymbols.Single());
         }
 
-        [WorkItem(542186, "DevDiv")]
+        [WorkItem(542186, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542186")]
         [Fact]
         public void IndexerValueParameter()
         {
@@ -1709,7 +1710,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1727,7 +1728,7 @@ class C
             Assert.Equal(symbol, lookupSymbols.Single());
         }
 
-        [WorkItem(542777, "DevDiv")]
+        [WorkItem(542777, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542777")]
         [Fact]
         public void IndexerThisParameter()
         {
@@ -1744,7 +1745,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1759,7 +1760,7 @@ class C
             Assert.Equal(SymbolKind.Method, symbol.ContainingSymbol.Kind);
         }
 
-        [WorkItem(542592, "DevDiv")]
+        [WorkItem(542592, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542592")]
         [Fact]
         public void TypeParameterParamsParameter()
         {
@@ -1780,7 +1781,7 @@ class Program
 
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1798,7 +1799,7 @@ class Program
             Assert.Equal(TypeKind.TypeParameter, ((MethodSymbol)candidate.OriginalDefinition).Parameters.Last().Type.TypeKind);
         }
 
-        [WorkItem(542458, "DevDiv")]
+        [WorkItem(542458, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542458")]
         [Fact]
         public void ParameterDefaultValues()
         {
@@ -1816,7 +1817,7 @@ struct S
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1843,7 +1844,7 @@ struct S
             Assert.Null(parameters[3].ExplicitDefaultValue);
         }
 
-        [WorkItem(542764, "DevDiv")]
+        [WorkItem(542764, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542764")]
         [Fact]
         public void UnboundGenericTypeArity()
         {
@@ -1857,7 +1858,7 @@ class C<T, U, V>
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var nameSyntaxToBind = (SimpleNameSyntax)GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1886,7 +1887,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1899,7 +1900,7 @@ class C
             Assert.Equal("System.Void[]", arrayType.ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterDiamondInheritance1()
         {
@@ -1922,7 +1923,7 @@ public class C<T> where T : IA, IB // can find IA.P in two different ways
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlibAndSystemCore(new[] { tree });
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(new[] { tree });
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1932,7 +1933,7 @@ public class C<T> where T : IA, IB // can find IA.P in two different ways
             Assert.Equal("System.Collections.Generic.IEnumerable<System.Object> System.Collections.Generic.IEnumerable<T>.Select<T, System.Object>(System.Func<T, System.Object> selector)", bindInfo.Symbol.ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterDiamondInheritance2() //add hiding member in derived interface
         {
@@ -1958,7 +1959,7 @@ public class C<T> where T : IA, IB
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlibAndSystemCore(new[] { tree });
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(new[] { tree });
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -1968,7 +1969,7 @@ public class C<T> where T : IA, IB
             Assert.Equal("System.Collections.Generic.IEnumerable<System.Int32> System.Collections.Generic.IEnumerable<T>.Select<T, System.Int32>(System.Func<T, System.Int32> selector)", bindInfo.Symbol.ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterDiamondInheritance3() //reverse order of interface list (shouldn't matter)
         {
@@ -1994,7 +1995,7 @@ public class C<T> where T : IB, IA
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlibAndSystemCore(new[] { tree });
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(new[] { tree });
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -2004,7 +2005,7 @@ public class C<T> where T : IB, IA
             Assert.Equal("System.Collections.Generic.IEnumerable<System.Int32> System.Collections.Generic.IEnumerable<T>.Select<T, System.Int32>(System.Func<T, System.Int32> selector)", bindInfo.Symbol.ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterDiamondInheritance4() //Two interfaces with a common base
         {
@@ -2029,7 +2030,7 @@ public class C<T> where T : IB, IC
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlibAndSystemCore(new[] { tree });
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(new[] { tree });
             var model = comp.GetSemanticModel(tree);
             var exprSyntaxToBind = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
 
@@ -2039,7 +2040,7 @@ public class C<T> where T : IB, IC
             Assert.Equal("System.Collections.Generic.IEnumerable<System.Object> System.Collections.Generic.IEnumerable<T>.Select<T, System.Object>(System.Func<T, System.Object> selector)", bindInfo.Symbol.ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup1()
         {
@@ -2054,7 +2055,7 @@ public interface IA
             Assert.Equal("System.Object IA.P { get; }", members.Single().ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup2()
         {
@@ -2075,7 +2076,7 @@ public interface IB
             Assert.True(members.SetEquals(typeParameter.AllEffectiveInterfacesNoUseSiteDiagnostics.Select(i => i.GetMember<PropertySymbol>("P"))));
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup3()
         {
@@ -2096,7 +2097,7 @@ public interface IB : IA
             Assert.Equal("System.Object IB.P { get; }", members.Single().ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup4()
         {
@@ -2116,7 +2117,7 @@ public class D
             Assert.Equal("System.Object D.P { get; set; }", members.Single().ToTestDisplayString());
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup5()
         {
@@ -2139,7 +2140,7 @@ public class D
             Assert.True(members.Select(m => m.ToTestDisplayString()).SetEquals(new[] { "void IA.M()", "void D.M()" }));
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup6()
         {
@@ -2163,7 +2164,7 @@ public class D
             Assert.True(members.Select(m => m.ToTestDisplayString()).SetEquals(new[] { "void D.M()", "void IA.M()", "void IA.M(System.Int32 x)" }));
         }
 
-        [WorkItem(543295, "DevDiv")]
+        [WorkItem(543295, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543295")]
         [Fact]
         public void TypeParameterMemberLookup7()
         {
@@ -2201,7 +2202,7 @@ public class C<T> where T : {1}
 ";
 
             var tree = Parse(string.Format(template, types, constraints));
-            var comp = CreateCompilationWithMscorlibAndSystemCore(new[] { tree });
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(new[] { tree });
             comp.VerifyDiagnostics();
             var model = comp.GetSemanticModel(tree);
 
@@ -2214,16 +2215,16 @@ public class C<T> where T : {1}
             return model.LookupSymbols(exprSyntaxToBind.SpanStart, typeParameter, memberName);
         }
 
-        [WorkItem(542966, "DevDiv")]
+        [WorkItem(542966, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542966")]
         [Fact]
-        public void IndexerMemberRace()
+        public async Task IndexerMemberRaceAsync()
         {
             var text = @"
 using System;
 
 interface IA
 {
-    [System.Runtime.CompilerServices.IndexerName(""Foo"")]
+    [System.Runtime.CompilerServices.IndexerName(""Goo"")]
     string this[int index] { get; }
 }
  
@@ -2261,26 +2262,25 @@ class Program
 
             for (int i = 0; i < 20; i++)
             {
-                var comp = CreateCompilationWithMscorlib(text);
+                var comp = CreateCompilation(text);
 
-                var thread1 = new Thread(() => comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMembers());
-                var thread2 = new Thread(() => comp.GlobalNamespace.GetMember<NamedTypeSymbol>("IA").GetMembers());
+                var task1 = new Task(() => comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMembers());
+                var task2 = new Task(() => comp.GlobalNamespace.GetMember<NamedTypeSymbol>("IA").GetMembers());
 
                 if (i % 2 == 0)
                 {
-                    thread1.Start();
-                    thread2.Start();
+                    task1.Start();
+                    task2.Start();
                 }
                 else
                 {
-                    thread1.Start();
-                    thread2.Start();
+                    task2.Start();
+                    task1.Start();
                 }
 
                 comp.VerifyDiagnostics();
 
-                thread1.Join(timeout);
-                thread2.Join(timeout);
+                await Task.WhenAll(task1, task2);
             }
         }
 
@@ -2300,10 +2300,12 @@ class C
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             comp.VerifyDiagnostics(
-                // (8,16): error CS0819: Implicitly-typed variables cannot have multiple declarators
-                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableMultipleDeclarator, @"var a = new StreamWriter(""""), b = new StreamReader("""")/*</bind>*/;"));
+                // (8,19): error CS0819: Implicitly-typed variables cannot have multiple declarators
+                //         /*<bind>*/var a = new StreamWriter(""), b = new StreamReader("")/*</bind>*/;
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableMultipleDeclarator, @"var a = new StreamWriter(""""), b = new StreamReader("""")").WithLocation(8, 19)
+                );
 
             var model = comp.GetSemanticModel(tree);
 
@@ -2313,7 +2315,7 @@ class C
             Assert.Equal("System.IO.StreamReader", typeInfo.Symbol.ToTestDisplayString());
         }
 
-        [WorkItem(543169, "DevDiv")]
+        [WorkItem(543169, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543169")]
         [Fact]
         public void ParameterOfLambdaPassedToOutParameter()
         {
@@ -2334,7 +2336,7 @@ class D
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var lambdaSyntax = tree.GetCompilationUnitRoot().DescendantNodes().OfType<SimpleLambdaExpressionSyntax>().Single();
@@ -2344,7 +2346,7 @@ class D
             Assert.Equal(MethodKind.AnonymousFunction, ((MethodSymbol)parameterSymbol.ContainingSymbol).MethodKind);
         }
 
-        [WorkItem(529096, "DevDiv")]
+        [WorkItem(529096, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529096")]
         [Fact]
         public void MemberAccessExpressionResults()
         {
@@ -2363,14 +2365,14 @@ class C
         /*<bind1>*/C.B/*</bind1>*/();
         /*<bind2>*/C.D/*</bind2>*/;
         /*<bind3>*/C.B()/*</bind3>*/;
-        int foo = /*<bind4>*/C.B()/*</bind4>*/;
-        foo = /*<bind5>*/C.B/*</bind5>*/();
+        int goo = /*<bind4>*/C.B()/*</bind4>*/;
+        goo = /*<bind5>*/C.B/*</bind5>*/();
     }
 }
 ";
 
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var exprs = GetBindingNodes<ExpressionSyntax>(comp);
@@ -2415,7 +2417,7 @@ class C
             }
         }
 
-        [WorkItem(543554, "DevDiv")]
+        [WorkItem(543554, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543554")]
         [Fact]
         public void SemanticInfoForUncheckedExpression()
         {
@@ -2429,7 +2431,7 @@ public class A
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -2443,7 +2445,7 @@ public class A
             Assert.Equal(SpecialType.System_Double, info.ConvertedType.SpecialType);
         }
 
-        [WorkItem(543554, "DevDiv")]
+        [WorkItem(543554, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543554")]
         [Fact]
         public void SemanticInfoForCheckedExpression()
         {
@@ -2456,7 +2458,7 @@ class Program
     } 
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -2472,7 +2474,7 @@ class Program
             Assert.Equal(SpecialType.System_Int32, info.ConvertedType.SpecialType);
         }
 
-        [WorkItem(543554, "DevDiv")]
+        [WorkItem(543554, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543554")]
         [Fact]
         public void CheckedUncheckedExpression()
         {
@@ -2486,7 +2488,7 @@ class Test
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -2496,7 +2498,7 @@ class Test
             Assert.Equal(SpecialType.System_Int32, info.ConvertedType.SpecialType);
         }
 
-        [WorkItem(543543, "DevDiv")]
+        [WorkItem(543543, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543543")]
         [Fact]
         public void SymbolInfoForImplicitOperatorParameter()
         {
@@ -2515,7 +2517,7 @@ class Program
 
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -2526,8 +2528,8 @@ class Program
             Assert.Equal(MethodKind.Conversion, ((MethodSymbol)symbol.ContainingSymbol).MethodKind);
         }
 
-        [WorkItem(543494, "DevDiv")]
-        [WorkItem(543560, "DevDiv")]
+        [WorkItem(543494, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543494")]
+        [WorkItem(543560, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543560")]
         [Fact]
         public void BrokenPropertyDeclaration()
         {
@@ -2542,7 +2544,7 @@ Class Program // this will get a Property declaration ... *sigh*
     }
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -2551,7 +2553,7 @@ Class Program // this will get a Property declaration ... *sigh*
             var declaredSymbol = model.GetDeclaredSymbol(expr);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedBinaryOperator()
         {
@@ -2574,7 +2576,7 @@ class C
             CheckOperatorSemanticInfo(text, WellKnownMemberNames.AdditionOperatorName);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedLogicalOperator()
         {
@@ -2607,7 +2609,7 @@ class C
             CheckOperatorSemanticInfo(text, WellKnownMemberNames.BitwiseAndOperatorName);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedUnaryOperator()
         {
@@ -2629,7 +2631,7 @@ class C
             CheckOperatorSemanticInfo(text, WellKnownMemberNames.UnaryPlusOperatorName);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedExplicitConversion()
         {
@@ -2650,7 +2652,7 @@ class C
             CheckOperatorSemanticInfo(text, WellKnownMemberNames.ExplicitConversionName);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedImplicitConversion()
         {
@@ -2671,7 +2673,7 @@ class C
             CheckOperatorSemanticInfo(text, WellKnownMemberNames.ImplicitConversionName);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedTrueOperator()
         {
@@ -2698,7 +2700,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
@@ -2721,7 +2723,7 @@ class C
             Assert.False(model.GetConstantValue(expr).HasValue);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedIncrement()
         {
@@ -2743,7 +2745,7 @@ class C
             CheckOperatorSemanticInfo(text, WellKnownMemberNames.IncrementOperatorName);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SemanticInfoForUserDefinedCompoundAssignment()
         {
@@ -2769,7 +2771,7 @@ class C
         private void CheckOperatorSemanticInfo(string text, string operatorName)
         {
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operatorSymbol = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>(operatorName);
@@ -2792,7 +2794,7 @@ class C
             Assert.False(model.GetConstantValue(expr).HasValue);
         }
 
-        [Fact, WorkItem(543550, "DevDiv"), WorkItem(543439, "DevDiv")]
+        [Fact, WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550"), WorkItem(543439, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543439")]
         public void SymbolInfoForUserDefinedConversionOverloadResolutionFailure()
         {
             var text = @"
@@ -2815,7 +2817,7 @@ struct S
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var conversions = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("S").GetMembers(WellKnownMemberNames.ExplicitConversionName);
@@ -2832,7 +2834,7 @@ struct S
             Assert.True(candidates.SetEquals(conversions, EqualityComparer<ISymbol>.Default));
         }
 
-        [Fact, WorkItem(543550, "DevDiv"), WorkItem(543439, "DevDiv")]
+        [Fact, WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550"), WorkItem(543439, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543439")]
         public void SymbolInfoForUserDefinedConversionOverloadResolutionFailureEmpty()
         {
             var text = @"
@@ -2845,7 +2847,7 @@ struct S
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var conversions = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("S").GetMembers(WellKnownMemberNames.ExplicitConversionName);
@@ -2862,7 +2864,7 @@ struct S
             Assert.Equal(0, candidates.Length);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedUnaryOperatorOverloadResolutionFailure()
         {
@@ -2905,7 +2907,7 @@ class Program
     }
 }
 ";
-            var comp = CreateCompilationWithCustomILSource(text, il);
+            var comp = CreateCompilationWithILAndMscorlib40(text, il);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -2923,7 +2925,7 @@ class Program
             Assert.True(candidates.SetEquals(operators, EqualityComparer<ISymbol>.Default));
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedUnaryOperatorOverloadResolutionFailureEmpty()
         {
@@ -2938,7 +2940,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.UnaryPlusOperatorName);
@@ -2955,7 +2957,7 @@ class C
             Assert.Equal(0, candidates.Length);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedIncrementOperatorOverloadResolutionFailure()
         {
@@ -2997,7 +2999,7 @@ class Program
     }
 }
 ";
-            var comp = CreateCompilationWithCustomILSource(text, il);
+            var comp = CreateCompilationWithILAndMscorlib40(text, il);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -3015,7 +3017,7 @@ class Program
             Assert.True(candidates.SetEquals(operators, EqualityComparer<ISymbol>.Default));
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedIncrementOperatorOverloadResolutionFailureEmpty()
         {
@@ -3030,7 +3032,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.IncrementOperatorName);
@@ -3047,7 +3049,7 @@ class C
             Assert.Equal(0, candidates.Length);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedBinaryOperatorOverloadResolutionFailure()
         {
@@ -3072,7 +3074,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.AdditionOperatorName);
@@ -3089,7 +3091,7 @@ class C
             Assert.True(candidates.SetEquals(operators, EqualityComparer<ISymbol>.Default));
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedBinaryOperatorOverloadResolutionFailureEmpty()
         {
@@ -3104,7 +3106,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.AdditionOperatorName);
@@ -3121,7 +3123,7 @@ class C
             Assert.Equal(0, candidates.Length);
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedCompoundAssignmentOperatorOverloadResolutionFailure()
         {
@@ -3146,7 +3148,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.AdditionOperatorName);
@@ -3163,7 +3165,7 @@ class C
             Assert.True(candidates.SetEquals(operators, EqualityComparer<ISymbol>.Default));
         }
 
-        [WorkItem(543550, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550")]
         [Fact]
         public void SymbolInfoForUserDefinedCompoundAssignmentOperatorOverloadResolutionFailureEmpty()
         {
@@ -3178,7 +3180,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.AdditionOperatorName);
@@ -3195,7 +3197,7 @@ class C
             Assert.Equal(0, candidates.Length);
         }
 
-        [WorkItem(543550, "DevDiv"), WorkItem(529158, "DevDiv")]
+        [WorkItem(543550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543550"), WorkItem(529158, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529158")]
         [Fact]
         public void MethodGroupForUserDefinedBinaryOperator()
         {
@@ -3221,7 +3223,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var operators = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMembers(WellKnownMemberNames.AdditionOperatorName).Cast<MethodSymbol>();
@@ -3251,7 +3253,7 @@ class C
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var expr = GetExprSyntaxForBinding(GetExprSyntaxList(tree));
@@ -3279,7 +3281,7 @@ class C
             Assert.False(sawWrongConversionKind);
         }
 
-        [WorkItem(543674, "DevDiv")]
+        [WorkItem(543674, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543674")]
         [Fact()]
         public void SemanticInfo_NormalVsLiftedUserDefinedImplicitConversion()
         {
@@ -3305,7 +3307,7 @@ class Z
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var gType = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("G");
@@ -3342,7 +3344,7 @@ class Z
             Assert.Equal("ImplicitUserDefined", conversion.ToString());
         }
 
-        [WorkItem(543715, "DevDiv")]
+        [WorkItem(543715, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543715")]
         [Fact]
         public void SemanticInfo_NormalVsLiftedUserDefinedConversion_ImplicitConversion()
         {
@@ -3370,7 +3372,7 @@ class Z
 }
 ";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
 
             var gType = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("G");
@@ -3437,7 +3439,7 @@ class Test
         /*<bind>*/M(b)/*</bind>*/;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
             compilation.VerifyDiagnostics(
                 // (26,21): error CS0457: Ambiguous user defined conversions 'B.implicit operator A(B)' and 'A.implicit operator A(B)' when converting from 'B' to 'A'
                 Diagnostic(ErrorCode.ERR_AmbigUDConv, "b").WithArguments("B.implicit operator A(B)", "A.implicit operator A(B)", "B", "A"));
@@ -3493,7 +3495,7 @@ class C
         /*<bind>*/M(b)/*</bind>*/;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
             compilation.VerifyDiagnostics(); // since no conversion is performed, the ambiguity doesn't matter
 
             var tree = compilation.SyntaxTrees.Single();
@@ -3526,7 +3528,7 @@ public class A
     {
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -3554,7 +3556,7 @@ class C
          /*<bind>*/MessageBox(IntPtr.Zero, """", """", 1)/*</bind>*/;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -3581,7 +3583,7 @@ class C
         object o = 1;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -3606,7 +3608,7 @@ class C
         object o = (long)1;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -3639,7 +3641,7 @@ class C
         object o = (object)1;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -3674,7 +3676,7 @@ class C
         object o = (object)(long)1;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -3709,8 +3711,8 @@ class C
             Assert.Equal(ConversionKind.Boxing, model.ClassifyConversion(cast1, (TypeSymbol)cast2TypeInfo.Type).Kind);
         }
 
-        [WorkItem(545136, "DevDiv")]
-        [WorkItem(538320, "DevDiv")]
+        [WorkItem(545136, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545136")]
+        [WorkItem(538320, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538320")]
         [Fact()] // TODO: Dev10 does not report ERR_SameFullNameAggAgg here - source wins.
         public void SpecialTypeInSourceAndMetadata()
         {
@@ -3729,7 +3731,7 @@ namespace System
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3741,7 +3743,7 @@ namespace System
             Assert.Equal(0, symbolInfo.CandidateSymbols.Length);
         }
 
-        [WorkItem(544651, "DevDiv")]
+        [WorkItem(544651, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544651")]
         [Fact]
         public void SpeculativelyBindMethodGroup1()
         {
@@ -3757,7 +3759,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3770,7 +3772,7 @@ class C
             Assert.Equal(CandidateReason.OverloadResolutionFailure, info.CandidateReason);
         }
 
-        [WorkItem(544651, "DevDiv")]
+        [WorkItem(544651, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544651")]
         [Fact]
         public void SpeculativelyBindMethodGroup2()
         {
@@ -3790,7 +3792,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3804,7 +3806,7 @@ class C
             Assert.Equal(2, info.CandidateSymbols.Length);
         }
 
-        [WorkItem(546046, "DevDiv")]
+        [WorkItem(546046, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546046")]
         [Fact]
         public void UnambiguousMethodGroupWithoutBoundParent1()
         {
@@ -3818,7 +3820,7 @@ class C
         /*<bind>*/M/*</bind>*/
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3830,7 +3832,7 @@ class C
             Assert.Equal(CandidateReason.OverloadResolutionFailure, info.CandidateReason);
         }
 
-        [WorkItem(546046, "DevDiv")]
+        [WorkItem(546046, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546046")]
         [Fact]
         public void UnambiguousMethodGroupWithoutBoundParent2()
         {
@@ -3844,7 +3846,7 @@ class C
         /*<bind>*/M/*</bind>*/[]
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3857,7 +3859,7 @@ class C
             Assert.Equal(1, info.CandidateSymbols.Length);
         }
 
-        [WorkItem(544651, "DevDiv")]
+        [WorkItem(544651, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544651")]
         [ClrOnlyFact]
         public void SpeculativelyBindPropertyGroup1()
         {
@@ -3884,7 +3886,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(source2, new[] { reference1 }, assemblyName: "SpeculativelyBindPropertyGroup");
+            var compilation = CreateCompilation(source2, new[] { reference1 }, assemblyName: "SpeculativelyBindPropertyGroup");
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3896,7 +3898,7 @@ class C
             Assert.Equal(compilation.GlobalNamespace.GetMember<NamedTypeSymbol>("IA").GetMember<PropertySymbol>("P"), info.Symbol);
         }
 
-        [WorkItem(544651, "DevDiv")]
+        [WorkItem(544651, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544651")]
         [ClrOnlyFact]
         public void SpeculativelyBindPropertyGroup2()
         {
@@ -3924,7 +3926,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(source2, new[] { reference1 }, assemblyName: "SpeculativelyBindPropertyGroup");
+            var compilation = CreateCompilation(source2, new[] { reference1 }, assemblyName: "SpeculativelyBindPropertyGroup");
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3945,7 +3947,7 @@ class C
         //[Fact]
         //public void UnambiguousPropertyGroupWithoutBoundParent1()
 
-        [WorkItem(546117, "DevDiv")]
+        [WorkItem(546117, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546117")]
         [ClrOnlyFact]
         public void UnambiguousPropertyGroupWithoutBoundParent2()
         {
@@ -3970,7 +3972,7 @@ class C
         /*<bind>*/a.P/*</bind>*/[]
 ";
 
-            var compilation = CreateCompilationWithMscorlib(source2, new[] { reference1 }, assemblyName: "SpeculativelyBindPropertyGroup");
+            var compilation = CreateCompilation(source2, new[] { reference1 }, assemblyName: "SpeculativelyBindPropertyGroup");
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -3983,7 +3985,7 @@ class C
             Assert.Equal(1, info.CandidateSymbols.Length);
         }
 
-        [WorkItem(544648, "DevDiv")]
+        [WorkItem(544648, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544648")]
         [Fact]
         public void SpeculativelyBindExtensionMethod()
         {
@@ -4008,7 +4010,7 @@ static class Program
     }
 }
 ";
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
             comp.VerifyDiagnostics();
 
             var tree = comp.SyntaxTrees.Single();
@@ -4062,7 +4064,7 @@ static class Program
         /// because it was set to IEnumerable&lt;int&gt; before binding the declaration of x but to an error
         /// type after binding the declaration of x.
         /// </summary>
-        [WorkItem(545097, "DevDiv")]
+        [WorkItem(545097, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545097")]
         [Fact]
         public void NameConflictDuringLambdaBinding1()
         {
@@ -4078,7 +4080,7 @@ class C
     }
 }
 ";
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
 
             var tree = comp.SyntaxTrees.Single();
 
@@ -4117,7 +4119,7 @@ class C
         /// This test reverses the order of statement binding from NameConflictDuringLambdaBinding2 to confirm that
         /// the results are the same.
         /// </summary>
-        [WorkItem(545097, "DevDiv")]
+        [WorkItem(545097, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545097")]
         [Fact]
         public void NameConflictDuringLambdaBinding2()
         {
@@ -4133,7 +4135,7 @@ class C
     }
 }
 ";
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
 
             var tree = comp.SyntaxTrees.Single();
 
@@ -4164,7 +4166,7 @@ class C
     );
         }
 
-        [WorkItem(546263, "DevDiv")]
+        [WorkItem(546263, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546263")]
         [Fact]
         public void SpeculativeSymbolInfoForOmittedTypeArgumentSyntaxNode()
         {
@@ -4183,7 +4185,7 @@ class C
 		}
 	}
 }";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4194,7 +4196,7 @@ class C
             Assert.Null(info.Symbol);
         }
 
-        [WorkItem(530313, "DevDiv")]
+        [WorkItem(530313, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530313")]
         [Fact]
         public void SpeculativeTypeInfoForOmittedTypeArgumentSyntaxNode()
         {
@@ -4213,7 +4215,7 @@ class C
 		}
 	}
 }";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4224,7 +4226,7 @@ class C
             Assert.Equal(default(TypeInfo), info);
         }
 
-        [WorkItem(546266, "DevDiv")]
+        [WorkItem(546266, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546266")]
         [Fact]
         public void SpeculativeTypeInfoForGenericNameSyntaxWithinTypeOfInsideAnonMethod()
         {
@@ -4243,7 +4245,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4254,8 +4256,8 @@ class C
             Assert.NotNull(info.Type);
         }
 
-        [WorkItem(547160, "DevDiv")]
-        [Fact, WorkItem(531496, "DevDiv")]
+        [WorkItem(547160, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/547160")]
+        [Fact, WorkItem(531496, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531496")]
         public void SemanticInfoForOmittedTypeArgumentInIncompleteMember()
         {
             var text = @"
@@ -4264,7 +4266,7 @@ class Test
     C<>
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4284,8 +4286,8 @@ class Test
             Assert.Null(info.Type);
         }
 
-        [WorkItem(547160, "DevDiv")]
-        [Fact, WorkItem(531496, "DevDiv")]
+        [WorkItem(547160, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/547160")]
+        [Fact, WorkItem(531496, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531496")]
         public void CollectionInitializerSpeculativeInfo()
         {
             var text = @"
@@ -4294,7 +4296,7 @@ class Test
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4308,7 +4310,7 @@ class Test
             Assert.Equal(TypeInfo.None, typeInfo);
         }
 
-        [WorkItem(531362, "DevDiv")]
+        [WorkItem(531362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531362")]
         [Fact]
         public void DelegateElementAccess()
         {
@@ -4322,7 +4324,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             compilation.VerifyDiagnostics(
                 // (6,27): error CS0021: Cannot apply indexing with [] to an expression of type 'anonymous method'
                 //         System.Action o = delegate { if (b) { } } [1];
@@ -4348,7 +4350,7 @@ class C
         Func<Color, Color> f2 = x => /*<bind>*/~x/*</bind>*/;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4361,7 +4363,7 @@ class C
             Assert.Equal(ConversionKind.Identity, conv.Kind);
         }
 
-        [WorkItem(531534, "DevDiv")]
+        [WorkItem(531534, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531534")]
         [Fact]
         public void LambdaOutsideMemberModel()
         {
@@ -4372,7 +4374,7 @@ int P
     {
         M(env => env);
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
 
@@ -4382,7 +4384,7 @@ int P
             Assert.Null(symbol);
         }
 
-        [WorkItem(633340, "DevDiv")]
+        [WorkItem(633340, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/633340")]
         [Fact]
         public void MemberOfInaccessibleType()
         {
@@ -4402,7 +4404,7 @@ public class B : A
     public Nested.Another a;
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             var global = compilation.GlobalNamespace;
             var classA = global.GetMember<NamedTypeSymbol>("A");
@@ -4435,7 +4437,7 @@ public class B : A
                 Diagnostic(ErrorCode.ERR_BadAccess, "Nested").WithArguments("A.Nested"));
         }
 
-        [WorkItem(633340, "DevDiv")]
+        [WorkItem(633340, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/633340")]
         [Fact]
         public void NotReferencableMemberOfInaccessibleType()
         {
@@ -4456,7 +4458,7 @@ class B : A
     }
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             var global = compilation.GlobalNamespace;
             var classA = global.GetMember<NamedTypeSymbol>("A");
@@ -4482,7 +4484,7 @@ class B : A
 );
         }
 
-        [WorkItem(633340, "DevDiv")]
+        [WorkItem(633340, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/633340")]
         [Fact]
         public void AccessibleMemberOfInaccessibleType()
         {
@@ -4502,7 +4504,7 @@ public class B : A
     }
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             var global = compilation.GlobalNamespace;
             var classA = global.GetMember<NamedTypeSymbol>("A");
@@ -4528,7 +4530,7 @@ public class B : A
                 Diagnostic(ErrorCode.ERR_BadAccess, "Nested").WithArguments("A.Nested"));
         }
 
-        [WorkItem(530252, "DevDiv")]
+        [WorkItem(530252, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530252")]
         [Fact]
         public void MethodGroupHiddenSymbols1()
         {
@@ -4556,7 +4558,7 @@ class Test
     }
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             var global = compilation.GlobalNamespace;
             var classType = global.GetMember<NamedTypeSymbol>("C");
@@ -4581,7 +4583,7 @@ class Test
             Assert.Equal("System.Int32 S.GetHashCode()", structInfo.CandidateSymbols.Single().ToTestDisplayString());
         }
 
-        [WorkItem(530252, "DevDiv")]
+        [WorkItem(530252, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530252")]
         [Fact]
         public void MethodGroupHiddenSymbols2()
         {
@@ -4610,7 +4612,7 @@ class Program
     }
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             var classC = compilation.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
 
@@ -4627,26 +4629,26 @@ class Program
         }
 
         [Fact]
-        [WorkItem(645512, "DevDiv")]
+        [WorkItem(645512, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/645512")]
         public void LookupProtectedMemberOnConstrainedTypeParameter()
         {
             var source = @"
 class A
 {
-    protected void Foo() { }
+    protected void Goo() { }
 }
 
 class C : A
 {
     public void Bar<T>(T t, C c) where T : C
     {
-        t.Foo();
-        c.Foo();
+        t.Goo();
+        c.Goo();
     }
 }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -4654,7 +4656,7 @@ class C : A
 
             var global = comp.GlobalNamespace;
             var classA = global.GetMember<NamedTypeSymbol>("A");
-            var methodFoo = classA.GetMember<MethodSymbol>("Foo");
+            var methodGoo = classA.GetMember<MethodSymbol>("Goo");
             var classC = global.GetMember<NamedTypeSymbol>("C");
             var methodBar = classC.GetMember<MethodSymbol>("Bar");
 
@@ -4665,18 +4667,18 @@ class C : A
 
             int position = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().First().SpanStart;
 
-            Assert.Contains("Foo", model.LookupNames(position, paramType0));
-            Assert.Contains("Foo", model.LookupNames(position, paramType1));
+            Assert.Contains("Goo", model.LookupNames(position, paramType0));
+            Assert.Contains("Goo", model.LookupNames(position, paramType1));
         }
 
         [Fact]
-        [WorkItem(645512, "DevDiv")]
+        [WorkItem(645512, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/645512")]
         public void LookupProtectedMemberOnConstrainedTypeParameter2()
         {
             var source = @"
 class A
 {
-    protected void Foo() { }
+    protected void Goo() { }
 }
 
 class C : A
@@ -4685,13 +4687,13 @@ class C : A
         where T : U
         where U : C
     {
-        t.Foo();
-        c.Foo();
+        t.Goo();
+        c.Goo();
     }
 }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -4699,7 +4701,7 @@ class C : A
 
             var global = comp.GlobalNamespace;
             var classA = global.GetMember<NamedTypeSymbol>("A");
-            var methodFoo = classA.GetMember<MethodSymbol>("Foo");
+            var methodGoo = classA.GetMember<MethodSymbol>("Goo");
             var classC = global.GetMember<NamedTypeSymbol>("C");
             var methodBar = classC.GetMember<MethodSymbol>("Bar");
 
@@ -4710,21 +4712,21 @@ class C : A
 
             int position = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().First().SpanStart;
 
-            Assert.Contains("Foo", model.LookupNames(position, paramType0));
-            Assert.Contains("Foo", model.LookupNames(position, paramType1));
+            Assert.Contains("Goo", model.LookupNames(position, paramType0));
+            Assert.Contains("Goo", model.LookupNames(position, paramType1));
         }
 
         [Fact]
-        [WorkItem(652583, "DevDiv")]
+        [WorkItem(652583, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/652583")]
         public void ParameterDefaultValueWithoutParameter()
         {
             var source = @"
 class A
 {
-    protected void Foo(bool b, = true
+    protected void Goo(bool b, = true
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -4740,7 +4742,7 @@ class A
         }
 
         [Fact]
-        [WorkItem(530791, "DevDiv")]
+        [WorkItem(530791, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530791")]
         public void Repro530791()
         {
             var source = @"
@@ -4757,7 +4759,7 @@ class Test
 }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -4800,7 +4802,7 @@ public class Test
 }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
 
@@ -4812,7 +4814,7 @@ public class Test
         }
 
         [Fact]
-        [WorkItem(654753, "DevDiv")]
+        [WorkItem(654753, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/654753")]
         public void Repro654753()
         {
             var source = @"
@@ -4844,7 +4846,7 @@ public class D : C
 }
 ";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
             comp.VerifyDiagnostics();
 
             var tree = comp.SyntaxTrees.Single();
@@ -4866,11 +4868,11 @@ public class D : C
         }
 
         [Fact]
-        [WorkItem(750557, "DevDiv")]
+        [WorkItem(750557, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/750557")]
         public void MethodGroupFromMetadata()
         {
             var source = @"
-class Foo
+class Goo
 {
 delegate int D(int i);
 void M()
@@ -4881,7 +4883,7 @@ void M()
 
 ";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
 
             var tree = comp.SyntaxTrees.Single();
             var model = comp.GetSemanticModel(tree);
@@ -4895,7 +4897,7 @@ void M()
             Assert.Equal(CandidateReason.OverloadResolutionFailure, symbolInfo.CandidateReason);
         }
 
-        [Fact, WorkItem(531304, "DevDiv")]
+        [Fact, WorkItem(531304, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531304")]
         public void GetPreprocessingSymbolInfoForDefinedSymbol()
         {
             string sourceCode = @"
@@ -4941,7 +4943,7 @@ void M()
             Assert.Equal(symbolInfo.Symbol.GetHashCode(), symbolInfo2.Symbol.GetHashCode());
         }
 
-        [Fact, WorkItem(531304, "DevDiv")]
+        [Fact, WorkItem(531304, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531304")]
         public void GetPreprocessingSymbolInfoForUndefinedSymbol()
         {
             string sourceCode = @"
@@ -4966,7 +4968,7 @@ void M()
 
 public class T
 {
-    public int Foo(int A)
+    public int Goo(int A)
     {
         return A; //bind
     }
@@ -4992,7 +4994,7 @@ public class T
             Assert.Null(symbolInfo.Symbol);
         }
 
-        [Fact, WorkItem(531304, "DevDiv"), WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(531304, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531304"), WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void GetPreprocessingSymbolInfoForSymbolDefinedLaterInSource()
         {
             string sourceCode = @"
@@ -5006,7 +5008,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_01()
         {
             string sourceCode = @"
@@ -5020,7 +5022,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_02()
         {
             string sourceCode = @"
@@ -5036,7 +5038,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_03()
         {
             string sourceCode = @"
@@ -5052,7 +5054,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_04()
         {
             string sourceCode = @"
@@ -5068,7 +5070,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_05()
         {
             string sourceCode = @"
@@ -5084,7 +5086,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_06()
         {
             string sourceCode = @"
@@ -5101,7 +5103,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_07()
         {
             string sourceCode = @"
@@ -5118,7 +5120,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_08()
         {
             string sourceCode = @"
@@ -5134,7 +5136,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_09()
         {
             string sourceCode = @"
@@ -5150,7 +5152,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_10()
         {
             string sourceCode = @"
@@ -5167,7 +5169,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_11()
         {
             string sourceCode = @"
@@ -5184,7 +5186,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_12()
         {
             string sourceCode = @"
@@ -5201,7 +5203,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_13()
         {
             string sourceCode = @"
@@ -5217,7 +5219,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_14()
         {
             string sourceCode = @"
@@ -5233,7 +5235,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_15()
         {
             string sourceCode = @"
@@ -5249,7 +5251,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_16()
         {
             string sourceCode = @"
@@ -5265,7 +5267,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_17()
         {
             string sourceCode = @"
@@ -5282,7 +5284,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_18()
         {
             string sourceCode = @"
@@ -5299,7 +5301,7 @@ public class T
             Assert.True(symbolInfo.IsDefined, "must be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_19()
         {
             string sourceCode = @"
@@ -5316,7 +5318,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_20()
         {
             string sourceCode = @"
@@ -5333,7 +5335,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_21()
         {
             string sourceCode = @"
@@ -5350,7 +5352,7 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [Fact, WorkItem(720566, "DevDiv")]
+        [Fact, WorkItem(720566, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/720566")]
         public void Bug720566_22()
         {
             string sourceCode = @"
@@ -5367,14 +5369,14 @@ public class T
             Assert.False(symbolInfo.IsDefined, "must not be defined");
         }
 
-        [WorkItem(835391, "DevDiv")]
+        [WorkItem(835391, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/835391")]
         [Fact]
         public void ConstructedErrorTypeValidation()
         {
             var text =
 @"class C1 : E1 { }
 class C2<T> : E2<T> { }";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
             var objectType = compilation.GetSpecialType(SpecialType.System_Object);
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
@@ -5387,7 +5389,7 @@ class C2<T> : E2<T> { }";
             Assert.Throws<InvalidOperationException>(() => type.Construct(objectType)); // non-generic type
 
             // Non-generic error type.
-            type = type.BaseType;
+            type = type.BaseType();
             Assert.False(type.IsGenericType);
             Assert.True(type.IsErrorType());
             Assert.Throws<InvalidOperationException>(() => type.Construct(objectType)); // non-generic type
@@ -5401,7 +5403,7 @@ class C2<T> : E2<T> { }";
             Assert.Throws<InvalidOperationException>(() => type.Construct(objectType).Construct(objectType)); // constructed type
 
             // Generic error type.
-            type = type.BaseType.ConstructedFrom;
+            type = type.BaseType().ConstructedFrom;
             Assert.True(type.IsGenericType);
             Assert.True(type.IsErrorType());
             Assert.Throws<ArgumentException>(() => type.Construct(new TypeSymbol[] { null })); // null type arg
@@ -5410,7 +5412,7 @@ class C2<T> : E2<T> { }";
         }
 
         [Fact]
-        [WorkItem(849371, "DevDiv")]
+        [WorkItem(849371, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/849371")]
         public void NestedLambdaErrorRecovery()
         {
             var source = @"
@@ -5442,7 +5444,7 @@ class Program
 
             for (int i = 0; i < 10; i++) // Ten runs to ensure consistency.
             {
-                var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+                var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
                 comp.VerifyDiagnostics(
                     // (13,51): error CS1503: Argument 1: cannot convert from 'Program.A' to 'int'
                     //             var list = tasks.Result.Select(t => X(t.Result)); // Wrong argument type for X.
@@ -5466,9 +5468,9 @@ class Program
             }
         }
 
-        [WorkItem(849371, "DevDiv")]
-        [WorkItem(854543, "DevDiv")]
-        [WorkItem(854548, "DevDiv")]
+        [WorkItem(849371, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/849371")]
+        [WorkItem(854543, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854543")]
+        [WorkItem(854548, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854548")]
         [Fact]
         public void SemanticModelLambdaErrorRecovery()
         {
@@ -5493,7 +5495,7 @@ class Program
 ";
 
             {
-                var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+                var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
                 var tree = comp.SyntaxTrees.Single();
                 var model = comp.GetSemanticModel(tree);
 
@@ -5507,7 +5509,7 @@ class Program
             }
 
             {
-                var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+                var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
                 var tree = comp.SyntaxTrees.Single();
                 var model = comp.GetSemanticModel(tree);
 
@@ -5523,7 +5525,7 @@ class Program
         }
 
         [Fact]
-        [WorkItem(854543, "DevDiv")]
+        [WorkItem(854543, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854543")]
         public void ClassifyConversionOnNull()
         {
             var source = @"
@@ -5548,7 +5550,7 @@ class B { }
 class C { }
 ";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
             comp.VerifyDiagnostics(
                 // (6,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.M(A)' and 'Program.M(B)'
                 //         M(null); // Ambiguous.
@@ -5565,7 +5567,7 @@ class C { }
             Assert.Equal(ConversionKind.ImplicitReference, conversion.Kind);
         }
 
-        [WorkItem(854543, "DevDiv")]
+        [WorkItem(854543, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854543")]
         [Fact]
         public void ClassifyConversionOnLambda()
         {
@@ -5588,7 +5590,7 @@ class A { }
 class B { }
 ";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
             comp.VerifyDiagnostics();
 
             var tree = comp.SyntaxTrees.Single();
@@ -5603,7 +5605,7 @@ class B { }
             Assert.Equal(ConversionKind.AnonymousFunction, conversion.Kind);
         }
 
-        [WorkItem(854543, "DevDiv")]
+        [WorkItem(854543, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854543")]
         [Fact]
         public void ClassifyConversionOnAmbiguousLambda()
         {
@@ -5631,7 +5633,7 @@ class B { }
 class C { }
 ";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
             comp.VerifyDiagnostics(
                 // (8,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.M(System.Func<A>)' and 'Program.M(System.Func<B>)'
                 //         M(() => null); // Ambiguous.
@@ -5649,7 +5651,7 @@ class C { }
             Assert.Equal(ConversionKind.AnonymousFunction, conversion.Kind);
         }
 
-        [WorkItem(854543, "DevDiv")]
+        [WorkItem(854543, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854543")]
         [Fact]
         public void ClassifyConversionOnAmbiguousMethodGroup()
         {
@@ -5683,7 +5685,7 @@ class B { }
 class C { }
 ";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(source);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(source);
             comp.VerifyDiagnostics(
                 // (14,9): error CS0121: The call is ambiguous between the following methods or properties: 'Derived.M(System.Func<int, A>)' and 'Derived.M(System.Func<int, B>)'
                 //         M(N); // Ambiguous.
@@ -5712,10 +5714,10 @@ class C { }
             Assert.Equal(ConversionKind.MethodGroup, conversionB.Kind);
 
             var conversionC = model.ClassifyConversion(methodGroupSyntax, typeFuncC);
-            Assert.Equal(ConversionKind.MethodGroup, conversionC.Kind);
+            Assert.Equal(ConversionKind.NoConversion, conversionC.Kind);
         }
 
-        [WorkItem(872064, "DevDiv")]
+        [WorkItem(872064, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/872064")]
         [Fact]
         public void PartialMethodImplementationDiagnostics()
         {
@@ -5751,7 +5753,7 @@ namespace ConsoleApplication1
 
             var tree1 = Parse(file1);
             var tree2 = Parse(file2);
-            var comp = CreateCompilationWithMscorlib(new[] { tree1, tree2 });
+            var comp = CreateCompilation(new[] { tree1, tree2 });
             var model = comp.GetSemanticModel(tree2);
 
             var errs = model.GetDiagnostics();
@@ -5764,7 +5766,52 @@ namespace ConsoleApplication1
             Assert.Equal(2, errs.Count());
         }
 
-        [WorkItem(1076661, "DevDiv")]
+        [Fact]
+        public void PartialTypeDiagnostics_Constructors()
+        {
+            var file1 = @"
+partial class C
+{
+    C() {}
+}
+";
+
+            var file2 = @"
+partial class C
+{
+    C() {}
+}
+";
+            var file3 = @"
+partial class C
+{
+    C() {}
+}
+";
+
+            var tree1 = Parse(file1);
+            var tree2 = Parse(file2);
+            var tree3 = Parse(file3);
+            var comp = CreateCompilation(new[] { tree1, tree2, tree3 });
+            var model1 = comp.GetSemanticModel(tree1);
+            var model2 = comp.GetSemanticModel(tree2);
+            var model3 = comp.GetSemanticModel(tree3);
+
+            model1.GetDeclarationDiagnostics().Verify();
+
+            model2.GetDeclarationDiagnostics().Verify(
+                // (4,5): error CS0111: Type 'C' already defines a member called '.ctor' with the same parameter types
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "C").WithArguments(".ctor", "C").WithLocation(4, 5));
+
+            model3.GetDeclarationDiagnostics().Verify(
+                // (4,5): error CS0111: Type 'C' already defines a member called '.ctor' with the same parameter types
+                Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "C").WithArguments(".ctor", "C").WithLocation(4, 5));
+
+            Assert.Equal(3, comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").InstanceConstructors.Length);
+        }
+
+
+        [WorkItem(1076661, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1076661")]
         [Fact]
         public void Bug1076661()
         {
@@ -5772,11 +5819,80 @@ namespace ConsoleApplication1
 using X = System.Collections.Generic.List<dynamic>;
 class Test
 {
-    void Foo(ref X. x) { }
+    void Goo(ref X. x) { }
 }";
 
-            var comp = CreateCompilationWithMscorlib(source, new[] { SystemCoreRef });
+            var comp = CreateCompilation(source);
             var diag = comp.GetDiagnostics();
+        }
+
+        [Fact]
+        public void QueryClauseInBadStatement_Catch()
+        {
+            var source =
+@"using System;
+class C
+{
+    static void F(object[] c)
+    {
+        catch (Exception) when (from o in c where true)
+        {
+        }
+    }
+}";
+            var comp = CreateCompilation(source);
+            var tree = comp.SyntaxTrees.Single();
+            var model = comp.GetSemanticModel(tree);
+            var tokens = tree.GetCompilationUnitRoot().DescendantTokens();
+            var expr = tokens.Single(t => t.Kind() == SyntaxKind.TrueKeyword).Parent;
+            Assert.Null(model.GetSymbolInfo(expr).Symbol);
+            Assert.Equal(SpecialType.System_Boolean, model.GetTypeInfo(expr).Type.SpecialType);
+        }
+
+        [Fact]
+        public void GetSpecialType_ThrowsOnLessThanZero()
+        {
+            var source = "class C1 { }";
+            var comp = CreateCompilation(source);
+
+            var specialType = (SpecialType)(-1);
+
+            var exceptionThrown = false;
+
+            try
+            {
+                comp.GetSpecialType(specialType);
+            }
+            catch (ArgumentOutOfRangeException e)
+            {
+                exceptionThrown = true;
+                Assert.StartsWith(expectedStartString: $"Unexpected SpecialType: '{(int)specialType}'.", actualString: e.Message);
+            }
+
+            Assert.True(exceptionThrown, $"{nameof(comp.GetSpecialType)} did not throw when it should have.");
+        }
+
+        [Fact]
+        public void GetSpecialType_ThrowsOnGreaterThanCount()
+        {
+            var source = "class C1 { }";
+            var comp = CreateCompilation(source);
+
+            var specialType = SpecialType.Count + 1;
+
+            var exceptionThrown = false;
+
+            try
+            {
+                comp.GetSpecialType(specialType);
+            }
+            catch (ArgumentOutOfRangeException e)
+            {
+                exceptionThrown = true;
+                Assert.StartsWith(expectedStartString: $"Unexpected SpecialType: '{(int)specialType}'.", actualString: e.Message);
+            }
+
+            Assert.True(exceptionThrown, $"{nameof(comp.GetSpecialType)} did not throw when it should have.");
         }
     }
 }

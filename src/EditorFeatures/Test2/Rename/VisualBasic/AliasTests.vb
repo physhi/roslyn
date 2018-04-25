@@ -1,21 +1,27 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
+    <[UseExportProvider]>
     Public Class AliasTests
+        Private ReadOnly _outputHelper As Abstractions.ITestOutputHelper
+
+        Public Sub New(outputHelper As Abstractions.ITestOutputHelper)
+            _outputHelper = outputHelper
+        End Sub
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameSimpleSpecialTypeAliasVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
-                            Imports Foo = System.Int32
+                            Imports Goo = System.Int32
                             Class C
                                 Sub Main(args As String())
-                                    Dim [|$$x|] As Foo = 23
+                                    Dim [|$$x|] As Goo = 23
                                 End Sub
                             End Class
                         </Document>
@@ -28,11 +34,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameSimpleSpecialTypeDoubleAliasVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
-                            Imports Foo = System.Int32
+                            Imports Goo = System.Int32
                             Imports Bar = System.Int32
                             Class C
                                 Sub Main(args As String())
@@ -49,15 +55,15 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameSimpleTypeAliasVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
-                            Imports Foo = C
+                            Imports Goo = C
 
                             Class C
-                                Public Sub Foo()
-                                    Dim [|$$x|] As Foo = Nothing
+                                Public Sub Goo()
+                                    Dim [|$$x|] As Goo = Nothing
                                 End Sub
                             End Class
                         </Document>
@@ -69,16 +75,16 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameAliasNoConflict()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
-                            Imports [|Foo|] = C3
+                            Imports [|Goo|] = C3
 
                             Namespace N1
                                 Class C1
-                                    Public Sub Foo()
-                                        Dim f As {|stmt1:$$Foo|} = Nothing
+                                    Public Sub Goo()
+                                        Dim f As {|stmt1:$$Goo|} = Nothing
                                         Dim c As C1 = Nothing
                                     End Sub
                                 End Class
@@ -98,16 +104,16 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameAliasToSameNameNoConflict()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
-                            Imports [|Foo|] = N1.C1
+                            Imports [|Goo|] = N1.C1
 
                             Namespace N1
                                 Class C1
-                                    Public Sub Foo()
-                                        Dim f As [|$$Foo|] = Nothing
+                                    Public Sub Goo()
+                                        Dim f As [|$$Goo|] = Nothing
                                         Dim c As C1 = Nothing
                                     End Sub
                                 End Class
@@ -120,19 +126,19 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
         End Sub
 
         <Fact>
-        <WorkItem(586743)>
+        <WorkItem(586743, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/586743")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameOneDuplicateAliasToNoConflict()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
-                            Imports Foo = System.Int32
+                            Imports Goo = System.Int32
                             Imports [|Bar|] = System.Int32
 
                             Class C1
-                                Public Sub Foo()
-                                    Dim f As Foo = 1
+                                Public Sub Goo()
+                                    Dim f As Goo = 1
                                     Dim b As [|$$Bar|] = 2
                                 End Sub
                             End Class
@@ -143,10 +149,10 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
             End Using
         End Sub
 
-        <WorkItem(541393)>
+        <WorkItem(541393, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541393")>
         <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameNamespaceAlias()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
@@ -166,10 +172,10 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.VisualBasic
             End Using
         End Sub
 
-        <WorkItem(545614)>
+        <WorkItem(545614, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545614")>
         <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameConstructedTypeAliasFromUse()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
@@ -189,10 +195,10 @@ End Module
             End Using
         End Sub
 
-        <WorkItem(545614)>
+        <WorkItem(545614, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545614")>
         <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameConstructedTypeAliasFromDeclaration()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
@@ -213,10 +219,10 @@ End Module
         End Sub
 
 
-        <WorkItem(545614)>
+        <WorkItem(545614, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545614")>
         <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameSimpleTypeAliasFromUse()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
@@ -236,10 +242,10 @@ End Module
             End Using
         End Sub
 
-        <WorkItem(545614)>
+        <WorkItem(545614, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545614")>
         <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameSimpleTypeAliasFromDeclaration()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
@@ -258,10 +264,10 @@ End Module
             End Using
         End Sub
 
-        <WorkItem(546084)>
+        <WorkItem(546084, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546084")>
         <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictWhenRenamingAliasToSameAsGlobalTypeName()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document>
@@ -285,29 +291,29 @@ End Class
         End Sub
 
         <Fact>
-        <WorkItem(633860)>
-        <WorkItem(632303)>
+        <WorkItem(633860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/633860")>
+        <WorkItem(632303, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/632303")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameAliasToAttributeAndEndingWithAttributeAttribute()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document><![CDATA[
-Imports [|$$FooAttribute|] = System.ObsoleteAttribute
+Imports [|$$GooAttribute|] = System.ObsoleteAttribute
 
-<{|long:FooAttribute|}>
+<{|long:GooAttribute|}>
 class C
 End class
 
-<{|short:Foo|}>
+<{|short:Goo|}>
 class D
 end class
 
-<{|long:FooAttribute|}()>
+<{|long:GooAttribute|}()>
 class B
 end class
 
-<{|short:Foo|}()]> 
+<{|short:Goo|}()]> 
 class Program
 end class
                         ]]></Document>
@@ -320,30 +326,30 @@ end class
         End Sub
 
         <Fact>
-        <WorkItem(633860)>
-        <WorkItem(632303)>
+        <WorkItem(633860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/633860")>
+        <WorkItem(632303, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/632303")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameAliasToAttributeAndEndingWithAttributeAttributeNoConflict1()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document><![CDATA[
-Imports [|$$FooAttribute|] = System.ObsoleteAttribute
+Imports [|$$GooAttribute|] = System.ObsoleteAttribute
 Imports Bar = System.ContextStaticAttribute
 
-<{|long:FooAttribute|}>
+<{|long:GooAttribute|}>
 class C
 End class
 
-<{|short:Foo|}>
+<{|short:Goo|}>
 class D
 end class
 
-<{|long:FooAttribute|}()>
+<{|long:GooAttribute|}()>
 class B
 end class
 
-<{|short:Foo|}()]> 
+<{|short:Goo|}()]> 
 class Program
 end class
                         ]]></Document>
@@ -356,30 +362,30 @@ end class
         End Sub
 
         <Fact>
-        <WorkItem(633860)>
-        <WorkItem(632303)>
+        <WorkItem(633860, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/633860")>
+        <WorkItem(632303, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/632303")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameAliasToAttributeAndEndingWithAttributeAttributeWithConflict1()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="Visual Basic" CommonReferences="true">
                         <Document><![CDATA[
-Imports [|$$FooAttribute|] = System.ObsoleteAttribute
+Imports [|$$GooAttribute|] = System.ObsoleteAttribute
 Imports BarAttribute = System.ContextStaticAttribute
 
-<{|long:FooAttribute|}>
+<{|long:GooAttribute|}>
 class C
 End class
 
-<{|short:Foo|}>
+<{|short:Goo|}>
 class D
 end class
 
-<{|long:FooAttribute|}()>
+<{|long:GooAttribute|}()>
 class B
 end class
 
-<{|short:Foo|}()> 
+<{|short:Goo|}()> 
 class Program
 end class
                         ]]></Document>

@@ -57,7 +57,7 @@ namespace X
 			Driver.CompletedSignal.Set();
 		}
 
-        static  partial void Foo();
+        static  partial void Goo();
         static  partial void Bar();
 	}
 
@@ -111,7 +111,7 @@ namespace X
             AssertXml.Equal(expected, actual);
         }
 
-        [WorkItem(693206, "DevDiv")]
+        [WorkItem(693206, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/693206")]
         [Fact]
         public void Bug693206()
         {

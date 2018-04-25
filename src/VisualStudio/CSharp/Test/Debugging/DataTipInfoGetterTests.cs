@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Linq;
@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.LanguageServices.CSharp.Debugging;
 using Roslyn.Test.Utilities;
@@ -14,6 +15,7 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
 {
+    [UseExportProvider]
     public class DataTipInfoGetterTests
     {
         private async Task TestAsync(string markup, string expectedText = null)
@@ -38,7 +40,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
 
         private async Task TestSpanGetterAsync(string markup, Func<Document, int, TextSpan?, Task> continuation)
         {
-            using (var workspace = await CSharpWorkspaceFactory.CreateWorkspaceFromLinesAsync(markup))
+            using (var workspace = TestWorkspace.CreateCSharp(markup))
             {
                 var testHostDocument = workspace.Documents.Single();
                 var position = testHostDocument.CursorPosition.Value;
@@ -69,7 +71,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|Sys$$tem|].Console.WriteLine(args);
   }
@@ -82,7 +84,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|System$$.Console|].WriteLine(args);
   }
@@ -95,7 +97,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|System.$$Console|].WriteLine(args);
   }
@@ -108,7 +110,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|System.Con$$sole|].WriteLine(args);
   }
@@ -121,7 +123,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|System.Console.Wri$$teLine|](args);
   }
@@ -134,7 +136,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestNoDataTipAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|System.Console.WriteLine|]$$(args);
   }
@@ -147,7 +149,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     System.Console.WriteLine($$[|args|]);
   }
@@ -160,7 +162,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestNoDataTipAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|System.Console.WriteLine|](args$$);
   }
@@ -173,7 +175,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|va$$r|] v = 0;
   }
@@ -186,7 +188,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     [|in$$t|] i = 0;
   }
@@ -199,21 +201,21 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     int [|$$i|] = 0;
   }
 }");
         }
 
-        [WorkItem(539910)]
+        [WorkItem(539910, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539910")]
         [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips)]
         public async Task TestLiterals()
         {
             await TestAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     int i = [|4$$2|];
   }
@@ -226,7 +228,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestNoDataTipAsync(
 @"class C
 {
-  void Foo()
+  void Goo()
   {
     int i = 42;
   }$$
@@ -239,20 +241,20 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Debugging
             await TestAsync(
 @"class C
 {
-  void Foo(int [|$$i|])
+  void Goo(int [|$$i|])
   {
   }
 }");
         }
 
-        [WorkItem(942699)]
+        [WorkItem(942699, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/942699")]
         [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips)]
         public async Task TestCatchIdentifier()
         {
             await TestAsync(
 @"class C
 {
-    void Foo()
+    void Goo()
     {
         try
         {
@@ -316,14 +318,14 @@ static class Static
 }");
         }
 
-        [WorkItem(540921)]
+        [WorkItem(540921, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540921")]
         [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips)]
         public async Task TestForEachIdentifier()
         {
             await TestAsync(
 @"class C
 {
-  void Foo(string[] args)
+  void Goo(string[] args)
   {
     foreach (string [|$$s|] in args)
     {
@@ -332,7 +334,7 @@ static class Static
 }");
         }
 
-        [WorkItem(546328)]
+        [WorkItem(546328, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546328")]
         [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips)]
         public async Task TestProperty()
         {
@@ -341,12 +343,12 @@ static class Static
 {
     class C
     {
-        public int [|$$foo|] { get; private set; } // hover over me
+        public int [|$$goo|] { get; private set; } // hover over me
         public C()
         {
-            this.foo = 1;
+            this.goo = 1;
         }
-        public int Foo()
+        public int Goo()
         {
             return 2; // breakpoint here
         }
@@ -355,7 +357,7 @@ static class Static
     {
         static void Main(string[] args)
         {
-            new C().Foo();
+            new C().Goo();
         }
     }
 }
@@ -368,7 +370,7 @@ static class Static
             await TestAsync( // From
 @"class C
 {
-    object Foo(string[] args)
+    object Goo(string[] args)
     {
         return from [|$$a|] in args select a;
     }
@@ -376,7 +378,7 @@ static class Static
             await TestAsync( // Let
 @"class C
 {
-    object Foo(string[] args)
+    object Goo(string[] args)
     {
         return from a in args let [|$$b|] = ""END"" select a + b;
     }
@@ -384,7 +386,7 @@ static class Static
             await TestAsync( // Join
 @"class C
 {
-    object Foo(string[] args)
+    object Goo(string[] args)
     {
         return from a in args join [|$$b|] in args on a equals b;
     }
@@ -392,7 +394,7 @@ static class Static
             await TestAsync( // Join Into
 @"class C
 {
-    object Foo(string[] args)
+    object Goo(string[] args)
     {
         return from a in args join b in args on a equals b into [|$$c|];
     }
@@ -400,14 +402,14 @@ static class Static
             await TestAsync( // Continuation
 @"class C
 {
-    object Foo(string[] args)
+    object Goo(string[] args)
     {
         return from a in args select a into [|$$b|] from c in b select c;
     }
 }");
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips), WorkItem(1077843)]
+        [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips), WorkItem(1077843, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1077843")]
         public async Task TestConditionalAccessExpression()
         {
             var sourceTemplate = @"
@@ -479,7 +481,7 @@ class D
             await TestAsync(string.Format(sourceTemplate, "[|Me?.B?.C?.$$D|]"));
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips), WorkItem(1077843)]
+        [Fact, Trait(Traits.Feature, Traits.Features.DebuggingDataTips), WorkItem(1077843, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1077843")]
         public async Task TestConditionalAccessExpression_Trivia()
         {
             var sourceTemplate = @"

@@ -1,11 +1,9 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Threading.Tasks
-Imports Microsoft.CodeAnalysis.Text
-Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.ExtractMethod
     Partial Public Class ExtractMethodTests
+        <[UseExportProvider]>
         Public Class MethodNameGeneration
 
             <Fact, Trait(Traits.Feature, Traits.Features.ExtractMethod)>
@@ -139,7 +137,7 @@ End Class</text>
 
             ''' This is a special case in VB as it is case insensitive
             ''' Hence Get_FirstName() would conflict with the internal get_FirstName() that VB generates for the getter
-            <WorkItem(540483)>
+            <WorkItem(540483, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540483")>
             <Fact, Trait(Traits.Feature, Traits.Features.ExtractMethod)>
             Public Async Function TestPropertyGetter() As Task
                 Dim code = <text>Class Program
@@ -180,13 +178,13 @@ End Class</text>
                 Await TestExtractMethodAsync(code, expected)
             End Function
 
-            <WorkItem(530674)>
+            <WorkItem(530674, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530674")>
             <Fact, Trait(Traits.Feature, Traits.Features.ExtractMethod)>
             Public Async Function TestEscapedParameterName() As Task
                 Dim code = <text>Imports System.Linq
 
 Module Program
-    Sub Foo()
+    Sub Goo()
         Dim x = From [char] In ""
                 Select [|[char]|] ' Extract method
     End Sub
@@ -195,7 +193,7 @@ End Module</text>
                 Dim expected = <text>Imports System.Linq
 
 Module Program
-    Sub Foo()
+    Sub Goo()
         Dim x = From [char] In ""
                 Select GetChar([char]) ' Extract method
     End Sub

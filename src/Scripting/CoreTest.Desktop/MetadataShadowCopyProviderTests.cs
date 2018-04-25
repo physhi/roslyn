@@ -1,4 +1,5 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
 using System;
 using System.Linq;
 using System.IO;
@@ -15,7 +16,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting.UnitTests
 {
     // TODO: clean up and move to portable tests
 
-    public class MetadataShadowCopyProviderTests : TestBase, IDisposable
+    public class MetadataShadowCopyProviderTests : TestBase
     {
         private readonly MetadataShadowCopyProvider _provider;
 
@@ -46,27 +47,27 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting.UnitTests
         public void Errors()
         {
             Assert.Throws<ArgumentNullException>(() => _provider.NeedsShadowCopy(null));
-            Assert.Throws<ArgumentException>(() => _provider.NeedsShadowCopy("c:foo.dll"));
+            Assert.Throws<ArgumentException>(() => _provider.NeedsShadowCopy("c:goo.dll"));
             Assert.Throws<ArgumentException>(() => _provider.NeedsShadowCopy("bar.dll"));
             Assert.Throws<ArgumentException>(() => _provider.NeedsShadowCopy(@"\bar.dll"));
             Assert.Throws<ArgumentException>(() => _provider.NeedsShadowCopy(@"../bar.dll"));
 
             Assert.Throws<ArgumentNullException>(() => _provider.SuppressShadowCopy(null));
-            Assert.Throws<ArgumentException>(() => _provider.SuppressShadowCopy("c:foo.dll"));
+            Assert.Throws<ArgumentException>(() => _provider.SuppressShadowCopy("c:goo.dll"));
             Assert.Throws<ArgumentException>(() => _provider.SuppressShadowCopy("bar.dll"));
             Assert.Throws<ArgumentException>(() => _provider.SuppressShadowCopy(@"\bar.dll"));
             Assert.Throws<ArgumentException>(() => _provider.SuppressShadowCopy(@"../bar.dll"));
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => _provider.GetMetadataShadowCopy(@"c:\foo.dll", (MetadataImageKind)Byte.MaxValue));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _provider.GetMetadataShadowCopy(@"c:\goo.dll", (MetadataImageKind)Byte.MaxValue));
             Assert.Throws<ArgumentNullException>(() => _provider.GetMetadataShadowCopy(null, MetadataImageKind.Assembly));
-            Assert.Throws<ArgumentException>(() => _provider.GetMetadataShadowCopy("c:foo.dll", MetadataImageKind.Assembly));
+            Assert.Throws<ArgumentException>(() => _provider.GetMetadataShadowCopy("c:goo.dll", MetadataImageKind.Assembly));
             Assert.Throws<ArgumentException>(() => _provider.GetMetadataShadowCopy("bar.dll", MetadataImageKind.Assembly));
             Assert.Throws<ArgumentException>(() => _provider.GetMetadataShadowCopy(@"\bar.dll", MetadataImageKind.Assembly));
             Assert.Throws<ArgumentException>(() => _provider.GetMetadataShadowCopy(@"../bar.dll", MetadataImageKind.Assembly));
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => _provider.GetMetadata(@"c:\foo.dll", (MetadataImageKind)Byte.MaxValue));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _provider.GetMetadata(@"c:\goo.dll", (MetadataImageKind)Byte.MaxValue));
             Assert.Throws<ArgumentNullException>(() => _provider.GetMetadata(null, MetadataImageKind.Assembly));
-            Assert.Throws<ArgumentException>(() => _provider.GetMetadata("c:foo.dll", MetadataImageKind.Assembly));
+            Assert.Throws<ArgumentException>(() => _provider.GetMetadata("c:goo.dll", MetadataImageKind.Assembly));
         }
 
         [Fact]
@@ -217,7 +218,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting.UnitTests
             // invariant culture
             var provider = CreateProvider(CultureInfo.InvariantCulture);
             var sc = provider.GetMetadataShadowCopy(dll.Path, MetadataImageKind.Assembly);
-            Assert.Equal(Path.Combine(Path.GetDirectoryName(sc.PrimaryModule.FullPath), @"a.xml"), sc.DocumentationFile.FullPath); 
+            Assert.Equal(Path.Combine(Path.GetDirectoryName(sc.PrimaryModule.FullPath), @"a.xml"), sc.DocumentationFile.FullPath);
             Assert.Equal("Invariant", File.ReadAllText(sc.DocumentationFile.FullPath));
 
             // Greek culture

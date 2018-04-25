@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -30,7 +31,7 @@ static class S2
 {
     internal static void E<T, U>(this T t, U u) { }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var sourceModule = compilation.SourceModule;
             var sourceAssembly = (SourceAssemblySymbol)sourceModule.ContainingAssembly;
@@ -101,7 +102,7 @@ class C
         set { }
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var sourceModule = compilation.SourceModule;
             var sourceAssembly = (SourceAssemblySymbol)sourceModule.ContainingAssembly;
@@ -134,7 +135,7 @@ class C
     [MarshalAs(UnmanagedType.SafeArray, SafeArraySubType = VarEnum.VT_DISPATCH, SafeArrayUserDefinedSubType = typeof(D))]
     internal int F2;
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var sourceModule = compilation.SourceModule;
             var sourceAssembly = (SourceAssemblySymbol)sourceModule.ContainingAssembly;
@@ -168,7 +169,7 @@ class C
         return 1;
     }
 }";
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var sourceModule = compilation.SourceModule;
             var sourceAssembly = (SourceAssemblySymbol)sourceModule.ContainingAssembly;
@@ -204,7 +205,7 @@ struct S<T> where T : struct
 }
 delegate T D<T>() where T : I<T>;";
 
-            var compilation = CreateCompilationWithMscorlib(source);
+            var compilation = CreateCompilation(source);
 
             var sourceModule = compilation.SourceModule;
             var sourceAssembly = (SourceAssemblySymbol)sourceModule.ContainingAssembly;
@@ -221,7 +222,7 @@ delegate T D<T>() where T : I<T>;";
             RetargetingSymbolChecker.CheckSymbols(sourceNamespace.GetMember<NamedTypeSymbol>("D"), retargetingNamespace.GetMember<NamedTypeSymbol>("D"));
         }
 
-        [WorkItem(542571, "DevDiv")]
+        [WorkItem(542571, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542571")]
         [Fact]
         public void RetargetExplicitImplementationDifferentModule()
         {
@@ -235,8 +236,8 @@ delegate T D<T>() where T : I<T>;";
 public class A
 {
 }";
-            var compilation1_v1 = CreateCompilationWithMscorlib(source1, assemblyName: "assembly1");
-            var compilation1_v2 = CreateCompilationWithMscorlib(source1, assemblyName: "assembly1");
+            var compilation1_v1 = CreateCompilation(source1, assemblyName: "assembly1");
+            var compilation1_v2 = CreateCompilation(source1, assemblyName: "assembly1");
 
             var source2 =
 @"class B : I<A>
@@ -253,11 +254,11 @@ class C<CT> : I<CT>
     I<CT> I<CT>.P { get { return null; } }
 }
 ";
-            var compilation2 = CreateCompilationWithMscorlib(source2, new[] { new CSharpCompilationReference(compilation1_v1) }, assemblyName: "assembly2");
+            var compilation2 = CreateCompilation(source2, new[] { new CSharpCompilationReference(compilation1_v1) }, assemblyName: "assembly2");
 
             var compilation2Ref = new CSharpCompilationReference(compilation2);
 
-            var compilation3 = CreateCompilationWithMscorlib("", new[] { compilation2Ref, new CSharpCompilationReference(compilation1_v2) }, assemblyName: "assembly3");
+            var compilation3 = CreateCompilation("", new[] { compilation2Ref, new CSharpCompilationReference(compilation1_v2) }, assemblyName: "assembly3");
 
             var assembly2 = compilation3.GetReferencedAssemblySymbol(compilation2Ref);
             MethodSymbol implemented_m;
@@ -317,7 +318,7 @@ class C<CT> : I<CT>
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
         public void RetargetMissingEnumUnderlyingType_Implicit()
         {
             var source = @"
@@ -326,7 +327,7 @@ public enum E
 }
 ";
 
-            var comp = CreateCompilation(source);
+            var comp = CreateEmptyCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,13): error CS0518: Predefined type 'System.Enum' is not defined or imported
                 // public enum E
@@ -337,24 +338,24 @@ public enum E
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("E");
-            Assert.Equal(0, sourceType.Interfaces.Length); // Always returns an empty list for enums.
-            Assert.Equal(TypeKind.Error, sourceType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_Enum, sourceType.BaseType.SpecialType);
+            Assert.Equal(0, sourceType.Interfaces().Length); // Always returns an empty list for enums.
+            Assert.Equal(TypeKind.Error, sourceType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_Enum, sourceType.BaseType().SpecialType);
             Assert.Equal(TypeKind.Error, sourceType.EnumUnderlyingType.TypeKind);
             Assert.Equal(SpecialType.System_Int32, sourceType.EnumUnderlyingType.SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             retargetingAssembly.SetCorLibrary(MissingCorLibrarySymbol.Instance); // Need to do this explicitly since our retargeting assembly wasn't constructed using the real mechanism.
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("E");
-            Assert.Equal(0, retargetingType.Interfaces.Length);
-            Assert.Equal(TypeKind.Error, retargetingType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_Enum, retargetingType.BaseType.SpecialType);
+            Assert.Equal(0, retargetingType.Interfaces().Length);
+            Assert.Equal(TypeKind.Error, retargetingType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_Enum, retargetingType.BaseType().SpecialType);
             Assert.Equal(TypeKind.Error, retargetingType.EnumUnderlyingType.TypeKind);
             Assert.Equal(SpecialType.System_Int32, retargetingType.EnumUnderlyingType.SpecialType);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
         public void RetargetMissingEnumUnderlyingType_Explicit()
         {
             var source = @"
@@ -363,7 +364,7 @@ public enum E : short
 }
 ";
 
-            var comp = CreateCompilation(source);
+            var comp = CreateEmptyCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,13): error CS0518: Predefined type 'System.Enum' is not defined or imported
                 // public enum E : short
@@ -374,31 +375,31 @@ public enum E : short
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("E");
-            Assert.Equal(0, sourceType.Interfaces.Length); // Always returns an empty list for enums.
-            Assert.Equal(TypeKind.Error, sourceType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_Enum, sourceType.BaseType.SpecialType);
+            Assert.Equal(0, sourceType.Interfaces().Length); // Always returns an empty list for enums.
+            Assert.Equal(TypeKind.Error, sourceType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_Enum, sourceType.BaseType().SpecialType);
             Assert.Equal(TypeKind.Error, sourceType.EnumUnderlyingType.TypeKind);
             Assert.Equal(SpecialType.System_Int16, sourceType.EnumUnderlyingType.SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             retargetingAssembly.SetCorLibrary(MissingCorLibrarySymbol.Instance); // Need to do this explicitly since our retargeting assembly wasn't constructed using the real mechanism.
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("E");
-            Assert.Equal(0, retargetingType.Interfaces.Length);
-            Assert.Equal(TypeKind.Error, retargetingType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_Enum, retargetingType.BaseType.SpecialType);
+            Assert.Equal(0, retargetingType.Interfaces().Length);
+            Assert.Equal(TypeKind.Error, retargetingType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_Enum, retargetingType.BaseType().SpecialType);
             Assert.Equal(TypeKind.Error, retargetingType.EnumUnderlyingType.TypeKind);
             Assert.Equal(SpecialType.System_Int16, retargetingType.EnumUnderlyingType.SpecialType);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
         public void RetargetInvalidBaseType_Class()
         {
             var source = @"
 public class Test : short { }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,14): error CS0509: 'Test': cannot derive from sealed type 'short'
                 // public class Test : short { }
@@ -406,24 +407,24 @@ public class Test : short { }
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, sourceType.Interfaces.Length);
-            Assert.Equal(SpecialType.System_Object, sourceType.BaseType.SpecialType);
+            Assert.Equal(0, sourceType.Interfaces().Length);
+            Assert.Equal(SpecialType.System_Object, sourceType.BaseType().SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, retargetingType.Interfaces.Length);
-            Assert.Equal(SpecialType.System_Object, retargetingType.BaseType.SpecialType);
+            Assert.Equal(0, retargetingType.Interfaces().Length);
+            Assert.Equal(SpecialType.System_Object, retargetingType.BaseType().SpecialType);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
         public void RetargetMissingBaseType_Class()
         {
             var source = @"
 public class Test : short { }
 ";
 
-            var comp = CreateCompilation(source);
+            var comp = CreateEmptyCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,21): error CS0518: Predefined type 'System.Int16' is not defined or imported
                 // public class Test : short { }
@@ -434,26 +435,49 @@ public class Test : short { }
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, sourceType.Interfaces.Length);
-            Assert.Equal(TypeKind.Error, sourceType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_Int16, sourceType.BaseType.SpecialType);
+            Assert.Equal(0, sourceType.Interfaces().Length);
+            Assert.Equal(TypeKind.Error, sourceType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_Int16, sourceType.BaseType().SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, retargetingType.Interfaces.Length);
-            Assert.Equal(TypeKind.Error, retargetingType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_Int16, retargetingType.BaseType.SpecialType);
+            Assert.Equal(0, retargetingType.Interfaces().Length);
+            Assert.Equal(TypeKind.Error, retargetingType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_Int16, retargetingType.BaseType().SpecialType);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
+        [WorkItem(3898, "https://github.com/dotnet/roslyn/issues/3898")]
+        public void Retarget_IsSerializable()
+        {
+            var source = @"
+public class Test { }
+[System.Serializable]
+public class TestS { }
+";
+
+            var comp = CreateCompilation(source);
+            comp.VerifyDiagnostics();
+
+            var retargetingAssembly = new RetargetingAssemblySymbol((SourceAssemblySymbol)comp.Assembly, isLinked: false);
+            var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
+            Assert.IsType<RetargetingNamedTypeSymbol>(retargetingType);
+            Assert.False(((INamedTypeSymbol)retargetingType).IsSerializable);
+
+            var retargetingTypeS = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("TestS");
+            Assert.IsType<RetargetingNamedTypeSymbol>(retargetingTypeS);
+            Assert.True(((INamedTypeSymbol)retargetingTypeS).IsSerializable);
+        }
+
+        [Fact]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
         public void RetargetInvalidBaseType_Struct()
         {
             var source = @"
 public struct Test : short { }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,22): error CS0527: Type 'short' in interface list is not an interface
                 // public struct Test : short { }
@@ -461,25 +485,25 @@ public struct Test : short { }
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, sourceType.Interfaces.Length);
-            Assert.Equal(SpecialType.System_ValueType, sourceType.BaseType.SpecialType);
+            Assert.Equal(0, sourceType.Interfaces().Length);
+            Assert.Equal(SpecialType.System_ValueType, sourceType.BaseType().SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, retargetingType.Interfaces.Length);
-            Assert.Equal(SpecialType.System_ValueType, retargetingType.BaseType.SpecialType);
+            Assert.Equal(0, retargetingType.Interfaces().Length);
+            Assert.Equal(SpecialType.System_ValueType, retargetingType.BaseType().SpecialType);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
-        [WorkItem(609515, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
+        [WorkItem(609515, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/609515")]
         public void RetargetMissingBaseType_Struct()
         {
             var source = @"
 public struct Test : short { }
 ";
 
-            var comp = CreateCompilation(source);
+            var comp = CreateEmptyCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,22): error CS0518: Predefined type 'System.Int16' is not defined or imported
                 // public struct Test : short { }
@@ -493,28 +517,28 @@ public struct Test : short { }
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(TypeKind.Error, sourceType.Interfaces.Single().TypeKind);
-            Assert.Equal(SpecialType.System_Int16, sourceType.Interfaces.Single().SpecialType);
-            Assert.Equal(TypeKind.Error, sourceType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_ValueType, sourceType.BaseType.SpecialType);
+            Assert.Equal(TypeKind.Error, sourceType.Interfaces().Single().TypeKind);
+            Assert.Equal(SpecialType.System_Int16, sourceType.Interfaces().Single().SpecialType);
+            Assert.Equal(TypeKind.Error, sourceType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_ValueType, sourceType.BaseType().SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(TypeKind.Error, retargetingType.Interfaces.Single().TypeKind);
-            Assert.Equal(SpecialType.System_Int16, retargetingType.Interfaces.Single().SpecialType);
-            Assert.Equal(TypeKind.Error, retargetingType.BaseType.TypeKind);
-            Assert.Equal(SpecialType.System_ValueType, retargetingType.BaseType.SpecialType);
+            Assert.Equal(TypeKind.Error, retargetingType.Interfaces().Single().TypeKind);
+            Assert.Equal(SpecialType.System_Int16, retargetingType.Interfaces().Single().SpecialType);
+            Assert.Equal(TypeKind.Error, retargetingType.BaseType().TypeKind);
+            Assert.Equal(SpecialType.System_ValueType, retargetingType.BaseType().SpecialType);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
         public void RetargetInvalidBaseType_Interface()
         {
             var source = @"
 public interface Test : short { }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,25): error CS0527: Type 'short' in interface list is not an interface
                 // public interface Test : short { }
@@ -522,25 +546,25 @@ public interface Test : short { }
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, sourceType.Interfaces.Length);
-            Assert.Null(sourceType.BaseType);
+            Assert.Equal(0, sourceType.Interfaces().Length);
+            Assert.Null(sourceType.BaseType());
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(0, retargetingType.Interfaces.Length);
-            Assert.Null(retargetingType.BaseType);
+            Assert.Equal(0, retargetingType.Interfaces().Length);
+            Assert.Null(retargetingType.BaseType());
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
-        [WorkItem(609515, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
+        [WorkItem(609515, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/609515")]
         public void RetargetMissingBaseType_Interface()
         {
             var source = @"
 public interface Test : short { }
 ";
 
-            var comp = CreateCompilation(source);
+            var comp = CreateEmptyCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,25): error CS0518: Predefined type 'System.Int16' is not defined or imported
                 // public interface Test : short { }
@@ -551,20 +575,20 @@ public interface Test : short { }
 
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(TypeKind.Error, sourceType.Interfaces.Single().TypeKind);
-            Assert.Equal(SpecialType.System_Int16, sourceType.Interfaces.Single().SpecialType);
-            Assert.Null(sourceType.BaseType);
+            Assert.Equal(TypeKind.Error, sourceType.Interfaces().Single().TypeKind);
+            Assert.Equal(SpecialType.System_Int16, sourceType.Interfaces().Single().SpecialType);
+            Assert.Null(sourceType.BaseType());
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("Test");
-            Assert.Equal(TypeKind.Error, retargetingType.Interfaces.Single().TypeKind);
-            Assert.Equal(SpecialType.System_Int16, retargetingType.Interfaces.Single().SpecialType);
-            Assert.Null(retargetingType.BaseType);
+            Assert.Equal(TypeKind.Error, retargetingType.Interfaces().Single().TypeKind);
+            Assert.Equal(SpecialType.System_Int16, retargetingType.Interfaces().Single().SpecialType);
+            Assert.Null(retargetingType.BaseType());
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
-        [WorkItem(609519, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
+        [WorkItem(609519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/609519")]
         public void RetargetInvalidConstraint()
         {
             var source = @"
@@ -573,7 +597,7 @@ public class C<T> where T : int
 }
 ";
 
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,29): error CS0701: 'int' is not a valid constraint. A type used as a constraint must be an interface, a non-sealed class or a type parameter.
                 // public class C<T> where T : int
@@ -582,17 +606,17 @@ public class C<T> where T : int
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             var sourceTypeParameter = sourceType.TypeParameters.Single();
-            Assert.Equal(0, sourceTypeParameter.ConstraintTypes.Length);
+            Assert.Equal(0, sourceTypeParameter.ConstraintTypes().Length);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             var retargetingTypeParameter = retargetingType.TypeParameters.Single();
-            Assert.Equal(0, retargetingTypeParameter.ConstraintTypes.Length);
+            Assert.Equal(0, retargetingTypeParameter.ConstraintTypes().Length);
         }
 
         [Fact]
-        [WorkItem(604878, "DevDiv")]
-        [WorkItem(609519, "DevDiv")]
+        [WorkItem(604878, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/604878")]
+        [WorkItem(609519, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/609519")]
         public void RetargetMissingConstraint()
         {
             var source = @"
@@ -601,7 +625,7 @@ public class C<T> where T : int
 }
 ";
 
-            var comp = CreateCompilation(source);
+            var comp = CreateEmptyCompilation(source);
             comp.VerifyDiagnostics(
                 // (2,14): error CS0518: Predefined type 'System.Object' is not defined or imported
                 // public class C<T> where T : int
@@ -619,16 +643,34 @@ public class C<T> where T : int
             var sourceAssembly = (SourceAssemblySymbol)comp.Assembly;
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             var sourceTypeParameter = sourceType.TypeParameters.Single();
-            var sourceTypeParameterConstraint = sourceTypeParameter.ConstraintTypes.Single();
+            var sourceTypeParameterConstraint = sourceTypeParameter.ConstraintTypes().Single();
             Assert.Equal(TypeKind.Error, sourceTypeParameterConstraint.TypeKind);
             Assert.Equal(SpecialType.System_Int32, sourceTypeParameterConstraint.SpecialType);
 
             var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
             var retargetingType = retargetingAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             var retargetingTypeParameter = retargetingType.TypeParameters.Single();
-            var retargetingTypeParameterConstraint = retargetingTypeParameter.ConstraintTypes.Single();
+            var retargetingTypeParameterConstraint = retargetingTypeParameter.ConstraintTypes().Single();
             Assert.Equal(TypeKind.Error, retargetingTypeParameterConstraint.TypeKind);
             Assert.Equal(SpecialType.System_Int32, retargetingTypeParameterConstraint.SpecialType);
+        }
+
+        [Theory]
+        [InlineData("class Test<T> where T : unmanaged { }", true)]
+        [InlineData("class Test<T> { }", false)]
+        public void RetargetingUnmanagedTypeParameters(string code, bool isUnmanaged)
+        {
+            var compilation = CreateCompilation(code).VerifyDiagnostics();
+            var sourceAssembly = (SourceAssemblySymbol)compilation.Assembly;
+
+            SourceTypeParameterSymbol sourceTypeParameter = (SourceTypeParameterSymbol)sourceAssembly.GlobalNamespace.GetTypeMember("Test").TypeParameters.Single();
+            Assert.Equal(isUnmanaged, sourceTypeParameter.HasUnmanagedTypeConstraint);
+
+            var retargetingAssembly = new RetargetingAssemblySymbol(sourceAssembly, isLinked: false);
+            retargetingAssembly.SetCorLibrary(sourceAssembly.CorLibrary);
+
+            RetargetingTypeParameterSymbol retargetingTypeParameter = (RetargetingTypeParameterSymbol)retargetingAssembly.GlobalNamespace.GetTypeMember("Test").TypeParameters.Single();
+            Assert.Equal(isUnmanaged, retargetingTypeParameter.HasUnmanagedTypeConstraint);
         }
 
         private void CheckTypes(ImmutableArray<TypeSymbol> source, ImmutableArray<TypeSymbol> retargeting)
@@ -650,7 +692,7 @@ public class C<T> where T : int
             Assert.Equal(source == null, retargeting == null);
             if (source != null)
             {
-                var sourceMethod = (SourceMethodSymbol)source;
+                var sourceMethod = (SourceMemberMethodSymbol)source;
                 var retargetingMethod = (RetargetingMethodSymbol)retargeting;
                 CheckUnderlyingMember(sourceMethod, retargetingMethod.UnderlyingMethod);
                 CheckParameters(sourceMethod.Parameters, retargetingMethod.Parameters);
@@ -683,7 +725,7 @@ public class C<T> where T : int
             CheckMethods(source.ReducedFrom, retargeting.ReducedFrom);
         }
 
-        [Fact, WorkItem(703433, "DevDiv")]
+        [Fact, WorkItem(703433, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/703433")]
         public void Bug703433()
         {
             var source =
@@ -691,12 +733,12 @@ public class C<T> where T : int
 class C1<T>
 {
 }";
-            var comp1 = CreateCompilation(source, new[] { MscorlibRef_v20 }, TestOptions.ReleaseDll);
+            var comp1 = CreateEmptyCompilation(source, new[] { MscorlibRef_v20 }, TestOptions.ReleaseDll);
             comp1.VerifyDiagnostics();
 
             NamedTypeSymbol c1 = comp1.Assembly.GlobalNamespace.GetTypeMembers("C1").Single();
 
-            var comp2 = CreateCompilation("", new[] { MscorlibRef_v4_0_30316_17626, new CSharpCompilationReference(comp1) }, TestOptions.ReleaseDll);
+            var comp2 = CreateEmptyCompilation("", new[] { MscorlibRef_v4_0_30316_17626, new CSharpCompilationReference(comp1) }, TestOptions.ReleaseDll);
 
             NamedTypeSymbol c1r = comp2.GlobalNamespace.GetTypeMembers("C1").Single();
 
@@ -816,8 +858,8 @@ class C1<T>
         public void CheckTypes(TypeSymbol a, TypeSymbol b)
         {
             Assert.Equal(a.Name, b.Name);
-            CheckSymbols(a.BaseType, b.BaseType, false);
-            CheckSymbols(a.Interfaces, b.Interfaces, false);
+            CheckSymbols(a.BaseType(), b.BaseType(), false);
+            CheckSymbols(a.Interfaces(), b.Interfaces(), false);
             CheckSymbols(a.GetMembers(), b.GetMembers(), true);
         }
 
@@ -827,7 +869,7 @@ class C1<T>
             Assert.Equal(a.HasConstructorConstraint, b.HasConstructorConstraint);
             Assert.Equal(a.HasReferenceTypeConstraint, b.HasReferenceTypeConstraint);
             Assert.Equal(a.HasValueTypeConstraint, b.HasValueTypeConstraint);
-            CheckSymbols(a.ConstraintTypes, b.ConstraintTypes, false);
+            CheckSymbols(a.ConstraintTypes(), b.ConstraintTypes(), false);
         }
     }
 

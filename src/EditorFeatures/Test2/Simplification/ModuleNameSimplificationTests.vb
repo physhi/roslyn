@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading.Tasks
 
@@ -6,7 +6,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Simplification
     Public Class ModuleNameSimplifierTest
         Inherits AbstractSimplificationTests
 
-        <WorkItem(624131)>
+        <WorkItem(624131, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/624131")>
         <Fact(), Trait(Traits.Feature, Traits.Features.Simplification)>
         Public Async Function TestSimplifyModuleNameInNewStatement() As Task
             Dim input =
@@ -58,21 +58,21 @@ Namespace N
     Namespace M
         Module K
             Class C
-                Shared Sub Foo()
+                Shared Sub Goo()
                 End Sub
             End Class
         End Module
         Namespace L
             Module K
                 Class C
-                    Shared Sub Foo()
+                    Shared Sub Goo()
 
                     End Sub
                 End Class
             End Module
             Class C
-                Shared Sub Foo()
-                    {|SimplifyExtension:N.M.K.C.Foo|}()
+                Shared Sub Goo()
+                    {|SimplifyExtension:N.M.K.C.Goo|}()
                 End Sub
             End Class
         End Namespace
@@ -88,21 +88,21 @@ Namespace N
     Namespace M
         Module K
             Class C
-                Shared Sub Foo()
+                Shared Sub Goo()
                 End Sub
             End Class
         End Module
         Namespace L
             Module K
                 Class C
-                    Shared Sub Foo()
+                    Shared Sub Goo()
 
                     End Sub
                 End Class
             End Module
             Class C
-                Shared Sub Foo()
-                    M.C.Foo()
+                Shared Sub Goo()
+                    M.C.Goo()
                 End Sub
             End Class
         End Namespace
@@ -123,7 +123,7 @@ Imports System
 Namespace N
     Module M
         Class C
-            Shared Sub Foo()
+            Shared Sub Goo()
 
             End Function
         End Class
@@ -132,7 +132,7 @@ End Namespace
 Module Program
     Delegate Sub myDel()
     Sub Main(args As String())
-        Dim m As myDel = AddressOf {|SimplifyExtension:N.M.C.Foo|}
+        Dim m As myDel = AddressOf {|SimplifyExtension:N.M.C.Goo|}
     End Sub
 End Module
                 </Document>
@@ -145,7 +145,7 @@ Imports System
 Namespace N
     Module M
         Class C
-            Shared Sub Foo()
+            Shared Sub Goo()
 
             End Function
         End Class
@@ -154,7 +154,7 @@ End Namespace
 Module Program
     Delegate Sub myDel()
     Sub Main(args As String())
-        Dim m As myDel = AddressOf N.C.Foo
+        Dim m As myDel = AddressOf N.C.Goo
     End Sub
 End Module
             </text>
@@ -162,7 +162,7 @@ End Module
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(608198)>
+        <WorkItem(608198, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/608198")>
         <Fact, Trait(Traits.Feature, Traits.Features.Simplification)>
         Public Async Function TestDontSimplifyModuleNameInFieldInitializerAndConflictOfModuleNameAndField() As Task
             Dim input =
@@ -186,7 +186,7 @@ End Module
             Await TestAsync(input, expected)
         End Function
 
-        <WorkItem(608198)>
+        <WorkItem(608198, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/608198")>
         <Fact, Trait(Traits.Feature, Traits.Features.Simplification)>
         Public Async Function TestDontSimplifyModuleNameInFieldInitializerAndConflictOfModuleNameAndField_2() As Task
             Dim input =

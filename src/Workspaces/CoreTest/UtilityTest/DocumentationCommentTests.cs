@@ -25,17 +25,17 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var comment = DocumentationComment.FromXmlFragment(
                 @"<summary>Hello, world!</summary>
                   <returns>42.</returns>
-                  <example>foo.Bar();</example>
-                  <param name=""foo"">A foo.</param>
+                  <example>goo.Bar();</example>
+                  <param name=""goo"">A goo.</param>
                   <typeparam name=""T"">A type.</typeparam>
                   <exception cref=""System.Exception"">An exception</exception>
                   <remarks>A remark</remarks>");
 
             Assert.Equal("Hello, world!", comment.SummaryText);
             Assert.Equal("42.", comment.ReturnsText);
-            Assert.Equal("foo.Bar();", comment.ExampleText);
-            Assert.Equal("foo", comment.ParameterNames[0]);
-            Assert.Equal("A foo.", comment.GetParameterText("foo"));
+            Assert.Equal("goo.Bar();", comment.ExampleText);
+            Assert.Equal("goo", comment.ParameterNames[0]);
+            Assert.Equal("A goo.", comment.GetParameterText("goo"));
             Assert.Equal("T", comment.TypeParameterNames[0]);
             Assert.Equal("A type.", comment.GetTypeParameterText("T"));
             Assert.Equal("System.Exception", comment.ExceptionTypes[0]);
@@ -51,7 +51,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             Assert.Equal("Summary 1", comment.SummaryText);
         }
 
-        [WorkItem(522741, "DevDiv")]
+        [WorkItem(522741, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/522741")]
         [Fact(Skip = "Bug 522741")]
         public void ParseTagWithMultiLineComments()
         {
@@ -66,7 +66,7 @@ Summary 2
         [Fact]
         public void ParseInvalidXML()
         {
-            var comment = DocumentationComment.FromXmlFragment("<summary>foo");
+            var comment = DocumentationComment.FromXmlFragment("<summary>goo");
 
             Assert.True(comment.HadXmlParseError);
             Assert.Null(comment.SummaryText);
@@ -111,7 +111,7 @@ Summary 2
             Assert.Equal("b", comment.ExceptionTypes[2]);
         }
 
-        [Fact, WorkItem(546732, "DevDiv")]
+        [Fact, WorkItem(546732, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546732")]
         public void UnknownTag()
         {
             var comment = DocumentationComment.FromXmlFragment(
@@ -124,7 +124,7 @@ Summary 2
             Assert.Equal("The param named 'a'", comment.GetParameterText("a"));
         }
 
-        [Fact, WorkItem(546732, "DevDiv")]
+        [Fact, WorkItem(546732, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546732")]
         public void TextOutsideTag()
         {
             var comment = DocumentationComment.FromXmlFragment(
@@ -137,7 +137,7 @@ This is random top-level text.
             Assert.Equal("The param named 'a'", comment.GetParameterText("a"));
         }
 
-        [Fact, WorkItem(546732, "DevDiv")]
+        [Fact, WorkItem(546732, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546732")]
         public void SingleTopLevelTag()
         {
             var comment = DocumentationComment.FromXmlFragment(
@@ -152,7 +152,7 @@ This is random top-level text.
             Assert.Equal("The param named 'a'", comment.GetParameterText("a"));
         }
 
-        [Fact, WorkItem(530760, "DevDiv")]
+        [Fact, WorkItem(530760, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530760")]
         public void MultipleParamsWithSameName()
         {
             var comment = DocumentationComment.FromXmlFragment(
@@ -164,7 +164,7 @@ This is random top-level text.
             Assert.Equal("This comment should be retained.", comment.GetParameterText("a"));
         }
 
-        [Fact, WorkItem(530760, "DevDiv")]
+        [Fact, WorkItem(530760, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530760")]
         public void MultipleTypeParamsWithSameName()
         {
             var comment = DocumentationComment.FromXmlFragment(
@@ -176,7 +176,7 @@ This is random top-level text.
             Assert.Equal("This comment should be retained.", comment.GetTypeParameterText("a"));
         }
 
-        [Fact, WorkItem(530760, "DevDiv")]
+        [Fact, WorkItem(530760, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530760")]
         public void MultipleExceptionsWithSameName()
         {
             var comment = DocumentationComment.FromXmlFragment(
@@ -196,7 +196,7 @@ This is random top-level text.
             Assert.Equal("Second B description", comment.GetExceptionTexts("B")[1]);
         }
 
-        [Fact, WorkItem(530760, "DevDiv")]
+        [Fact, WorkItem(530760, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530760")]
         public void NoExceptionWithGivenName()
         {
             var comment = DocumentationComment.FromXmlFragment(@"<summary>This is a summary</summary>");
@@ -204,7 +204,7 @@ This is random top-level text.
             Assert.Equal(0, comment.GetExceptionTexts("A").Length);
         }
 
-        [Fact, WorkItem(531189, "DevDiv")]
+        [Fact, WorkItem(531189, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531189")]
         public void NoNameAttribute()
         {
             var comment = DocumentationComment.FromXmlFragment(@"<param/><typeparam/><exception/>");
@@ -223,6 +223,50 @@ This is random top-level text.
 
             Assert.Equal(fragment, comments.FullXmlFragment);
             Assert.True(comments.HadXmlParseError);
+        }
+
+        [Fact, WorkItem(18901, "https://github.com/dotnet/roslyn/pull/18901")]
+        public void TrimEachLine()
+        {
+            string multiLineText = @"
+
+
+
+Hello
+     World     .        
++
+.......
+
+
+
+
+123
+
+                                           1";
+
+            string fullXml = $@"<summary>{multiLineText}</summary>
+                  <returns>{multiLineText}</returns>
+                  <example>{multiLineText}</example>
+                  <param name=""goo"">{multiLineText}</param>
+                  <typeparam name=""T"">{multiLineText}</typeparam>
+                  <remarks>{multiLineText}</remarks>";
+                                 
+
+            string expected = @"Hello
+World     .
++
+.......
+123
+1";
+
+            var comment = DocumentationComment.FromXmlFragment(fullXml);
+
+            Assert.Equal(expected, comment.SummaryText);
+            Assert.Equal(expected, comment.ReturnsText);
+            Assert.Equal(expected, comment.ExampleText);
+            Assert.Equal(expected, comment.GetParameterText("goo"));
+            Assert.Equal(expected, comment.GetTypeParameterText("T"));
+            Assert.Equal(expected, comment.RemarksText);
         }
     }
 }

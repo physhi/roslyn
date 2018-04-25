@@ -2,6 +2,7 @@
 
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
@@ -20,7 +21,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        Console.WriteLine(""foo"");
+        Console.WriteLine(""goo"");
         goto bar;
         Console.Write(""you won't see me"");
         bar: Console.WriteLine(""bar"");
@@ -28,7 +29,7 @@ public class Program
     }
 }
 ";
-            string expectedOutput = @"foo
+            string expectedOutput = @"goo
 bar
 ";
 
@@ -46,14 +47,14 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        Console.WriteLine(""foo"");
+        Console.WriteLine(""goo"");
         goto bar;
         Console.Write(""you won't see me"");
         bar: Console.WriteLine(""bar"");
     }
 }
 ";
-            string expectedOutput = @"foo
+            string expectedOutput = @"goo
 bar
 ";
 
@@ -115,7 +116,7 @@ class C
         }
 
         // Goto location outside enclosing block 
-        [WorkItem(527952, "DevDiv")]
+        [WorkItem(527952, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527952")]
         [Fact]
         public void LocationOfGotoOutofClosure()
         {
@@ -154,7 +155,7 @@ class C
         }
 
         // Goto location in enclosing block  
-        [WorkItem(527952, "DevDiv")]
+        [WorkItem(527952, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527952")]
         [Fact]
         public void LocationOfGotoInClosure()
         {
@@ -193,7 +194,7 @@ class C
         }
 
         // Same label in different scope  
-        [WorkItem(539876, "DevDiv")]
+        [WorkItem(539876, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539876")]
         [Fact]
         public void SameLabelInDiffScope()
         {
@@ -234,7 +235,7 @@ class C
         }
 
         // Label Next to Label  
-        [WorkItem(539877, "DevDiv")]
+        [WorkItem(539877, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539877")]
         [Fact]
         public void LabelNexttoLabel()
         {
@@ -262,7 +263,7 @@ class C
         }
 
         // Infinite loop
-        [WorkItem(527952, "DevDiv")]
+        [WorkItem(527952, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527952")]
         [Fact]
         public void Infiniteloop()
         {
@@ -289,7 +290,7 @@ class C
         }
 
         // unreachable code
-        [WorkItem(527952, "DevDiv")]
+        [WorkItem(527952, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527952")]
         [Fact]
         public void CS0162WRN_UnreachableCode()
         {
@@ -334,7 +335,7 @@ class C
         }
 
         // Declare variable after goto
-        [WorkItem(527952, "DevDiv")]
+        [WorkItem(527952, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527952")]
         [Fact]
         public void DeclareVariableAfterGoto()
         {
@@ -366,7 +367,7 @@ class C
         }
 
         // Finally is executed while use 'goto' to exit try block
-        [WorkItem(540721, "DevDiv")]
+        [WorkItem(540721, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540721")]
         [Fact]
         public void GotoInTry()
         {
@@ -423,7 +424,7 @@ class C
 }");
         }
 
-        [WorkItem(540716, "DevDiv")]
+        [WorkItem(540716, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540716")]
         [Fact]
         public void GotoInFinallyBlock()
         {
@@ -475,7 +476,7 @@ class C
         }
 
         // Optimization redundant branch for code generate
-        [Fact, WorkItem(527952, "DevDiv")]
+        [Fact, WorkItem(527952, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527952")]
         public void OptimizationForGoto()
         {
             var source = @"
@@ -507,7 +508,7 @@ class C
 ");
         }
 
-        [Fact, WorkItem(528010, "DevDiv")]
+        [Fact, WorkItem(528010, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528010")]
         public void GotoInLambda()
         {
             var text = @"
@@ -605,7 +606,7 @@ class C
         }
 
         // Control is transferred to the target of the goto statement after finally
-        [WorkItem(540720, "DevDiv")]
+        [WorkItem(540720, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540720")]
         [Fact]
         public void ControlTransferred()
         {
@@ -632,7 +633,7 @@ Label
         }
 
         // Control is transferred to the target of the goto statement in nested try
-        [WorkItem(540720, "DevDiv")]
+        [WorkItem(540720, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540720")]
         [Fact]
         public void ControlTransferred_02()
         {
@@ -703,15 +704,7 @@ label
             CompileAndVerify(text, expectedOutput: expectedOutput);
         }
 
-        // When ReflectionEmit supports writing exception handler info, this method
-        // can be removed and CompileAndVerify references above will resolve to
-        // the overload that emits with both CCI and ReflectionEmit. (Bug #7012)
-        private CompilationVerifier CompileAndVerify(string source, string expectedOutput = null)
-        {
-            return base.CompileAndVerify(source: source, expectedOutput: expectedOutput);
-        }
-
-        [WorkItem(540719, "DevDiv")]
+        [WorkItem(540719, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540719")]
         [Fact]
         public void LabelBetweenLocalAndInitialize()
         {
@@ -733,7 +726,7 @@ class C
             CompileAndVerify(text);
         }
 
-        [WorkItem(540719, "DevDiv")]
+        [WorkItem(540719, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540719")]
         [Fact]
         public void LabelBetweenLocalAndInitialize02()
         {
@@ -769,7 +762,7 @@ public class A
             CompileAndVerify(text, expectedOutput: "Catch");
         }
 
-        [WorkItem(540719, "DevDiv")]
+        [WorkItem(540719, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540719")]
         [Fact]
         public void LabelBetweenLocalAndInitialize03()
         {
@@ -824,7 +817,7 @@ L0: ;
 @"True
 False";
             var compilation = CreateCompilationWithMscorlib45(source, references: new[] { SystemCoreRef }, parseOptions: TestOptions.Script, options: TestOptions.DebugExe);
-            CompileAndVerify(compilation, expectedOutput: expectedOutput, verify: false);
+            CompileAndVerify(compilation, expectedOutput: expectedOutput, verify: Verification.Passes);
         }
 
         [Fact]
@@ -875,7 +868,7 @@ if (Q < 4) goto L;";
 3: F
 4: Q";
             var compilation = CreateCompilationWithMscorlib45(source, references: new[] { SystemCoreRef }, parseOptions: TestOptions.Script, options: TestOptions.DebugExe);
-            CompileAndVerify(compilation, expectedOutput: expectedOutput, verify: false);
+            CompileAndVerify(compilation, expectedOutput: expectedOutput, verify: Verification.Fails);
         }
 
         [Fact]
@@ -958,7 +951,7 @@ default:
             string expectedOutput =
 @"3";
             var compilation = CreateCompilationWithMscorlib45(source, references: new[] { SystemCoreRef }, parseOptions: TestOptions.Script, options: TestOptions.DebugExe);
-            CompileAndVerify(compilation, expectedOutput: expectedOutput, verify: false);
+            CompileAndVerify(compilation, expectedOutput: expectedOutput, verify: Verification.Passes);
         }
 
         [Fact]
@@ -1030,7 +1023,7 @@ B: goto A;";
                 Diagnostic(ErrorCode.ERR_LabelNotFound, "A").WithArguments("A").WithLocation(3, 9));
         }
 
-        [Fact, WorkItem(3712)]
+        [Fact, WorkItem(3712, "https://github.com/dotnet/roslyn/pull/3172")]
         public void Label_GetDeclaredSymbol_Script()
         {
             string source =
@@ -1044,7 +1037,7 @@ L1: goto L0;";
             Assert.Equal("L0", symbol.Name);
         }
 
-        [Fact, WorkItem(3712)]
+        [Fact, WorkItem(3712, "https://github.com/dotnet/roslyn/pull/3172")]
         public void Label_GetDeclaredSymbol_Error_Script()
         {
             string source = @"

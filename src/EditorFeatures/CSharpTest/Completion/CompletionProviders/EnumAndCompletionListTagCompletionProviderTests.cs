@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -15,10 +16,8 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
         {
         }
 
-        internal override CompletionListProvider CreateCompletionProvider()
-        {
-            return new EnumAndCompletionListTagCompletionProvider();
-        }
+        internal override CompletionProvider CreateCompletionProvider()
+            => new EnumAndCompletionListTagCompletionProvider();
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NullableEnum()
@@ -43,7 +42,7 @@ enum Colors
         }
 
         [Fact]
-        [WorkItem(545678)]
+        [WorkItem(545678, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545678")]
         [Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task EditorBrowsable_EnumMemberAlways()
         {
@@ -52,20 +51,20 @@ class Program
 {
     public void M()
     {
-        Foo d = $$
+        Goo d = $$
     }
 }
 ";
             var referencedCode = @"
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-public enum Foo
+public enum Goo
 {
     Member
 }";
             await VerifyItemInEditorBrowsableContextsAsync(
                 markup: markup,
                 referencedCode: referencedCode,
-                item: "Foo",
+                item: "Goo",
                 expectedSymbolsSameSolution: 1,
                 expectedSymbolsMetadataReference: 1,
                 sourceLanguage: LanguageNames.CSharp,
@@ -73,7 +72,7 @@ public enum Foo
         }
 
         [Fact]
-        [WorkItem(545678)]
+        [WorkItem(545678, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545678")]
         [Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task EditorBrowsable_EnumMemberNever()
         {
@@ -82,20 +81,20 @@ class Program
 {
     public void M()
     {
-        Foo d = $$
+        Goo d = $$
     }
 }
 ";
             var referencedCode = @"
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public enum Foo
+public enum Goo
 {
     Member
 }";
             await VerifyItemInEditorBrowsableContextsAsync(
                 markup: markup,
                 referencedCode: referencedCode,
-                item: "Foo",
+                item: "Goo",
                 expectedSymbolsSameSolution: 1,
                 expectedSymbolsMetadataReference: 0,
                 sourceLanguage: LanguageNames.CSharp,
@@ -103,7 +102,7 @@ public enum Foo
         }
 
         [Fact]
-        [WorkItem(545678)]
+        [WorkItem(545678, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545678")]
         [Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task EditorBrowsable_EnumMemberAdvanced()
         {
@@ -112,20 +111,20 @@ class Program
 {
     public void M()
     {
-        Foo d = $$
+        Goo d = $$
     }
 }
 ";
             var referencedCode = @"
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
-public enum Foo
+public enum Goo
 {
     Member
 }";
             await VerifyItemInEditorBrowsableContextsAsync(
                 markup: markup,
                 referencedCode: referencedCode,
-                item: "Foo",
+                item: "Goo",
                 expectedSymbolsSameSolution: 1,
                 expectedSymbolsMetadataReference: 0,
                 sourceLanguage: LanguageNames.CSharp,
@@ -135,7 +134,7 @@ public enum Foo
             await VerifyItemInEditorBrowsableContextsAsync(
                 markup: markup,
                 referencedCode: referencedCode,
-                item: "Foo",
+                item: "Goo",
                 expectedSymbolsSameSolution: 1,
                 expectedSymbolsMetadataReference: 1,
                 sourceLanguage: LanguageNames.CSharp,
@@ -143,7 +142,7 @@ public enum Foo
                 hideAdvancedMembers: false);
         }
 
-        [WorkItem(8540099)]
+        [WorkItem(854099, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/854099")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NotInComment()
         {
@@ -165,7 +164,7 @@ enum Colors
             await VerifyNoItemsExistAsync(markup);
         }
 
-        [WorkItem(827897)]
+        [WorkItem(827897, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/827897")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task InYieldReturn()
         {
@@ -183,7 +182,7 @@ class Program
             await VerifyItemExistsAsync(markup, "DayOfWeek");
         }
 
-        [WorkItem(827897)]
+        [WorkItem(827897, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/827897")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task InAsyncMethodReturnStatement()
         {
@@ -216,7 +215,7 @@ class C
 
 class Program
 {
-    void Foo()
+    void Goo()
     {
         C c = $$
     }
@@ -239,7 +238,7 @@ class C
 
 class Program
 {
-    void Foo()
+    void Goo()
     {
         C c = $$
     }
@@ -262,7 +261,7 @@ class C
 
 class Program
 {
-    void Foo()
+    void Goo()
     {
         C c = $$
     }
@@ -285,7 +284,7 @@ class C
 
 class Program
 {
-    void Foo()
+    void Goo()
     {
         C c = $$
     }
@@ -310,7 +309,7 @@ class C
 
 class Program
 {
-    void Foo()
+    void Goo()
     {
         C c = $$
     }
@@ -335,7 +334,7 @@ class C
 
 class Program
 {
-    void Foo()
+    void Goo()
     {
         C c = $$
     }
@@ -343,7 +342,7 @@ class Program
             await VerifyNoItemsExistAsync(markup);
         }
 
-        [WorkItem(828196)]
+        [WorkItem(828196, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/828196")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task SuggestAlias()
         {
@@ -359,7 +358,7 @@ class Program
             await VerifyItemExistsAsync(markup, "D");
         }
 
-        [WorkItem(828196)]
+        [WorkItem(828196, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/828196")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task SuggestAlias2()
         {
@@ -380,7 +379,7 @@ class Program
             await VerifyItemExistsAsync(markup, "D");
         }
 
-        [WorkItem(828196)]
+        [WorkItem(828196, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/828196")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task SuggestAlias3()
         {
@@ -391,13 +390,13 @@ using D = System.Globalization.DigitShapes;
 
 class Program
 {
-    private void Foo(System.Globalization.DigitShapes shape)
+    private void Goo(System.Globalization.DigitShapes shape)
     {
     }
 
     static void Main(string[] args)
     {
-        Foo($$
+        Goo($$
     }
 }
 }
@@ -405,7 +404,7 @@ class Program
             await VerifyItemExistsAsync(markup, "D");
         }
 
-        [WorkItem(828196)]
+        [WorkItem(828196, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/828196")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NotInParameterNameContext()
         {
@@ -417,9 +416,9 @@ enum E
 
 class C
 {
-    void foo(E first, E second) 
+    void goo(E first, E second) 
     {
-        foo(first: E.a, $$
+        goo(first: E.a, $$
     }
 }
 ";
@@ -464,6 +463,159 @@ enum Colors
 }
 ";
             await VerifyItemExistsAsync(markup, "Colors");
+        }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task NotAfterDot()
+        {
+            var markup =
+@"namespace ConsoleApplication253
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            M(E.$$)
+        }
+
+        static void M(E e) { }
+    }
+
+    enum E
+    {
+        A,
+        B,
+    }
+}
+";
+            await VerifyNoItemsExistAsync(markup);
+        }
+
+        [WorkItem(18359, "https://github.com/dotnet/roslyn/issues/18359")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task NotAfterDotWithTextTyped()
+        {
+            var markup =
+@"namespace ConsoleApplication253
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            M(E.a$$)
+        }
+
+        static void M(E e) { }
+    }
+
+    enum E
+    {
+        A,
+        B,
+    }
+}
+";
+            await VerifyNoItemsExistAsync(markup);
+        }
+
+        [WorkItem(5419, "https://github.com/dotnet/roslyn/issues/5419")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task TestInEnumInitializer1()
+        {
+            var markup =
+@"using System;
+
+[Flags]
+internal enum ProjectTreeWriterOptions
+{
+    None,
+    Tags,
+    FilePath,
+    Capabilities,
+    Visibility,
+    AllProperties = FilePath | Visibility | $$
+}";
+            await VerifyItemExistsAsync(markup, "ProjectTreeWriterOptions");
+        }
+
+        [WorkItem(5419, "https://github.com/dotnet/roslyn/issues/5419")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task TestInEnumInitializer2()
+        {
+            var markup =
+@"using System;
+
+[Flags]
+internal enum ProjectTreeWriterOptions
+{
+    None,
+    Tags,
+    FilePath,
+    Capabilities,
+    Visibility,
+    AllProperties = FilePath | $$ Visibility
+}";
+            await VerifyItemExistsAsync(markup, "ProjectTreeWriterOptions");
+        }
+
+        [WorkItem(5419, "https://github.com/dotnet/roslyn/issues/5419")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task TestInEnumInitializer3()
+        {
+            var markup =
+@"using System;
+
+[Flags]
+internal enum ProjectTreeWriterOptions
+{
+    None,
+    Tags,
+    FilePath,
+    Capabilities,
+    Visibility,
+    AllProperties = FilePath | $$ | Visibility
+}";
+            await VerifyItemExistsAsync(markup, "ProjectTreeWriterOptions");
+        }
+
+        [WorkItem(5419, "https://github.com/dotnet/roslyn/issues/5419")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task TestInEnumInitializer4()
+        {
+            var markup =
+@"using System;
+
+[Flags]
+internal enum ProjectTreeWriterOptions
+{
+    None,
+    Tags,
+    FilePath,
+    Capabilities,
+    Visibility,
+    AllProperties = FilePath ^ $$
+}";
+            await VerifyItemExistsAsync(markup, "ProjectTreeWriterOptions");
+        }
+
+        [WorkItem(5419, "https://github.com/dotnet/roslyn/issues/5419")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task TestInEnumInitializer5()
+        {
+            var markup =
+@"using System;
+
+[Flags]
+internal enum ProjectTreeWriterOptions
+{
+    None,
+    Tags,
+    FilePath,
+    Capabilities,
+    Visibility,
+    AllProperties = FilePath & $$
+}";
+            await VerifyItemExistsAsync(markup, "ProjectTreeWriterOptions");
         }
     }
 }

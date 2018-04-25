@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     public partial class NullableSemanticTests : SemanticModelTestBase
     {
-        [Fact, WorkItem(651624, "DevDiv")]
+        [Fact, WorkItem(651624, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/651624")]
         public void NestedNullableWithAttemptedConversion()
         {
             var src =
@@ -30,7 +30,7 @@ class C {
   }
 }";
 
-            var comp = CreateCompilationWithMscorlib(src);
+            var comp = CreateCompilation(src);
             comp.VerifyDiagnostics(
                 // (5,16): error CS0453: The type 'int?' must be a non-nullable value type in order to use it as parameter 'T' in the generic type or method 'System.Nullable<T>'
                 //       Nullable<Nullable<int>> x = null;
@@ -40,7 +40,7 @@ class C {
                 Diagnostic(ErrorCode.ERR_BadBinaryOps, "x == y").WithArguments("==", "int??", "int?"));
         }
 
-        [Fact, WorkItem(544152, "DevDiv")]
+        [Fact, WorkItem(544152, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544152")]
         public void TestBug12347()
         {
             string source = @"
@@ -54,7 +54,7 @@ class C
     Console.WriteLine(s1.ToString() + s2.ToString());
   }
 }";
-            var comp = CreateCompilationWithMscorlib(source);
+            var comp = CreateCompilation(source);
             comp.VerifyDiagnostics(
 // (7,5): error CS0453: The type 'string' must be a non-nullable value type in order to use it as parameter 'T' in the generic type or method 'System.Nullable<T>'
 //     string? s1 = null;
@@ -65,7 +65,7 @@ Diagnostic(ErrorCode.ERR_ValConstraintNotSatisfied, "string").WithArguments("Sys
                 );
         }
 
-        [Fact, WorkItem(529269, "DevDiv")]
+        [Fact, WorkItem(529269, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529269")]
         public void TestLiftedIncrementOperatorBreakingChanges01()
         {
             // The native compiler not only *allows* this to compile, it lowers to:
@@ -99,7 +99,7 @@ class C
     System.Console.WriteLine(object.ReferenceEquals(c, null));
   }
 }";
-            var comp = CreateCompilationWithMscorlib(source1);
+            var comp = CreateCompilation(source1);
             comp.VerifyDiagnostics(
                 // (11,5): error CS0266: Cannot implicitly convert type 'int?' to 'C'. An explicit conversion exists (are you missing a cast?)
                 //     c++;
@@ -107,7 +107,7 @@ class C
                 );
         }
 
-        [Fact, WorkItem(543954, "DevDiv")]
+        [Fact, WorkItem(543954, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543954")]
         public void TestLiftedIncrementOperatorBreakingChanges02()
         {
             // Now here we have a case where the compilation *should* succeed, and does, but 
@@ -147,6 +147,7 @@ class C
 }";
 
             var verifier = CompileAndVerify(source: source2, expectedOutput: "0");
+            verifier = CompileAndVerify(source: source2, expectedOutput: "0");
 
             // And in fact, this should work if there is an implicit conversion from the result of the addition
             // to the type:
@@ -169,10 +170,11 @@ class C
   }
 }";
 
-            verifier = CompileAndVerify(source: source3, expectedOutput: "1");
+            verifier = CompileAndVerify(source: source3, expectedOutput: "1", verify: Verification.Fails);
+            verifier = CompileAndVerify(source: source3, expectedOutput: "1", parseOptions: TestOptions.Regular.WithPEVerifyCompatFeature());
         }
 
-        [Fact, WorkItem(543954, "DevDiv")]
+        [Fact, WorkItem(543954, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543954")]
         public void TestLiftedIncrementOperatorBreakingChanges03()
         {
             // Let's in fact verify that this works correctly for all possible conversions to built-in types:
@@ -227,7 +229,8 @@ class C
 ";
             foreach (string type in new[] { "int", "ushort", "byte", "long", "float", "decimal" })
             {
-                CompileAndVerify(source: source4.Replace("TYPE", type), expectedOutput: "0");
+                CompileAndVerify(source: source4.Replace("TYPE", type), expectedOutput: "0", verify: Verification.Fails);
+                CompileAndVerify(source: source4.Replace("TYPE", type), expectedOutput: "0", parseOptions: TestOptions.Regular.WithPEVerifyCompatFeature());
             }
         }
 
@@ -567,7 +570,7 @@ TF-x";
             var verifier = CompileAndVerify(source: source, expectedOutput: expected);
         }
 
-        [Fact]
+        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/7803")]
         public void TestLiftedComparison()
         {
             TestNullableComparison("==", "FFTFF1FTFFTF2FFTFFT3TFFTFF4FTFFTF5FFTFFT",
@@ -1619,7 +1622,7 @@ class C
 
         #region "Regression"
 
-        [Fact, WorkItem(543837, "DevDiv")]
+        [Fact, WorkItem(543837, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543837")]
         public void Test11827()
         {
             string source2 = @"
@@ -1635,7 +1638,7 @@ class Program
             var verifier = CompileAndVerify(source: source2, expectedOutput: "0");
         }
 
-        [Fact, WorkItem(544001, "DevDiv")]
+        [Fact, WorkItem(544001, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544001")]
         public void NullableUsedInUsingStatement()
         {
             string source = @"
@@ -1661,7 +1664,7 @@ struct S : IDisposable
             CompileAndVerify(source: source, expectedOutput: @"S123");
         }
 
-        [Fact, WorkItem(544002, "DevDiv")]
+        [Fact, WorkItem(544002, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544002")]
         public void NullableUserDefinedUnary02()
         {
             string source = @"
@@ -1701,7 +1704,7 @@ struct S
             CompileAndVerify(source: source, expectedOutput: @"10203040-10-20-30-40");
         }
 
-        [Fact, WorkItem(544005, "DevDiv")]
+        [Fact, WorkItem(544005, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544005")]
         public void NoNullableValueFromOptionalParam()
         {
             string source = @"
@@ -1733,19 +1736,19 @@ class Test
             var verifier = CompileAndVerify(source, expectedOutput: expected);
         }
 
-        [Fact, WorkItem(544006, "DevDiv")]
+        [Fact, WorkItem(544006, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544006")]
         public void ConflictImportedMethodWithNullableOptionalParam()
         {
             string source = @"
 public class Parent
 {
-    public int Foo(int? d = 0) { return (int)d; }
+    public int Goo(int? d = 0) { return (int)d; }
 }
 ";
             string source2 = @"
 public class Parent
 {
-    public int Foo(int? d = 0) { return (int)d; }
+    public int Goo(int? d = 0) { return (int)d; }
 }
 
 public class Test
@@ -1753,17 +1756,17 @@ public class Test
     public static void Main()
     {
         Parent p = new Parent();
-        System.Console.Write(p.Foo(0));
+        System.Console.Write(p.Goo(0));
     }
 }
 ";
 
-            var complib = CreateCompilationWithMscorlib(
+            var complib = CreateCompilation(
                 source,
                 options: TestOptions.ReleaseDll,
                 assemblyName: "TestDLL");
 
-            var comp = CreateCompilationWithMscorlib(
+            var comp = CreateCompilation(
                 source2,
                 references: new MetadataReference[] { complib.EmitToImageReference() },
                 options: TestOptions.ReleaseExe,
@@ -1781,7 +1784,7 @@ public class Test
             CompileAndVerify(comp, expectedOutput: @"0");
         }
 
-        [Fact, WorkItem(544258, "DevDiv")]
+        [Fact, WorkItem(544258, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544258")]
         public void BindDelegateToObjectMethods()
         {
             string source = @"
@@ -1797,10 +1800,10 @@ public class Test
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
+            CreateCompilation(source).VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(544909, "DevDiv")]
+        [Fact, WorkItem(544909, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544909")]
         public void OperationOnEnumNullable()
         {
             string source = @"
@@ -1837,7 +1840,7 @@ public class NullableTest
             CompileAndVerify(source, expectedOutput: "tfffttt");
         }
 
-        [Fact, WorkItem(544583, "DevDiv")]
+        [Fact, WorkItem(544583, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544583")]
         public void ShortCircuitOperatorsOnNullable()
         {
             string source = @"
@@ -1851,7 +1854,7 @@ class A
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
 // (7,18): error CS0019: Operator '&&' cannot be applied to operands of type 'bool?' and 'bool?'
 //         var bb = b1 && b2;
 Diagnostic(ErrorCode.ERR_BadBinaryOps, "b1 && b2").WithArguments("&&", "bool?", "bool?"),
@@ -1998,7 +2001,7 @@ ttttfnnnn";
             CompileAndVerify(source, expectedOutput: expected);
         }
 
-        [Fact, WorkItem(529530, "DevDiv"), WorkItem(1036392, "DevDiv")]
+        [Fact, WorkItem(529530, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529530"), WorkItem(1036392, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1036392")]
         public void NullableEnumMinusNull()
         {
             var source = @"
@@ -2038,7 +2041,7 @@ public struct S
             CompileAndVerify(source, expectedOutput: "False");
         }
 
-        [Fact, WorkItem(545166, "DevDiv")]
+        [Fact, WorkItem(545166, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545166")]
         public void Op_ExplicitImplicitOnNullable()
         {
             var source = @"
@@ -2060,7 +2063,7 @@ class Test
             // Dev11: error CS0118: 'int?' is a 'type' but is used like a 'variable'
             // Roslyn: (9,18): error CS0119: 'int?' is a type, which is not valid in the given context
             // Roslyn: (9,33): error CS0571: 'int?.implicit operator int?(int)': cannot explicitly call operator or accessor
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_InvalidExprTerm, ".").WithArguments("."),
                 Diagnostic(ErrorCode.ERR_BadSKunknown, "Nullable<int>").WithArguments("int?", "type"),
                 Diagnostic(ErrorCode.ERR_CantCallSpecialMethod, "op_Implicit").WithArguments("int?.implicit operator int?(int)")

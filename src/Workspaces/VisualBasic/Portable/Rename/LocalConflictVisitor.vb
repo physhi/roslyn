@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
@@ -144,7 +144,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
                 ' it's only legal to have one name in the variable declarator for for and foreach loops.
                 tokens.Add(DirectCast(controlVariable, VariableDeclaratorSyntax).Names.First().Identifier)
             Else
-                Dim semanticModel = _newSolution.GetDocument(controlVariable.SyntaxTree).GetSemanticModelAsync(_cancellationToken).Result
+                Dim semanticModel = _newSolution.GetDocument(controlVariable.SyntaxTree).GetSemanticModelAsync(_cancellationToken).WaitAndGetResult_CanCallOnBackground(_cancellationToken)
                 Dim identifierToken = DirectCast(controlVariable, IdentifierNameSyntax).Identifier
                 Dim symbol = semanticModel.GetSymbolInfo(identifierToken).Symbol
 
@@ -183,7 +183,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
         Public Overrides Sub VisitCatchBlock(node As CatchBlockSyntax)
             Dim tokens As New List(Of SyntaxToken)
 
-            Dim semanticModel = _newSolution.GetDocument(node.SyntaxTree).GetSemanticModelAsync(_cancellationToken).Result
+            Dim semanticModel = _newSolution.GetDocument(node.SyntaxTree).GetSemanticModelAsync(_cancellationToken).WaitAndGetResult_CanCallOnBackground(_cancellationToken)
             Dim identifierToken = node.CatchStatement.IdentifierName?.Identifier
 
             If identifierToken.HasValue Then

@@ -117,9 +117,9 @@ class Test
 }
 ";
 
-            var comp1 = CreateCompilationWithMscorlib(text1, assemblyName: "OHI_ExplicitImplProp1");
+            var comp1 = CreateCompilation(text1, assemblyName: "OHI_ExplicitImplProp1");
 
-            var comp = CreateCompilationWithMscorlib(
+            var comp = CreateCompilation(
                 text2,
                 references: new[] { comp1.EmitToImageReference() },
                 options: TestOptions.ReleaseExe,
@@ -132,7 +132,7 @@ I2.Property
 ");
         }
 
-        [WorkItem(540431, "DevDiv")]
+        [WorkItem(540431, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540431")]
         [Fact]
         public void TestExpImpInterfaceImplementationMetadata()
         {
@@ -204,13 +204,13 @@ class Test
     }
 }
 ";
-            var comp1 = CreateCompilationWithMscorlib(
+            var comp1 = CreateCompilation(
                 text1,
                 references: new[] { TestReferences.MetadataTests.InterfaceAndClass.VBInterfaces01 },
                 assemblyName: "OHI_ExpImpImpl001",
                 options: TestOptions.ReleaseDll);
 
-            var comp = CreateCompilationWithMscorlib(
+            var comp = CreateCompilation(
                 text2,
                 references: new MetadataReference[]
                 {
@@ -223,7 +223,7 @@ class Test
             CompileAndVerify(comp, expectedOutput: @"CSS11Imp CSS1Exp CSS11Exp CSF1Imp CSF1Exp CSF11Exp");
         }
 
-        [WorkItem(540431, "DevDiv")]
+        [WorkItem(540431, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540431")]
         [Fact]
         public void TestVBInterfaceImplementationMetadata()
         {
@@ -247,7 +247,7 @@ class Test
             var asm01 = TestReferences.MetadataTests.InterfaceAndClass.VBInterfaces01;
             var asm02 = TestReferences.MetadataTests.InterfaceAndClass.VBClasses01;
 
-            var comp = CreateCompilationWithMscorlib(
+            var comp = CreateCompilation(
                 text,
                 references: new[] { asm01, asm02 },
                 assemblyName: "OHI_ExpImpVBImpl001",
@@ -256,7 +256,7 @@ class Test
             CompileAndVerify(comp, expectedOutput: @"VBS1_V VBS1_V VBS11_OL VBF1_V VBF1_V VBF11");
         }
 
-        [WorkItem(540431, "DevDiv")]
+        [WorkItem(540431, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540431")]
         [Fact]
         public void TestExpImpInterfaceImplementationPropMetadata()
         {
@@ -363,13 +363,13 @@ class Test
 
             var asm01 = TestReferences.MetadataTests.InterfaceAndClass.VBInterfaces01;
 
-            var comp1 = CreateCompilationWithMscorlib(
+            var comp1 = CreateCompilation(
                 text1,
                 references: new[] { asm01 },
                 assemblyName: "OHI_ExpImpPropImpl001",
                 options: TestOptions.ReleaseDll);
 
-            var comp = CreateCompilationWithMscorlib(
+            var comp = CreateCompilation(
                 text2,
                 references: new MetadataReference[] { asm01, new CSharpCompilationReference(comp1) },
                 assemblyName: "OHI_ExpImpPropImpl002",
@@ -378,7 +378,7 @@ class Test
             CompileAndVerify(comp, expectedOutput: @"WriteReadOnly NormProp 123456");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(DesktopOnly))]
         public void TestExplicitImplSignatureMismatches_ParamsAndOptionals()
         {
             // Tests:
@@ -464,7 +464,7 @@ Class2.Method(4, 5, c)",
                 Diagnostic(ErrorCode.WRN_DefaultValueForUnconsumedLocation, "d").WithArguments("d"));
         }
 
-        [WorkItem(540501, "DevDiv")]
+        [WorkItem(540501, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540501")]
         [Fact]
         public void TestImplementingGenericNestedInterfaces_Explicit()
         {
@@ -620,7 +620,7 @@ Derived6.Method",
             comp.VerifyDiagnostics(); // No Errors
         }
 
-        [WorkItem(540501, "DevDiv")]
+        [WorkItem(540501, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540501")]
         [Fact]
         public void TestImplementingGenericNestedInterfaces_Explicit_HideTypeParameter()
         {
@@ -931,7 +931,7 @@ I1.M9
 I1.P").VerifyDiagnostics(); // No errors
         }
 
-        [WorkItem(543426, "DevDiv")]
+        [WorkItem(543426, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543426")]
         [Fact]
         public void TestExplicitlyImplementInterfaceNestedInGenericType()
         {
@@ -962,7 +962,7 @@ class Outer<T>
             comp.VerifyDiagnostics(); // No errors
         }
 
-        [WorkItem(598052, "DevDiv")]
+        [WorkItem(598052, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/598052")]
         [Fact]
         public void TestExternAliasInName()
         {
@@ -986,10 +986,10 @@ class C : Q::I
 }
 ";
 
-            var libComp = CreateCompilationWithMscorlib(libSource);
+            var libComp = CreateCompilation(libSource);
             libComp.VerifyDiagnostics();
 
-            var comp = CreateCompilationWithMscorlib(source, new[] { new CSharpCompilationReference(libComp, aliases: ImmutableArray.Create("Q")) });
+            var comp = CreateCompilation(source, new[] { new CSharpCompilationReference(libComp, aliases: ImmutableArray.Create("Q")) });
             comp.VerifyDiagnostics();
 
             var classC = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
@@ -1002,7 +1002,7 @@ class C : Q::I
             AssertEx.None(classCMembers.Select(m => m.GetDocumentationCommentId()), id => id.Contains("Q"));
         }
 
-        [WorkItem(598052, "DevDiv")]
+        [WorkItem(598052, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/598052")]
         [Fact]
         public void TestImplementMultipleExternAliasInterfaces()
         {
@@ -1031,21 +1031,21 @@ class C : A::I, B::I
 }
 ";
 
-            var libComp1 = CreateCompilationWithMscorlib(libSource, assemblyName: "lib1");
+            var libComp1 = CreateCompilation(libSource, assemblyName: "lib1");
             libComp1.VerifyDiagnostics();
 
-            var libComp2 = CreateCompilationWithMscorlib(libSource, assemblyName: "lib2");
+            var libComp2 = CreateCompilation(libSource, assemblyName: "lib2");
             libComp2.VerifyDiagnostics();
 
             // Same reference, two aliases.
-            var comp1 = CreateCompilationWithMscorlib(source, new[] { new CSharpCompilationReference(libComp1, aliases: ImmutableArray.Create("A")), new CSharpCompilationReference(libComp1, aliases: ImmutableArray.Create("B")) });
+            var comp1 = CreateCompilation(source, new[] { new CSharpCompilationReference(libComp1, aliases: ImmutableArray.Create("A")), new CSharpCompilationReference(libComp1, aliases: ImmutableArray.Create("B")) });
             comp1.VerifyDiagnostics(
                 // (5,17): error CS0528: 'I' is already listed in interface list
                 // class C : A::I, B::I
                 Diagnostic(ErrorCode.ERR_DuplicateInterfaceInBaseList, "B::I").WithArguments("I"));
 
             // Two assemblies with the same content, two aliases.
-            var comp2 = CreateCompilationWithMscorlib(source, new[] { new CSharpCompilationReference(libComp1, aliases: ImmutableArray.Create("A")), new CSharpCompilationReference(libComp2, aliases: ImmutableArray.Create("B")) });
+            var comp2 = CreateCompilation(source, new[] { new CSharpCompilationReference(libComp1, aliases: ImmutableArray.Create("A")), new CSharpCompilationReference(libComp2, aliases: ImmutableArray.Create("B")) });
             var verifier2 = CompileAndVerify(comp2, expectedSignatures: new[]
             {
                 Signature("C", "A::I.M", ".method private hidebysig newslot virtual final instance System.Void A::I.M() cil managed"),
@@ -1062,7 +1062,9 @@ class C : A::I, B::I
             });
 
             // Simple verification that the test infrastructure supports such methods.
-            verifier2.VerifyIL("A$$C.I.M()", @"
+            var testData = verifier2.TestData;
+            var pair = testData.Methods.Single(m => m.Key.Name == "A::I.M");
+            pair.Value.VerifyIL(@"
 {
   // Code size        1 (0x1)
   .maxstack  0

@@ -6,7 +6,7 @@ Imports Microsoft.VisualStudio.Debugger.Evaluation
 Imports Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation
 Imports Xunit
 
-Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
+Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.UnitTests
 
     Public Class ValueFormatterTests : Inherits VisualBasicResultProviderTestBase
 
@@ -184,6 +184,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
             Dim multiByte = ChrW(&HD83C) & ChrW(&HDFC8)
             Assert.Equal("""🏈""", FormatValue(multiByte))
             Assert.Equal("""🏈""", FormatValue(multiByte, useHexadecimal:=True))
+            Assert.Equal("🏈", multiByte)
+
+            multiByte = ChrW(&HDFC8) & ChrW(&HD83C)
+            Assert.Equal("ChrW(57288) & ChrW(55356)", FormatValue(multiByte))
+            Assert.Equal("ChrW(&HDFC8) & ChrW(&HD83C)", FormatValue(multiByte, useHexadecimal:=True))
         End Sub
 
         <Fact>

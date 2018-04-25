@@ -24,7 +24,7 @@ partial class A : Object {}
 ";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -81,7 +81,7 @@ partial class A : Object {}
 ";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -136,7 +136,7 @@ partial class A : Object {}
 ";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -177,7 +177,7 @@ partial class A : Object {}
 ";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -196,7 +196,7 @@ partial class A : Object {}
             var text = "using System;";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -215,7 +215,7 @@ class C {}
 ";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -234,7 +234,7 @@ class C {}
 ";
             var tree = Parse(text);
             var root = tree.GetCompilationUnitRoot() as CompilationUnitSyntax;
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
 
             var usingAlias = root.Usings[0];
 
@@ -246,7 +246,7 @@ class C {}
             Assert.Equal("O=System.Object", symbols[0].ToDisplayString(format: SymbolDisplayFormat.TestFormat));
         }
 
-        [WorkItem(537401, "DevDiv")]
+        [WorkItem(537401, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/537401")]
         [Fact]
         public void EventEscapedIdentifier()
         {
@@ -255,14 +255,14 @@ using @for = @foreach;
 namespace @foreach { }
 ";
             SyntaxTree syntaxTree = Parse(text);
-            CSharpCompilation comp = CreateCompilationWithMscorlib(syntaxTree);
+            CSharpCompilation comp = CreateCompilation(syntaxTree);
             UsingDirectiveSyntax usingAlias = (syntaxTree.GetCompilationUnitRoot() as CompilationUnitSyntax).Usings.First();
             var alias = comp.GetSemanticModel(syntaxTree).GetDeclaredSymbol(usingAlias);
             Assert.Equal("for", alias.Name);
             Assert.Equal("@for", alias.ToString());
         }
 
-        [WorkItem(541937, "DevDiv")]
+        [WorkItem(541937, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541937")]
         [Fact]
         public void LocalDeclaration()
         {
@@ -276,13 +276,13 @@ class Program
     }
 }";
             SyntaxTree syntaxTree = Parse(text);
-            CSharpCompilation comp = CreateCompilationWithMscorlib(syntaxTree);
+            CSharpCompilation comp = CreateCompilation(syntaxTree);
             var model = comp.GetSemanticModel(syntaxTree);
             IdentifierNameSyntax exprSyntaxToBind = (IdentifierNameSyntax)GetExprSyntaxForBinding(GetExprSyntaxList(syntaxTree));
             Assert.Equal(SymbolKind.Alias, model.GetAliasInfo(exprSyntaxToBind).Kind);
         }
 
-        [WorkItem(576809, "DevDiv")]
+        [WorkItem(576809, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/576809")]
         [Fact]
         public void AsClause()
         {
@@ -299,13 +299,13 @@ class Program
 }
 ";
             SyntaxTree syntaxTree = Parse(text);
-            CSharpCompilation comp = CreateCompilationWithMscorlib(syntaxTree);
+            CSharpCompilation comp = CreateCompilation(syntaxTree);
             var model = comp.GetSemanticModel(syntaxTree);
             IdentifierNameSyntax exprSyntaxToBind = (IdentifierNameSyntax)GetExprSyntaxForBinding(GetExprSyntaxList(syntaxTree));
             Assert.Equal("System.Int32?", model.GetAliasInfo(exprSyntaxToBind).Target.ToTestDisplayString());
         }
 
-        [WorkItem(542552, "DevDiv")]
+        [WorkItem(542552, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542552")]
         [Fact]
         public void IncompleteDuplicateAlias()
         {
@@ -316,7 +316,7 @@ namespace prog
     using ns = namespace1;
     using ns =";
             SyntaxTree syntaxTree = Parse(text);
-            CSharpCompilation comp = CreateCompilationWithMscorlib(syntaxTree);
+            CSharpCompilation comp = CreateCompilation(syntaxTree);
             var discarded = comp.GetDiagnostics();
         }
 
@@ -337,7 +337,7 @@ namespace NS
     }
 }";
 
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             compilation.VerifyDiagnostics(
     // (4,19): error CS0246: The type or namespace name 'LongNamespace' could not be found (are you missing a using directive or an assembly reference?)

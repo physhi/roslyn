@@ -1,11 +1,12 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
+using Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -17,7 +18,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
         {
         }
 
-        internal override CompletionListProvider CreateCompletionProvider()
+        internal override CompletionProvider CreateCompletionProvider()
         {
             return new ObjectInitializerCompletionProvider();
         }
@@ -30,9 +31,9 @@ class c { }
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { $$
+       c goo = new c { $$
     }
 }";
 
@@ -48,9 +49,9 @@ class c { public int value {set; get; }}
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { v$$
+       c goo = new c { v$$
     }
 }";
 
@@ -67,9 +68,9 @@ class c { public int value {set; get; }}
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { v$$=
+       c goo = new c { v$$=
     }
 }";
 
@@ -86,9 +87,9 @@ class c
 {
     public int value {set; get; }
 
-    void foo()
+    void goo()
     {
-       c foo = new c { v$$
+       c goo = new c { v$$
     }
 }";
 
@@ -109,9 +110,9 @@ class c
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { v$$
+       c goo = new c { v$$
     }
 }";
 
@@ -132,9 +133,9 @@ class c
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { value = 3, o$$
+       c goo = new c { value = 3, o$$
     }
 }";
 
@@ -155,9 +156,9 @@ class c
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { value = v$$
+       c goo = new c { value = v$$
     }
 }";
 
@@ -176,9 +177,9 @@ class c
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { value = 3, otherValue = 4, $$
+       c goo = new c { value = 3, otherValue = 4, $$
     }
 }";
 
@@ -203,7 +204,7 @@ class d
 
 class e
 {
-    void foo()
+    void goo()
     {
        d bar = new d { myValue = new c { $$
     }
@@ -227,7 +228,7 @@ class c : IEnumerable<int>
 
 class d
 {
-    void foo()
+    void goo()
     {
        c bar = new c { v$$
     }
@@ -248,7 +249,7 @@ class c : IEnumerable
 
 class d
 {
-    void foo()
+    void goo()
     {
        c bar = new c { v$$
     }
@@ -256,7 +257,7 @@ class d
             await VerifyExclusiveAsync(markup, false);
         }
 
-        [WorkItem(544242)]
+        [WorkItem(544242, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544242")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NotInArgumentList()
         {
@@ -271,7 +272,7 @@ class d
             await VerifyNoItemsExistAsync(markup);
         }
 
-        [WorkItem(530075)]
+        [WorkItem(530075, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530075")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NotInArgumentList2()
         {
@@ -287,7 +288,7 @@ class d
             await VerifyNoItemsExistAsync(markup);
         }
 
-        [WorkItem(544289)]
+        [WorkItem(544289, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544289")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task DerivedMembers()
         {
@@ -299,14 +300,14 @@ namespace ConsoleApplication1
 {
     class Base
     {
-        public int FooBase;
+        public int GooBase;
         private int BasePrivate { get; set; }
         public int BasePublic{ get; set; }
     }
 
     class Derived : Base
     {
-        public int FooDerived;
+        public int GooDerived;
     }
 
     class Program
@@ -318,20 +319,20 @@ namespace ConsoleApplication1
     }
 }
 ";
-            await VerifyItemExistsAsync(markup, "FooBase");
-            await VerifyItemExistsAsync(markup, "FooDerived");
+            await VerifyItemExistsAsync(markup, "GooBase");
+            await VerifyItemExistsAsync(markup, "GooDerived");
             await VerifyItemExistsAsync(markup, "BasePublic");
             await VerifyItemIsAbsentAsync(markup, "BasePrivate");
         }
 
-        [WorkItem(544242)]
+        [WorkItem(544242, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544242")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task NotInCollectionInitializer()
         {
             var markup = @"using System.Collections.Generic;
 class C
 {
-    void foo()
+    void goo()
     {
         var a = new List<int> {0, $$
     }
@@ -348,7 +349,7 @@ class C
 class b {}
 class d : b
 {
-    public int foo;
+    public int goo;
 }
 
 class C
@@ -359,17 +360,17 @@ class C
     }
 }
 ";
-            await VerifyItemExistsAsync(markup, "foo");
+            await VerifyItemExistsAsync(markup, "goo");
         }
 
-        [WorkItem(544550)]
+        [WorkItem(544550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544550")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task ReadOnlyPropertiesShouldNotBePresent()
         {
             var markup = @"using System.Collections.Generic;
 class C
 {
-    void foo()
+    void goo()
     {
         var a = new List<int> {$$
     }
@@ -380,14 +381,14 @@ class C
             await VerifyItemIsAbsentAsync(markup, "Count");
         }
 
-        [WorkItem(544550)]
+        [WorkItem(544550, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544550")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task IndexersShouldNotBePresent()
         {
             var markup = @"using System.Collections.Generic;
 class C
 {
-    void foo()
+    void goo()
     {
         var a = new List<int> {$$
     }
@@ -404,7 +405,7 @@ class C
             var markup = @"using System.Collections.Generic;
 class C
 {
-    public readonly int foo;
+    public readonly int goo;
     public readonly List<int> bar;
 
     void M()
@@ -414,25 +415,25 @@ class C
 }
 ";
 
-            await VerifyItemIsAbsentAsync(markup, "foo");
+            await VerifyItemIsAbsentAsync(markup, "goo");
             await VerifyItemExistsAsync(markup, "bar");
         }
 
-        [WorkItem(544607)]
+        [WorkItem(544607, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544607")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task DoNotIncludeStaticMember()
         {
             var markup = @"
-class Foo
+class Goo
 {
     public static int Gibberish { get; set; }
 }
  
 class Bar
 {
-    void foo()
+    void goo()
     {
-        var c = new Foo { $$
+        var c = new Goo { $$
     }
 }";
 
@@ -440,7 +441,7 @@ class Bar
         }
 
         [Fact]
-        [WorkItem(545678)]
+        [WorkItem(545678, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545678")]
         [Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task EditorBrowsable_PropertyInObjectCreationAlways()
         {
@@ -449,11 +450,11 @@ public class C
 {
     public void M()
     {
-        var x = new Foo { $$
+        var x = new Goo { $$
     }
 }";
             var referencedCode = @"
-public class Foo
+public class Goo
 {
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
     public string Prop { get; set; }
@@ -470,7 +471,7 @@ public class Foo
         }
 
         [Fact]
-        [WorkItem(545678)]
+        [WorkItem(545678, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545678")]
         [Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task EditorBrowsable_PropertyInObjectCreationNever()
         {
@@ -479,11 +480,11 @@ public class C
 {
     public void M()
     {
-        var x = new Foo { $$
+        var x = new Goo { $$
     }
 }";
             var referencedCode = @"
-public class Foo
+public class Goo
 {
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public string Prop { get; set; }
@@ -499,7 +500,7 @@ public class Foo
         }
 
         [Fact]
-        [WorkItem(545678)]
+        [WorkItem(545678, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545678")]
         [Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task EditorBrowsable_PropertyInObjectCreationAdvanced()
         {
@@ -508,11 +509,11 @@ public class C
 {
     public void M()
     {
-        var x = new Foo { $$
+        var x = new Goo { $$
     }
 }";
             var referencedCode = @"
-public class Foo
+public class Goo
 {
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
     public string Prop { get; set; }
@@ -546,9 +547,9 @@ class c { public int value {set; get; }}
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { v$$
+       c goo = new c { v$$
     }
 }";
 
@@ -563,36 +564,34 @@ class c { public int value {set; get; }}
 
 class d
 {
-    void foo()
+    void goo()
     {
-       c foo = new c { v$$
+       c goo = new c { v$$
     }
 }";
 
-            using (var workspace = await CSharpWorkspaceFactory.CreateWorkspaceFromFileAsync(markup))
+            using (var workspace = TestWorkspace.CreateCSharp(markup))
             {
                 var hostDocument = workspace.Documents.Single();
                 var position = hostDocument.CursorPosition.Value;
                 var document = workspace.CurrentSolution.GetDocument(hostDocument.Id);
-                var triggerInfo = CompletionTriggerInfo.CreateTypeCharTriggerInfo('a');
+                var triggerInfo = CompletionTrigger.CreateInsertionTrigger('a');
 
-                var completionList = await GetCompletionListAsync(document, position, triggerInfo);
+                var service = GetCompletionService(workspace);
+                var completionList = await GetCompletionListAsync(service, document, position, triggerInfo);
                 var item = completionList.Items.First();
 
-                var completionService = document.Project.LanguageServices.GetService<ICompletionService>();
-                var completionRules = completionService.GetCompletionRules();
-
-                Assert.False(completionRules.SendEnterThroughToEditor(item, string.Empty, workspace.Options), "Expected false from SendEnterThroughToEditor()");
+                Assert.False(Controller.SendEnterThroughToEditor(service.GetRules(), item, string.Empty), "Expected false from SendEnterThroughToEditor()");
             }
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
-        public async Task TestTrigger()
+        public void TestTrigger()
         {
-            await TestCommonIsTextualTriggerCharacterAsync();
+            TestCommonIsTextualTriggerCharacter();
         }
 
-        [WorkItem(530828)]
+        [WorkItem(530828, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530828")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task DoNotIncludeIndexedPropertyWithNonOptionalParameter()
         {
@@ -703,6 +702,58 @@ class Program
             await VerifyItemIsAbsentAsync(markup, "D");
         }
 
+        [WorkItem(13158, "https://github.com/dotnet/roslyn/issues/13158")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task CollectionInitializerForInterfaceType1()
+        {
+            var markup = @"
+using System.Collections.Generic;
+
+public class Goo
+{
+    public IList<int> Items { get; } = new List<int>();
+    public int Bar;
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var y = new Goo { $$ };
+    }
+}";
+
+            await VerifyItemExistsAsync(markup, "Items");
+            await VerifyItemExistsAsync(markup, "Bar");
+        }
+
+        [WorkItem(13158, "https://github.com/dotnet/roslyn/issues/13158")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task CollectionInitializerForInterfaceType2()
+        {
+            var markup = @"
+using System.Collections.Generic;
+
+public interface ICustomCollection<T> : ICollection<T> { }
+
+public class Goo
+{
+    public ICustomCollection<int> Items { get; } = new List<int>();
+    public int Bar;
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var y = new Goo { $$ };
+    }
+}";
+
+            await VerifyItemExistsAsync(markup, "Items");
+            await VerifyItemExistsAsync(markup, "Bar");
+        }
+
         [WorkItem(4754, "https://github.com/dotnet/roslyn/issues/4754")]
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public async Task CollectionInitializerPatternFromBaseTypeAccessible()
@@ -743,16 +794,43 @@ class Container
             await VerifyItemExistsAsync(markup, "D");
         }
 
+        [WorkItem(4754, "https://github.com/dotnet/roslyn/issues/4754")]
+        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        public async Task ObjectInitializerOfGenericTypeConstructedWithInaccessibleType()
+        {
+            var markup = @"
+class Generic<T>
+{
+    public string Value { get; set; }
+}
+
+class Program
+{
+    private class InaccessibleToGeneric
+    {
+
+    }
+
+    static void Main(string[] args)
+    {
+        var g = new Generic<InaccessibleToGeneric> { $$ }
+    }
+}";
+
+            await VerifyItemExistsAsync(markup, "Value");
+        }
+
         private async Task VerifyExclusiveAsync(string markup, bool exclusive)
         {
-            using (var workspace = await CSharpWorkspaceFactory.CreateWorkspaceFromFileAsync(markup))
+            using (var workspace = TestWorkspace.CreateCSharp(markup))
             {
                 var hostDocument = workspace.Documents.Single();
                 var position = hostDocument.CursorPosition.Value;
                 var document = workspace.CurrentSolution.GetDocument(hostDocument.Id);
-                var triggerInfo = CompletionTriggerInfo.CreateTypeCharTriggerInfo('a');
+                var triggerInfo = CompletionTrigger.CreateInsertionTrigger('a');
 
-                var completionList = await GetCompletionListAsync(document, position, triggerInfo);
+                var service = GetCompletionService(workspace);
+                var completionList = await GetCompletionListAsync(service, document, position, triggerInfo);
 
                 if (completionList != null)
                 {

@@ -1,16 +1,12 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
-using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.VisualStudio.LanguageServices.CSharp.Debugging;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Debugging;
 using Roslyn.Test.Utilities;
@@ -22,7 +18,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Debugging
     {
         private async Task TestCachingAsync(string markup, params string[][] expectedArray)
         {
-            using (var workspace = await CSharpWorkspaceFactory.CreateWorkspaceFromLinesAsync(markup))
+            using (var workspace = TestWorkspace.CreateCSharp(markup))
             {
                 var testDocument = workspace.Documents.Single();
                 var spans = testDocument.AnnotatedSpans;
@@ -88,7 +84,7 @@ class Class
             await TestCachingAsync(input, new[] { "args", "this" }, new[] { "i", "args", "this" }, new[] { "i", "j", "k", "this", "args" });
         }
 
-        [WorkItem(538259)]
+        [WorkItem(538259, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538259")]
         [Fact, Trait(Traits.Feature, Traits.Features.DebuggingProximityExpressions)]
         public async Task TestCaching2()
         {
@@ -97,9 +93,9 @@ class Program
 {
     static void Main(string[] args)
     {
-        Foo();
+        Goo();
     }
-    private static void Foo()
+    private static void Goo()
     {
         {|0:|}int i = 0;
         {|1:|}int j = 1;
@@ -113,7 +109,7 @@ class Program
             await TestCachingAsync(input, new[] { "i" }, new[] { "i", "j" }, new[] { "j", "i" }, new[] { "k", "j" }, new[] { "k", "j" }, new[] { "j" });
         }
 
-        [WorkItem(538259)]
+        [WorkItem(538259, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538259")]
         [Fact, Trait(Traits.Feature, Traits.Features.DebuggingProximityExpressions)]
         public async Task TestCaching3()
         {
@@ -122,9 +118,9 @@ class Program
 {
     static void Main(string[] args)
     {
-        Foo();
+        Goo();
     }
-    private static void Foo()
+    private static void Goo()
     {
         {|0:|}int i = 0;
         {|1:|}int j = 1;

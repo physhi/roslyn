@@ -1,14 +1,21 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename.CSharp
+    <[UseExportProvider]>
     Public Class LocalConflictTests
+        Private ReadOnly _outputHelper As Abstractions.ITestOutputHelper
+
+        Public Sub New(outputHelper As Abstractions.ITestOutputHelper)
+            _outputHelper = outputHelper
+        End Sub
+
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(539939)>
+        <WorkItem(539939, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539939")>
         Public Sub ConflictingLocalWithLocal()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -31,9 +38,9 @@ class Program
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(539939)>
+        <WorkItem(539939, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539939")>
         Public Sub ConflictingLocalWithParameter()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -56,7 +63,7 @@ class Program
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictingLocalWithForEachRangeVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -81,7 +88,7 @@ class Program
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictingLocalWithForLoopVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -106,7 +113,7 @@ class Program
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictingLocalWithUsingBlockVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -131,7 +138,7 @@ class Program : IDisposable
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictingLocalWithSimpleLambdaParameter()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document><![CDATA[
@@ -157,7 +164,7 @@ class Program
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictingLocalWithParenthesizedLambdaParameter()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document><![CDATA[
@@ -183,7 +190,7 @@ class Program
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictingFromClauseWithLetClause()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -212,10 +219,10 @@ class C
 
 
         <Fact>
-        <WorkItem(543407)>
+        <WorkItem(543407, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543407")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictBetweenLabelsInSameMethod()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document FilePath="Test.cs">
@@ -223,27 +230,27 @@ using System;
 
 public class C
 {
-    public void Foo()
+    public void Goo()
     {
     {|stmt1:$$Bar|}:;
-    {|Conflict:Foo|}:;
+    {|Conflict:Goo|}:;
     }
 }
 
                             </Document>
                     </Project>
-                </Workspace>, renameTo:="Foo")
+                </Workspace>, renameTo:="Goo")
 
-                result.AssertLabeledSpansAre("stmt1", "Foo", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt1", "Goo", RelatedLocationType.NoConflict)
                 result.AssertLabeledSpansAre("Conflict", type:=RelatedLocationType.UnresolvedConflict)
             End Using
         End Sub
 
         <Fact>
-        <WorkItem(543407)>
+        <WorkItem(543407, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543407")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictBetweenLabelInMethodAndLambda()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document FilePath="Test.cs">
@@ -251,27 +258,27 @@ using System;
 
 public class C
 {
-    public void Foo()
+    public void Goo()
     {
     {|stmt1:$$Bar|}: ;
 
-        Action x = () => { {|Conflict:Foo|}:;};
+        Action x = () => { {|Conflict:Goo|}:;};
     }
 }
                             </Document>
                     </Project>
-                </Workspace>, renameTo:="Foo")
+                </Workspace>, renameTo:="Goo")
 
-                result.AssertLabeledSpansAre("stmt1", "Foo", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt1", "Goo", RelatedLocationType.NoConflict)
                 result.AssertLabeledSpansAre("Conflict", type:=RelatedLocationType.UnresolvedConflict)
             End Using
         End Sub
 
         <Fact>
-        <WorkItem(543407)>
+        <WorkItem(543407, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543407")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ConflictBetweenLabelsInLambda()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document FilePath="Test.cs">
@@ -281,24 +288,24 @@ public class C
 {
     Action x = () =>
         {
-        {|Conflict:Foo|}:;
+        {|Conflict:Goo|}:;
         {|stmt1:$$Bar|}: ;
         };
 }
                             </Document>
                     </Project>
-                </Workspace>, renameTo:="Foo")
+                </Workspace>, renameTo:="Goo")
 
-                result.AssertLabeledSpansAre("stmt1", "Foo", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt1", "Goo", RelatedLocationType.NoConflict)
                 result.AssertLabeledSpansAre("Conflict", type:=RelatedLocationType.UnresolvedConflict)
             End Using
         End Sub
 
         <Fact>
-        <WorkItem(543407)>
+        <WorkItem(543407, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543407")>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub NoConflictBetweenLabelsInTwoNonNestedLambdas()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document FilePath="Test.cs">
@@ -306,25 +313,25 @@ using System;
 
 public class C
 {
-    public void Foo()
+    public void Goo()
     {
-        Action x = () => { Foo:; };
+        Action x = () => { Goo:; };
         Action x = () => { {|stmt1:$$Bar|}:; };
     }
 }
                             </Document>
                     </Project>
-                </Workspace>, renameTo:="Foo")
+                </Workspace>, renameTo:="Goo")
 
-                result.AssertLabeledSpansAre("stmt1", "Foo", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt1", "Goo", RelatedLocationType.NoConflict)
             End Using
         End Sub
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(545468)>
+        <WorkItem(545468, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545468")>
         Public Sub NoConflictsWithCatchBlockWithoutExceptionVariable()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -351,9 +358,9 @@ class Test
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(1081066)>
+        <WorkItem(1081066, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1081066")>
         Public Sub NoConflictsBetweenCatchClauses()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -376,9 +383,9 @@ class Test
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(1081066)>
+        <WorkItem(1081066, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1081066")>
         Public Sub ConflictsWithinCatchClause()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -402,9 +409,9 @@ class Test
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(546163)>
+        <WorkItem(546163, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546163")>
         Public Sub NoConflictsWithCatchExceptionWithoutDeclaration()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
                 <Workspace>
                     <Project Language="C#" CommonReferences="true">
                         <Document>
@@ -431,9 +438,9 @@ class Test
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
-        <WorkItem(992721)>
+        <WorkItem(992721, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/992721")>
         Public Sub ConflictingLocalWithFieldWithExtensionMethodInvolved()
-            Using result = RenameEngineResult.Create(
+            Using result = RenameEngineResult.Create(_outputHelper,
             <Workspace>
                 <Project Language="C#" CommonReferences="true">
                     <Document>
@@ -458,6 +465,141 @@ namespace ConsoleApplication1
                 result.AssertLabeledSpansAre("def", "list", RelatedLocationType.NoConflict)
                 result.AssertLabeledSpansAre("stmt1", "foreach (var i in this.list.OfType<int>()){}", RelatedLocationType.ResolvedReferenceConflict)
                 result.AssertLabeledSpansAre("stmt2", "this.list = list.ToList();", RelatedLocationType.ResolvedReferenceConflict)
+            End Using
+        End Sub
+
+        <Fact>
+        <Trait(Traits.Feature, Traits.Features.Rename)>
+        <WorkItem(17177, "https://github.com/dotnet/roslyn/issues/17177")>
+        Public Sub ConflictsBetweenSwitchCaseStatementsWithoutBlocks()
+            Using result = RenameEngineResult.Create(_outputHelper,
+                <Workspace>
+                    <Project Language="C#" CommonReferences="true">
+                        <Document>
+class Test
+{
+    static void Main()
+    {
+        switch (true)
+        {
+            case true:
+                object {|stmt1:$$i|} = null;
+                break;
+            case false:
+                object {|stmt2:j|} = null;
+                break;
+        }
+    }
+}
+                            </Document>
+                    </Project>
+                </Workspace>, renameTo:="j")
+
+                result.AssertLabeledSpansAre("stmt1", "j", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt2", "j", RelatedLocationType.UnresolvableConflict)
+            End Using
+        End Sub
+
+        <Fact>
+        <Trait(Traits.Feature, Traits.Features.Rename)>
+        <WorkItem(17177, "https://github.com/dotnet/roslyn/issues/17177")>
+        Public Sub NoConflictsBetweenSwitchCaseStatementsWithBlocks()
+            Using result = RenameEngineResult.Create(_outputHelper,
+                <Workspace>
+                    <Project Language="C#" CommonReferences="true">
+                        <Document>
+class Test
+{
+    static void Main()
+    {
+        switch (true)
+        {
+            case true:
+                {
+                    object {|stmt1:$$i|} = null;
+                    break;
+                }
+            case false:
+                {
+                    object j = null;
+                    break;
+                }
+        }
+    }
+}
+                        </Document>
+                    </Project>
+                </Workspace>, renameTo:="j")
+
+                result.AssertLabeledSpansAre("stmt1", "j", RelatedLocationType.NoConflict)
+            End Using
+        End Sub
+
+        <Fact>
+        <Trait(Traits.Feature, Traits.Features.Rename)>
+        <WorkItem(17177, "https://github.com/dotnet/roslyn/issues/17177")>
+        Public Sub NoConflictsBetweenSwitchCaseStatementFirstStatementWithBlock()
+            Using result = RenameEngineResult.Create(_outputHelper,
+                <Workspace>
+                    <Project Language="C#" CommonReferences="true">
+                        <Document>
+class Test
+{
+    static void Main()
+    {
+        switch (true)
+        {
+            case true:
+                {
+                    object {|stmt1:$$i|} = null;
+                    break;
+                }
+            case false:
+                object {|stmt2:j|} = null;
+                break;
+        }
+    }
+}
+                        </Document>
+                    </Project>
+                </Workspace>, renameTo:="j")
+
+                result.AssertLabeledSpansAre("stmt1", "j", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt2", "j", RelatedLocationType.UnresolvableConflict)
+            End Using
+        End Sub
+
+        <Fact>
+        <Trait(Traits.Feature, Traits.Features.Rename)>
+        <WorkItem(17177, "https://github.com/dotnet/roslyn/issues/17177")>
+        Public Sub NoConflictsBetweenSwitchCaseStatementSecondStatementWithBlock()
+            Using result = RenameEngineResult.Create(_outputHelper,
+                <Workspace>
+                    <Project Language="C#" CommonReferences="true">
+                        <Document>
+class Test
+{
+    static void Main()
+    {
+        switch (true)
+        {
+            case true:
+                object {|stmt1:$$i|} = null;
+                break;
+            case false:
+                {
+                    object {|stmt2:j|} = null;
+                    break;
+                }
+        }
+    }
+}
+                        </Document>
+                    </Project>
+                </Workspace>, renameTo:="j")
+
+                result.AssertLabeledSpansAre("stmt1", "j", RelatedLocationType.NoConflict)
+                result.AssertLabeledSpansAre("stmt2", "j", RelatedLocationType.UnresolvableConflict)
             End Using
         End Sub
     End Class

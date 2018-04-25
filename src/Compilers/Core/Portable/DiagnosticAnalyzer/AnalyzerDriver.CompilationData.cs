@@ -5,13 +5,13 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.CodeAnalysis.PooledObjects;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Diagnostics
 {
     internal abstract partial class AnalyzerDriver : IDisposable
     {
-        protected static readonly ConditionalWeakTable<Compilation, CompilationData> s_compilationDataCache = new ConditionalWeakTable<Compilation, CompilationData>();
-
         internal class CompilationData
         {
             /// <summary>
@@ -20,31 +20,29 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             /// </summary>
             private readonly Dictionary<SyntaxTree, SemanticModel> _semanticModelsMap;
 
+            private readonly Dictionary<SyntaxReference, DeclarationAnalysisData> _declarationAnalysisDataMap;
+            
             public CompilationData(Compilation comp)
             {
                 _semanticModelsMap = new Dictionary<SyntaxTree, SemanticModel>();
                 this.SuppressMessageAttributeState = new SuppressMessageAttributeState(comp);
-                this.DeclarationAnalysisDataMap = new Dictionary<SyntaxReference, DeclarationAnalysisData>();
+                _declarationAnalysisDataMap = new Dictionary<SyntaxReference, DeclarationAnalysisData>();
             }
 
             public SuppressMessageAttributeState SuppressMessageAttributeState { get; }
-            public Dictionary<SyntaxReference, DeclarationAnalysisData> DeclarationAnalysisDataMap { get; }
 
             public SemanticModel GetOrCreateCachedSemanticModel(SyntaxTree tree, Compilation compilation, CancellationToken cancellationToken)
             {
                 SemanticModel model;
                 lock (_semanticModelsMap)
                 {
-                    if (_semanticModelsMap.TryGetValue(tree, out model))
+                    if (_semanticModelsMap.TryGetValue(tree, out model) && model.Compilation == compilation)
                     {
                         return model;
                     }
                 }
-                
-                model = compilation.GetSemanticModel(tree);
 
-                // Invoke GetDiagnostics to populate the compilation's CompilationEvent queue.
-                model.GetDiagnostics(null, cancellationToken);
+                model = compilation.GetSemanticModel(tree);
 
                 lock (_semanticModelsMap)
                 {
@@ -61,72 +59,49 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     return _semanticModelsMap.Remove(tree);
                 }
             }
-        }
 
-        internal class DeclarationAnalysisData
-        {
-            /// <summary>
-            /// GetSyntax() for the given SyntaxReference.
-            /// </summary>
-            public SyntaxNode DeclaringReferenceSyntax { get; set; }
-
-            /// <summary>
-            /// Topmost declaration node for analysis.
-            /// </summary>
-            public SyntaxNode TopmostNodeForAnalysis { get; set; }
-
-            /// <summary>
-            /// All member declarations within the declaration.
-            /// </summary>
-            public List<DeclarationInfo> DeclarationsInNode { get; }
-
-            /// <summary>
-            /// All descendant nodes for syntax node actions.
-            /// </summary>
-            public List<SyntaxNode> DescendantNodesToAnalyze { get; }
-
-            /// <summary>
-            /// Flag indicating if this is a partial analysis.
-            /// </summary>
-            public bool IsPartialAnalysis { get; set; }
-
-            public DeclarationAnalysisData()
+            internal DeclarationAnalysisData GetOrComputeDeclarationAnalysisData(
+                SyntaxReference declaration,
+                Func<DeclarationAnalysisData> computeDeclarationAnalysisData,
+                bool cacheAnalysisData)
             {
-                this.DeclarationsInNode = new List<DeclarationInfo>();
-                this.DescendantNodesToAnalyze = new List<SyntaxNode>();
+                if (!cacheAnalysisData)
+                {
+                    return computeDeclarationAnalysisData();
+                }
+
+                lock (_declarationAnalysisDataMap)
+                {
+                    if (_declarationAnalysisDataMap.TryGetValue(declaration, out DeclarationAnalysisData cachedData))
+                    {
+                        return cachedData;
+                    }
+                }
+
+                DeclarationAnalysisData data = computeDeclarationAnalysisData();
+
+                lock (_declarationAnalysisDataMap)
+                {
+                    if (!_declarationAnalysisDataMap.TryGetValue(declaration, out DeclarationAnalysisData existingData))
+                    {
+                        _declarationAnalysisDataMap.Add(declaration, data);
+                    }
+                    else
+                    {
+                        data = existingData;
+                    }
+                }
+
+                return data;
             }
 
-            public void Free()
+            internal void ClearDeclarationAnalysisData(SyntaxReference declaration)
             {
-                DeclaringReferenceSyntax = null;
-                TopmostNodeForAnalysis = null;
-                DeclarationsInNode.Clear();
-                DescendantNodesToAnalyze.Clear();
-                IsPartialAnalysis = false;
+                lock (_declarationAnalysisDataMap)
+                {
+                    _declarationAnalysisDataMap.Remove(declaration);
+                }
             }
-        }
-
-        internal static CompilationData GetOrCreateCachedCompilationData(Compilation compilation)
-        {
-            return s_compilationDataCache.GetValue(compilation, c => new CompilationData(c));
-        }
-
-        internal static bool RemoveCachedCompilationData(Compilation compilation)
-        {
-            return s_compilationDataCache.Remove(compilation);
-        }
-
-        public static SemanticModel GetOrCreateCachedSemanticModel(SyntaxTree tree, Compilation compilation, CancellationToken cancellationToken)
-        {
-            var compilationData = GetOrCreateCachedCompilationData(compilation);
-            return compilationData.GetOrCreateCachedSemanticModel(tree, compilation, cancellationToken);
-        }
-
-        public static bool RemoveCachedSemanticModel(SyntaxTree tree, Compilation compilation)
-        {
-            CompilationData compilationData;
-            return s_compilationDataCache.TryGetValue(compilation, out compilationData) &&
-                compilationData.RemoveCachedSemanticModel(tree);
         }
     }
 }

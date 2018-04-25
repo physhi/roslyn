@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -12,8 +12,10 @@ using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.DiaSymReader;
 using Microsoft.VisualStudio.Debugger.Evaluation;
 
@@ -28,29 +30,30 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         internal readonly MethodContextReuseConstraints? MethodContextReuseConstraints;
         internal readonly CSharpCompilation Compilation;
 
-        private readonly MetadataDecoder _metadataDecoder;
         private readonly MethodSymbol _currentFrame;
+        private readonly MethodSymbol _currentSourceMethod;
         private readonly ImmutableArray<LocalSymbol> _locals;
-        private readonly InScopeHoistedLocals _inScopeHoistedLocals;
-        private readonly MethodDebugInfo _methodDebugInfo;
+        private readonly ImmutableSortedSet<int> _inScopeHoistedLocalSlots;
+        private readonly MethodDebugInfo<TypeSymbol, LocalSymbol> _methodDebugInfo;
 
         private EvaluationContext(
             MethodContextReuseConstraints? methodContextReuseConstraints,
             CSharpCompilation compilation,
-            MetadataDecoder metadataDecoder,
             MethodSymbol currentFrame,
+            MethodSymbol currentSourceMethod,
             ImmutableArray<LocalSymbol> locals,
-            InScopeHoistedLocals inScopeHoistedLocals,
-            MethodDebugInfo methodDebugInfo)
+            ImmutableSortedSet<int> inScopeHoistedLocalSlots,
+            MethodDebugInfo<TypeSymbol, LocalSymbol> methodDebugInfo)
         {
-            Debug.Assert(inScopeHoistedLocals != null);
+            Debug.Assert(inScopeHoistedLocalSlots != null);
+            Debug.Assert(methodDebugInfo != null);
 
             this.MethodContextReuseConstraints = methodContextReuseConstraints;
             this.Compilation = compilation;
-            _metadataDecoder = metadataDecoder;
             _currentFrame = currentFrame;
+            _currentSourceMethod = currentSourceMethod;
             _locals = locals;
-            _inScopeHoistedLocals = inScopeHoistedLocals;
+            _inScopeHoistedLocalSlots = inScopeHoistedLocalSlots;
             _methodDebugInfo = methodDebugInfo;
         }
 
@@ -86,19 +89,17 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         {
             Debug.Assert(MetadataTokens.Handle(typeToken).Kind == HandleKind.TypeDefinition);
 
-            MetadataDecoder metadataDecoder;
-            var currentType = compilation.GetType(moduleVersionId, typeToken, out metadataDecoder);
+            var currentType = compilation.GetType(moduleVersionId, typeToken);
             Debug.Assert((object)currentType != null);
-            Debug.Assert(metadataDecoder != null);
             var currentFrame = new SynthesizedContextMethodSymbol(currentType);
             return new EvaluationContext(
                 null,
                 compilation,
-                metadataDecoder,
                 currentFrame,
+                null,
                 default(ImmutableArray<LocalSymbol>),
-                InScopeHoistedLocals.Empty,
-                default(MethodDebugInfo));
+                ImmutableSortedSet<int>.Empty,
+                MethodDebugInfo<TypeSymbol, LocalSymbol>.None);
         }
 
         /// <summary>
@@ -182,69 +183,120 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             int ilOffset,
             int localSignatureToken)
         {
-            Debug.Assert(MetadataTokens.Handle(methodToken).Kind == HandleKind.MethodDefinition);
-
-            var typedSymReader = (ISymUnmanagedReader)symReader;
-            var allScopes = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
-            var containingScopes = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
-            typedSymReader.GetScopes(methodToken, methodVersion, ilOffset, IsLocalScopeEndInclusive, allScopes, containingScopes);
-            var methodContextReuseConstraints = allScopes.GetReuseConstraints(moduleVersionId, methodToken, methodVersion, ilOffset, IsLocalScopeEndInclusive);
-
-            var localNames = containingScopes.GetLocalNames();
-
-            var inScopeHoistedLocals = InScopeHoistedLocals.Empty;
-            var methodDebugInfo = default(MethodDebugInfo);
-
-            if (typedSymReader != null)
-            {
-                try
-                {
-                    // TODO (https://github.com/dotnet/roslyn/issues/702): switch on the type of typedSymReader and call the appropriate helper.
-                    methodDebugInfo = typedSymReader.GetMethodDebugInfo(methodToken, methodVersion, allScopes);
-                    var inScopeHoistedLocalIndices = methodDebugInfo.GetInScopeHoistedLocalIndices(ilOffset, ref methodContextReuseConstraints);
-                    inScopeHoistedLocals = new CSharpInScopeHoistedLocals(inScopeHoistedLocalIndices);
-                }
-                catch (InvalidOperationException)
-                {
-                    // bad CDI, ignore
-                }
-            }
-
-            allScopes.Free();
-
             var methodHandle = (MethodDefinitionHandle)MetadataTokens.Handle(methodToken);
+            var currentSourceMethod = compilation.GetSourceMethod(moduleVersionId, methodHandle);
+            var localSignatureHandle = (localSignatureToken != 0) ? (StandaloneSignatureHandle)MetadataTokens.Handle(localSignatureToken) : default(StandaloneSignatureHandle);
+
             var currentFrame = compilation.GetMethod(moduleVersionId, methodHandle);
             Debug.Assert((object)currentFrame != null);
-            var metadataDecoder = new MetadataDecoder((PEModuleSymbol)currentFrame.ContainingModule, currentFrame);
-            var localInfo = metadataDecoder.GetLocalInfo(localSignatureToken);
-            var localsBuilder = ArrayBuilder<LocalSymbol>.GetInstance();
-            var sourceAssembly = compilation.SourceAssembly;
-            GetLocals(localsBuilder, currentFrame, localNames, localInfo, methodDebugInfo.DynamicLocalMap, sourceAssembly);
-            GetConstants(localsBuilder, currentFrame, containingScopes, metadataDecoder, methodDebugInfo.DynamicLocalConstantMap, sourceAssembly);
-            containingScopes.Free();
+            var symbolProvider = new CSharpEESymbolProvider(compilation.SourceAssembly, (PEModuleSymbol)currentFrame.ContainingModule, currentFrame);
 
-            var locals = localsBuilder.ToImmutableAndFree();
+            var metadataDecoder = new MetadataDecoder((PEModuleSymbol)currentFrame.ContainingModule, currentFrame);
+            var localInfo = metadataDecoder.GetLocalInfo(localSignatureHandle);
+
+            var typedSymReader = (ISymUnmanagedReader3)symReader;
+
+            var debugInfo = MethodDebugInfo<TypeSymbol, LocalSymbol>.ReadMethodDebugInfo(typedSymReader, symbolProvider, methodToken, methodVersion, ilOffset, isVisualBasicMethod: false);
+
+            var reuseSpan = debugInfo.ReuseSpan;
+            var localsBuilder = ArrayBuilder<LocalSymbol>.GetInstance();
+            MethodDebugInfo<TypeSymbol, LocalSymbol>.GetLocals(
+                localsBuilder,
+                symbolProvider,
+                debugInfo.LocalVariableNames,
+                localInfo,
+                debugInfo.DynamicLocalMap,
+                debugInfo.TupleLocalMap);
+
+            var inScopeHoistedLocals = debugInfo.GetInScopeHoistedLocalIndices(ilOffset, ref reuseSpan);
+
+            localsBuilder.AddRange(debugInfo.LocalConstants);
 
             return new EvaluationContext(
-                methodContextReuseConstraints,
+                new MethodContextReuseConstraints(moduleVersionId, methodToken, methodVersion, reuseSpan),
                 compilation,
-                metadataDecoder,
                 currentFrame,
-                locals,
+                currentSourceMethod,
+                localsBuilder.ToImmutableAndFree(),
                 inScopeHoistedLocals,
-                methodDebugInfo);
+                debugInfo);
         }
 
-        internal CompilationContext CreateCompilationContext(CSharpSyntaxNode syntax)
+        internal CompilationContext CreateCompilationContext()
         {
             return new CompilationContext(
                 this.Compilation,
-                _metadataDecoder,
                 _currentFrame,
+                _currentSourceMethod,
                 _locals,
-                _inScopeHoistedLocals,
-                _methodDebugInfo,
-                syntax);
+                _inScopeHoistedLocalSlots,
+                _methodDebugInfo);
+        }
+
+        /// <summary>
+        /// Compile a collection of expressions at the same location. If all expressions
+        /// compile successfully, a single assembly is returned along with the method
+        /// tokens for the expression evaluation methods. If there are errors compiling
+        /// any expression, null is returned along with the collection of error messages
+        /// for all expressions.
+        /// </summary>
+        /// <remarks>
+        /// Errors are returned as a single collection rather than grouped by expression
+        /// since some errors (such as those detected during emit) are not easily
+        /// attributed to a particular expression.
+        /// </remarks>
+        internal byte[] CompileExpressions(
+            ImmutableArray<string> expressions,
+            out ImmutableArray<int> methodTokens,
+            out ImmutableArray<string> errorMessages)
+        {
+            var diagnostics = DiagnosticBag.GetInstance();
+            var syntaxNodes = expressions.SelectAsArray(expr => Parse(expr, treatAsExpression: true, diagnostics: diagnostics, formatSpecifiers: out var formatSpecifiers));
+            byte[] assembly = null;
+            if (!diagnostics.HasAnyErrors())
+            {
+                Debug.Assert(syntaxNodes.All(s => s != null));
+                var context = this.CreateCompilationContext();
+                var moduleBuilder = context.CompileExpressions(syntaxNodes, TypeName, MethodName, diagnostics);
+                if (moduleBuilder != null)
+                {
+                    using (var stream = new MemoryStream())
+                    {
+                        Cci.PeWriter.WritePeToStream(
+                            new EmitContext(moduleBuilder, null, diagnostics, metadataOnly: false, includePrivateMembers: true),
+                            context.MessageProvider,
+                            () => stream,
+                            getPortablePdbStreamOpt: null,
+                            nativePdbWriterOpt: null,
+                            pdbPathOpt: null,
+                            metadataOnly: false,
+                            isDeterministic: false,
+                            emitTestCoverageData: false,
+                            privateKeyOpt: null,
+                            cancellationToken: default(CancellationToken));
+                        if (!diagnostics.HasAnyErrors())
+                        {
+                            assembly = stream.ToArray();
+                        }
+                    }
+                }
+            }
+            if (assembly == null)
+            {
+                methodTokens = ImmutableArray<int>.Empty;
+                errorMessages = ImmutableArray.CreateRange(
+                    diagnostics.AsEnumerable().
+                        Where(d => d.Severity == DiagnosticSeverity.Error).
+                        Select(d => GetErrorMessage(d, CSharpDiagnosticFormatter.Instance, preferredUICulture: null)));
+            }
+            else
+            {
+                methodTokens = MetadataUtilities.GetSynthesizedMethods(assembly, MethodName);
+                Debug.Assert(methodTokens.Length == expressions.Length);
+                errorMessages = ImmutableArray<string>.Empty;
+            }
+            diagnostics.Free();
+            return assembly;
         }
 
         internal override CompileResult CompileExpression(
@@ -263,9 +315,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 return null;
             }
 
-            var context = this.CreateCompilationContext(syntax);
-            ResultProperties properties;
-            var moduleBuilder = context.CompileExpression(TypeName, MethodName, aliases, testData, diagnostics, out properties);
+            var context = this.CreateCompilationContext();
+            var moduleBuilder = context.CompileExpression(syntax, TypeName, MethodName, aliases, testData, diagnostics, out var synthesizedMethod);
             if (moduleBuilder == null)
             {
                 resultProperties = default(ResultProperties);
@@ -275,14 +326,16 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             using (var stream = new MemoryStream())
             {
                 Cci.PeWriter.WritePeToStream(
-                    new EmitContext((Cci.IModule)moduleBuilder, null, diagnostics),
+                    new EmitContext(moduleBuilder, null, diagnostics, metadataOnly: false, includePrivateMembers: true),
                     context.MessageProvider,
                     () => stream,
                     getPortablePdbStreamOpt: null,
                     nativePdbWriterOpt: null,
                     pdbPathOpt: null,
-                    allowMissingMethodBodies: false,
-                    deterministic: false,
+                    metadataOnly: false,
+                    isDeterministic: false,
+                    emitTestCoverageData: false,
+                    privateKeyOpt: null,
                     cancellationToken: default(CancellationToken));
 
                 if (diagnostics.HasAnyErrors())
@@ -291,19 +344,15 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                     return null;
                 }
 
-                resultProperties = properties;
+                Debug.Assert(synthesizedMethod.ContainingType.MetadataName == TypeName);
+                Debug.Assert(synthesizedMethod.MetadataName == MethodName);
+
+                resultProperties = synthesizedMethod.ResultProperties;
                 return new CSharpCompileResult(
                     stream.ToArray(),
-                    GetSynthesizedMethod(moduleBuilder),
+                    synthesizedMethod,
                     formatSpecifiers: formatSpecifiers);
             }
-        }
-
-        private static MethodSymbol GetSynthesizedMethod(CommonPEModuleBuilder moduleBuilder)
-        {
-            var method = ((EEAssemblyBuilder)moduleBuilder).Methods.Single(m => m.MetadataName == MethodName);
-            Debug.Assert(method.ContainingType.MetadataName == TypeName);
-            return method;
         }
 
         private static CSharpSyntaxNode Parse(
@@ -319,8 +368,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 var statementSyntax = expr.ParseStatement(statementDiagnostics);
                 Debug.Assert((statementSyntax == null) || !statementDiagnostics.HasAnyErrors());
                 statementDiagnostics.Free();
-
-                if (statementSyntax != null && !statementSyntax.IsKind(SyntaxKind.ExpressionStatement)) // Prefer to parse expression statements as expressions.
+                var isExpressionStatement = statementSyntax.IsKind(SyntaxKind.ExpressionStatement);
+                if (statementSyntax != null && !isExpressionStatement)
                 {
                     formatSpecifiers = null;
 
@@ -352,9 +401,8 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 return null;
             }
 
-            var context = this.CreateCompilationContext(assignment);
-            ResultProperties properties;
-            var moduleBuilder = context.CompileAssignment(TypeName, MethodName, aliases, testData, diagnostics, out properties);
+            var context = this.CreateCompilationContext();
+            var moduleBuilder = context.CompileAssignment(assignment, TypeName, MethodName, aliases, testData, diagnostics, out var synthesizedMethod);
             if (moduleBuilder == null)
             {
                 resultProperties = default(ResultProperties);
@@ -364,14 +412,16 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             using (var stream = new MemoryStream())
             {
                 Cci.PeWriter.WritePeToStream(
-                    new EmitContext((Cci.IModule)moduleBuilder, null, diagnostics),
+                    new EmitContext(moduleBuilder, null, diagnostics, metadataOnly: false, includePrivateMembers: true),
                     context.MessageProvider,
                     () => stream,
                     getPortablePdbStreamOpt: null,
                     nativePdbWriterOpt: null,
                     pdbPathOpt: null,
-                    allowMissingMethodBodies: false,
-                    deterministic: false,
+                    metadataOnly: false,
+                    isDeterministic: false,
+                    emitTestCoverageData: false,
+                    privateKeyOpt: null,
                     cancellationToken: default(CancellationToken));
 
                 if (diagnostics.HasAnyErrors())
@@ -380,15 +430,19 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                     return null;
                 }
 
-                resultProperties = properties;
+                Debug.Assert(synthesizedMethod.ContainingType.MetadataName == TypeName);
+                Debug.Assert(synthesizedMethod.MetadataName == MethodName);
+
+                resultProperties = synthesizedMethod.ResultProperties;
                 return new CSharpCompileResult(
                     stream.ToArray(),
-                    GetSynthesizedMethod(moduleBuilder),
+                    synthesizedMethod,
                     formatSpecifiers: null);
             }
         }
 
-        private static readonly ReadOnlyCollection<byte> s_emptyBytes = new ReadOnlyCollection<byte>(new byte[0]);
+        private static readonly ReadOnlyCollection<byte> s_emptyBytes =
+            new ReadOnlyCollection<byte>(Array.Empty<byte>());
 
         internal override ReadOnlyCollection<byte> CompileGetLocals(
             ArrayBuilder<LocalAndMethod> locals,
@@ -398,7 +452,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             out string typeName,
             Microsoft.CodeAnalysis.CodeGen.CompilationTestData testData)
         {
-            var context = this.CreateCompilationContext(null);
+            var context = this.CreateCompilationContext();
             var moduleBuilder = context.CompileGetLocals(TypeName, locals, argumentsOnly, aliases, testData, diagnostics);
             ReadOnlyCollection<byte> assembly = null;
 
@@ -407,14 +461,16 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 using (var stream = new MemoryStream())
                 {
                     Cci.PeWriter.WritePeToStream(
-                        new EmitContext((Cci.IModule)moduleBuilder, null, diagnostics),
+                        new EmitContext(moduleBuilder, null, diagnostics, metadataOnly: false, includePrivateMembers: true),
                         context.MessageProvider,
                         () => stream,
                         getPortablePdbStreamOpt: null,
                         nativePdbWriterOpt: null,
                         pdbPathOpt: null,
-                        allowMissingMethodBodies: false,
-                        deterministic: false,
+                        metadataOnly: false,
+                        isDeterministic: false,
+                        emitTestCoverageData: false,
+                        privateKeyOpt: null,
                         cancellationToken: default(CancellationToken));
 
                     if (!diagnostics.HasAnyErrors())
@@ -434,119 +490,12 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             return assembly;
         }
 
-        /// <summary>
-        /// Returns symbols for the locals emitted in the original method,
-        /// based on the local signatures from the IL and the names and
-        /// slots from the PDB. The actual locals are needed to ensure the
-        /// local slots in the generated method match the original.
-        /// </summary>
-        private static void GetLocals(
-            ArrayBuilder<LocalSymbol> builder,
-            MethodSymbol method,
-            ImmutableArray<string> names,
-            ImmutableArray<LocalInfo<TypeSymbol>> localInfo,
-            ImmutableDictionary<int, ImmutableArray<bool>> dynamicLocalMap,
-            SourceAssemblySymbol containingAssembly)
-        {
-            if (localInfo.Length == 0)
-            {
-                // When debugging a .dmp without a heap, localInfo will be empty although
-                // names may be non-empty if there is a PDB. Since there's no type info, the
-                // locals are dropped. Note this means the local signature of any generated
-                // method will not match the original signature, so new locals will overlap
-                // original locals. That is ok since there is no live process for the debugger
-                // to update (any modified values exist in the debugger only).
-                return;
-            }
-
-            Debug.Assert(localInfo.Length >= names.Length);
-
-            for (int i = 0; i < localInfo.Length; i++)
-            {
-                var name = (i < names.Length) ? names[i] : null;
-                var info = localInfo[i];
-                var isPinned = info.IsPinned;
-
-                LocalDeclarationKind kind;
-                RefKind refKind;
-                TypeSymbol type;
-                if (info.IsByRef && isPinned)
-                {
-                    kind = LocalDeclarationKind.FixedVariable;
-                    refKind = RefKind.None;
-                    type = new PointerTypeSymbol(info.Type);
-                }
-                else
-                {
-                    kind = LocalDeclarationKind.RegularVariable;
-                    refKind = info.IsByRef ? RefKind.Ref : RefKind.None;
-                    type = info.Type;
-                }
-
-                ImmutableArray<bool> dynamicFlags;
-                if (dynamicLocalMap != null && dynamicLocalMap.TryGetValue(i, out dynamicFlags))
-                {
-                    type = DynamicTypeDecoder.TransformTypeWithoutCustomModifierFlags(
-                        type,
-                        containingAssembly,
-                        refKind,
-                        dynamicFlags);
-                }
-
-                // Custom modifiers can be dropped since binding ignores custom
-                // modifiers from locals and since we only need to preserve
-                // the type of the original local in the generated method.
-                builder.Add(new EELocalSymbol(method, EELocalSymbol.NoLocations, name, i, kind, type, refKind, isPinned, isCompilerGenerated: false, canScheduleToStack: false));
-            }
-        }
-
-        private static void GetConstants(
-            ArrayBuilder<LocalSymbol> builder,
-            MethodSymbol method,
-            ArrayBuilder<ISymUnmanagedScope> scopes,
-            MetadataDecoder metadataDecoder,
-            ImmutableDictionary<string, ImmutableArray<bool>> dynamicLocalConstantMap,
-            SourceAssemblySymbol containingAssembly)
-        {
-            foreach (var scope in scopes)
-            {
-                foreach (var constant in scope.GetConstants())
-                {
-                    string name = constant.GetName();
-                    object rawValue = constant.GetValue();
-                    var signature = constant.GetSignature();
-
-                    var info = metadataDecoder.GetLocalInfo(signature);
-                    Debug.Assert(!info.IsByRef);
-                    Debug.Assert(!info.IsPinned);
-                    var type = info.Type;
-                    if (type.IsErrorType())
-                    {
-                        continue;
-                    }
-
-                    var constantValue = PdbHelpers.GetConstantValue(type.EnumUnderlyingType(), rawValue);
-
-                    ImmutableArray<bool> dynamicFlags;
-                    if (dynamicLocalConstantMap != null && dynamicLocalConstantMap.TryGetValue(name, out dynamicFlags))
-                    {
-                        type = DynamicTypeDecoder.TransformTypeWithoutCustomModifierFlags(
-                            type,
-                            containingAssembly,
-                            RefKind.None,
-                            dynamicFlags);
-                    }
-
-                    builder.Add(new EELocalConstantSymbol(method, name, type, constantValue));
-                }
-            }
-        }
-
         internal override bool HasDuplicateTypesOrAssemblies(Diagnostic diagnostic)
         {
             switch ((ErrorCode)diagnostic.Code)
             {
                 case ErrorCode.ERR_DuplicateImport:
+                case ErrorCode.ERR_DuplicateImportSimple:
                 case ErrorCode.ERR_SameFullNameAggAgg:
                 case ErrorCode.ERR_AmbigCall:
                     return true;

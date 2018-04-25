@@ -1,52 +1,46 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports Microsoft.CodeAnalysis.Text
-Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Roslyn.Test.Utilities
-Imports Xunit
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Recommendations.Declarations
     Public Class AliasKeywordRecommenderTests
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub AliasAfterLibNameInSub()
-            VerifyRecommendationsAreExactly(<ClassDeclaration>Declare Sub foo Lib "Foo" |</ClassDeclaration>, "Alias")
-        End Sub
+        Public Async Function AliasAfterLibNameInSubTest() As Task
+            Await VerifyRecommendationsAreExactlyAsync(<ClassDeclaration>Declare Sub goo Lib "Goo" |</ClassDeclaration>, "Alias")
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub AliasAfterLibNameInFunction()
-            VerifyRecommendationsAreExactly(<ClassDeclaration>Declare Function foo Lib "Foo" |</ClassDeclaration>, "Alias")
-        End Sub
+        Public Async Function AliasAfterLibNameInFunctionTest() As Task
+            Await VerifyRecommendationsAreExactlyAsync(<ClassDeclaration>Declare Function goo Lib "Goo" |</ClassDeclaration>, "Alias")
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub AliasNotAfterLibKeyword()
-            VerifyRecommendationsAreExactly(<ClassDeclaration>Declare Sub foo Lib |</ClassDeclaration>, Array.Empty(Of String)())
-        End Sub
+        Public Async Function AliasNotAfterLibKeywordTest() As Task
+            Await VerifyRecommendationsAreExactlyAsync(<ClassDeclaration>Declare Sub goo Lib |</ClassDeclaration>, Array.Empty(Of String)())
+        End Function
 
         <Fact>
         <Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NothingAfterBrokenAlias()
-            VerifyRecommendationsAreExactly(<ClassDeclaration>Declare Sub foo Lib "Foo" Alais |</ClassDeclaration>, Array.Empty(Of String)())
-        End Sub
+        Public Async Function NothingAfterBrokenAliasTest() As Task
+            Await VerifyRecommendationsAreExactlyAsync(<ClassDeclaration>Declare Sub goo Lib "Goo" Alais |</ClassDeclaration>, Array.Empty(Of String)())
+        End Function
 
-        <WorkItem(530953)>
+        <WorkItem(530953, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530953")>
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub NoAliasAfterEol()
-            VerifyRecommendationsMissing(
-<ClassDeclaration>Declare Function foo Lib "Foo" 
+        Public Async Function NoAliasAfterEolTest() As Task
+            Await VerifyRecommendationsMissingAsync(
+<ClassDeclaration>Declare Function goo Lib "Goo" 
     |</ClassDeclaration>, "Alias")
-        End Sub
+        End Function
 
-        <WorkItem(530953)>
+        <WorkItem(530953, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530953")>
         <Fact, Trait(Traits.Feature, Traits.Features.KeywordRecommending)>
-        Public Sub AliasAfterExplicitLineContinuation()
-            VerifyRecommendationsAreExactly(
-<ClassDeclaration>Declare Function foo Lib "Foo" _
+        Public Async Function AliasAfterExplicitLineContinuationTest() As Task
+            Await VerifyRecommendationsAreExactlyAsync(
+<ClassDeclaration>Declare Function goo Lib "Goo" _
 |</ClassDeclaration>, "Alias")
-        End Sub
+        End Function
     End Class
 End Namespace

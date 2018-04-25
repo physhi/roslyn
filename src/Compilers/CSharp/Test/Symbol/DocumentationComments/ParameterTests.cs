@@ -26,7 +26,7 @@ class C<T>
 {
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -49,7 +49,7 @@ class C
     void M(int x) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -73,7 +73,7 @@ class C
     void M<T>(int x) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -97,7 +97,7 @@ class C
     int this[int x] { get { return 0; } set { } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -126,7 +126,7 @@ class C
     int P { get; set; }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -151,7 +151,7 @@ class C
     int this[int x] { get { return 0; } set { } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -176,7 +176,7 @@ class C
     event System.Action E { add { } remove { } };
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -197,7 +197,7 @@ class C
     event System.Action E;
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -218,7 +218,7 @@ class C
     int P { get { return 0; } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -239,7 +239,7 @@ class C
     int this[int x] { get { return 0; } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -264,7 +264,7 @@ class C
     void M(int @int) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -290,7 +290,7 @@ class C
     void M(int \u0061, int b, int \u0063) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(3, nameSyntaxes.Count());
@@ -318,7 +318,7 @@ class C
     void M(int a, int a) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntax = GetNameAttributeValues(compilation).Single();
 
@@ -341,7 +341,7 @@ class C
     void M<T, T>() { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntax = GetNameAttributeValues(compilation).Single();
 
@@ -365,7 +365,7 @@ class C
     void M<T>(int T) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
             var nameSyntaxes = GetNameAttributeValues(compilation);
             Assert.Equal(2, nameSyntaxes.Count());
@@ -396,7 +396,7 @@ class C<T>
 {
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -423,7 +423,7 @@ class C
     void M<T>(int x) { }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -450,7 +450,7 @@ class C
     int P { get; set; }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -477,7 +477,7 @@ class C
     int P { get { return 0; } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -504,7 +504,7 @@ class C
     int this[int x] { get { return 0; } set { } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -531,7 +531,7 @@ class C
     int this[int x] { get { return 0; } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -558,7 +558,7 @@ class C<T>
     event System.Action E { add { } remove { } }
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -586,7 +586,7 @@ class C<T>
     event System.Action E;
 }
 ";
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             int pos1 = source.IndexOf("pos1", StringComparison.Ordinal);
@@ -616,7 +616,7 @@ class C
 ";
 
             // Element names don't have to be lowercase, but "name" does.
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             compilation.VerifyDiagnostics(
                 // (6,23): warning CS1573: Parameter 'y' has no matching param tag in the XML comment for 'C.M(int, int)' (but other parameters do)
                 //     void M(int x, int y) { }
@@ -635,7 +635,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             var model = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
             var type = compilation.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
@@ -648,7 +648,7 @@ class C
             }
         }
 
-        [WorkItem(531161, "DevDiv")]
+        [WorkItem(531161, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531161")]
         [Fact]
         public void AttributeNameHasPrefix()
         {
@@ -660,12 +660,12 @@ class Program
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             compilation.VerifyDiagnostics();
             Assert.Equal(0, GetNameAttributeValues(compilation).Count());
         }
 
-        [WorkItem(531160, "DevDiv")]
+        [WorkItem(531160, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531160")]
         [Fact]
         public void DuplicateAttribute()
         {
@@ -677,7 +677,7 @@ class Program
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             compilation.VerifyDiagnostics(
                 // (4,24): warning CS1570: XML comment has badly formed XML -- 'Duplicate 'name' attribute'
                 //     /// <param name="x" name="y"/>
@@ -692,7 +692,7 @@ class Program
             Assert.Equal(method.Parameters[1], model.GetSymbolInfo(nameSyntaxes[1]).Symbol);
         }
 
-        [WorkItem(531233, "DevDiv")]
+        [WorkItem(531233, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531233")]
         [Fact]
         public void NameInOtherElement()
         {
@@ -704,13 +704,13 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             compilation.VerifyDiagnostics();
 
             Assert.Equal(0, GetNameAttributeValues(compilation).Count());
         }
 
-        [WorkItem(531337, "DevDiv")]
+        [WorkItem(531337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531337")]
         [Fact]
         public void NamesInMethodBody()
         {
@@ -727,7 +727,7 @@ class C
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             compilation.VerifyDiagnostics(
                 // (6,9): warning CS1587: XML comment is not placed on a valid language element
                 //         /// <see cref="C"/>
@@ -751,7 +751,7 @@ class C
 
         // Accessor declarations aren't MemberDeclarationSyntaxes, so we don't have to worry about finding
         // the parameters of an accessor (i.e. all the lookups will start from the property/indexer).
-        [WorkItem(531337, "DevDiv")]
+        [WorkItem(531337, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531337")]
         [Fact]
         public void NamesOnAccessor()
         {
@@ -779,7 +779,7 @@ class C<T>
 }
 ";
 
-            var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
+            var compilation = CreateCompilationWithMscorlib40AndDocumentationComments(source);
             compilation.VerifyDiagnostics(
                 // (6,9): warning CS1587: XML comment is not placed on a valid language element
                 //         /// <typeparam name="T"/>

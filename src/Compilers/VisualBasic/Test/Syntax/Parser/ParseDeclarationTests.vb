@@ -345,7 +345,7 @@ End Enum
     <Fact>
     Public Sub ParseInterfaceSingleLine()
         ParseAndVerify(<![CDATA[
-            Interface IVariance(Of Out T) : Function Foo() As T : End Interface
+            Interface IVariance(Of Out T) : Function Goo() As T : End Interface
         ]]>)
     End Sub
 
@@ -370,7 +370,7 @@ End Enum
     Public Sub TraverseEmptyBlocks()
         ParseAndVerify(
             "Module M1" & vbCrLf &
-            "Sub Foo" & vbCrLf &
+            "Sub Goo" & vbCrLf &
             "Try" & vbCrLf &
             "Catch" & vbCrLf &
             "Finally" & vbCrLf &
@@ -381,12 +381,12 @@ End Enum
         TraverseAllNodes()
     End Sub
 
-    <WorkItem(527076, "DevDiv")>
+    <WorkItem(527076, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527076")>
     <Fact>
     Public Sub ParseMustOverrideInsideModule()
         ParseAndVerify(<![CDATA[
 Module M1
-Mustoverride Sub Foo()
+Mustoverride Sub Goo()
 End Sub
 End Module
         ]]>, <errors>
@@ -411,7 +411,7 @@ End Class
         ParseAndVerify(<![CDATA[
 Public Class C1
     <Obsolete1()> 
-    foo
+    goo
 
     <Obsolete2()> 
     if true then :
@@ -441,7 +441,7 @@ End Class
              </errors>)
     End Sub
 
-    <WorkItem(543607, "DevDiv")>
+    <WorkItem(543607, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543607")>
     <Fact()>
     Public Sub ParseInheritsAtInvalidLocation()
         ParseAndVerify(<![CDATA[
@@ -461,7 +461,7 @@ End Class
     <Fact>
     Public Sub BC30001ERR_NoParseError()
         ParseAndVerify(<![CDATA[
-                Property Foo As Integer
+                Property Goo As Integer
              
                 Namespace Namespace1
                 End Namespace
@@ -473,7 +473,7 @@ End Class
     Public Sub BC30025ERR_EndProp()
         ParseAndVerify(<![CDATA[
                 Structure Struct1
-                    Default Public Property Foo(ByVal x) As Integer
+                    Default Public Property Goo(ByVal x) As Integer
                     End Function
                 End Structure
             ]]>,
@@ -484,7 +484,7 @@ End Class
              </errors>)
     End Sub
 
-    <WorkItem(527022, "DevDiv")>
+    <WorkItem(527022, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527022")>
     <Fact()>
     Public Sub BC30037ERR_IllegalChar_TypeParamMissingAsCommaOrRParen()
         ParseAndVerify(<![CDATA[
@@ -705,7 +705,7 @@ p1 as vb$anonymous1
 
     <WorkItem(887748, "DevDiv/Personal")>
     <WorkItem(889062, "DevDiv/Personal")>
-    <WorkItem(538919, "DevDiv")>
+    <WorkItem(538919, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538919")>
     <Fact>
     Public Sub BC30602ERR_InterfaceMemberSyntax_TypeStatement()
         ParseAndVerify(<![CDATA[
@@ -734,7 +734,7 @@ p1 as vb$anonymous1
     Public Sub BC30603ERR_InvInsideInterface_ParseInterfaceWithSubWithEndSub()
         ParseAndVerify(<![CDATA[
             Interface i1
-              Sub foo()
+              Sub goo()
               end sub
             End Interface
 ]]>,
@@ -839,7 +839,7 @@ p1 as vb$anonymous1
     Public Sub BC30984ERR_ExpectedAssignmentOperatorInInit_AndExpectedRbrace()
         ParseAndVerify(<![CDATA[
                         Module Module1
-                         Sub Foo()
+                         Sub Goo()
                             Dim scen2b = New With {.prop = 10, .321prop = 9, .567abc = -10}
                             Dim scen3 = New With {.$123prop=1}
                          End Sub
@@ -902,12 +902,12 @@ p1 as vb$anonymous1
             </errors>)
     End Sub
 
-    <WorkItem(536278, "DevDiv")>
+    <WorkItem(536278, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/536278")>
     <Fact>
     Public Sub BC31140ERR_InvalidUseOfCustomModifier_ExpectedSpecifierAndInvalidEndSub()
         ParseAndVerify(<![CDATA[
                       Module Module1
-                       Custom sub foo()
+                       Custom sub goo()
                        End Sub
                       End Module
 
@@ -947,7 +947,7 @@ p1 as vb$anonymous1
     End Sub
 
 
-    <WorkItem(538990, "DevDiv")>
+    <WorkItem(538990, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538990")>
     <Fact>
     Public Sub Bug4770()
         ParseAndVerify(<![CDATA[
@@ -959,7 +959,7 @@ p1 as vb$anonymous1
                  </errors>)
     End Sub
 
-    <WorkItem(539509, "DevDiv")>
+    <WorkItem(539509, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539509")>
     <Fact>
     Public Sub EnumsWithGenericParameter()
         ' Enums should recover the same was as other declarations that do not allow generics.

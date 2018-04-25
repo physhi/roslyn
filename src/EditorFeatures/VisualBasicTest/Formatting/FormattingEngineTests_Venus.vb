@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.Text
 
@@ -36,7 +36,7 @@ End Module</Code>
         End Function
 
         <WpfFact, Trait(Traits.Feature, Traits.Features.Formatting), Trait(Traits.Feature, Traits.Features.Venus)>
-        <WorkItem(530138)>
+        <WorkItem(530138, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530138")>
         Public Async Function SimpleScriptBlock() As Threading.Tasks.Task
             Dim code = <Code>Imports System
 Imports System.Collections.Generic
@@ -46,7 +46,7 @@ Module Program
   Sub Main(args As String())
   End Sub
 #ExternalSource ("Default.aspx", 3)[|
-            Sub     Foo (   )   
+            Sub     Goo (   )   
             End Sub 
 |]#End ExternalSource
 End Module</Code>
@@ -59,7 +59,7 @@ Module Program
   Sub Main(args As String())
   End Sub
 #ExternalSource ("Default.aspx", 3)
-    Sub Foo()
+    Sub Goo()
     End Sub
 #End ExternalSource
 End Module</Code>
@@ -104,7 +104,7 @@ End Module</Code>
             Await AssertFormatWithBaseIndentAfterReplacingLfToCrLfAsync(code.Value, expected.Value, baseIndentation:=7)
         End Function
 
-        <WorkItem(576526)>
+        <WorkItem(576526, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/576526")>
         <WpfFact, Trait(Traits.Feature, Traits.Features.Formatting), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Async Function SimpleQueryWithinNugget() As Threading.Tasks.Task
             Dim code = <Code>Imports System

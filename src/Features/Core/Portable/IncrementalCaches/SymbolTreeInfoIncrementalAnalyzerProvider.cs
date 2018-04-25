@@ -1,100 +1,308 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Composition;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.FindSymbols;
-using Microsoft.CodeAnalysis.Internal.Log;
+using Microsoft.CodeAnalysis.FindSymbols.SymbolTree;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Host.Mef;
+using Microsoft.CodeAnalysis.NavigateTo;
+using Microsoft.CodeAnalysis.Remote;
 using Microsoft.CodeAnalysis.SolutionCrawler;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.IncrementalCaches
 {
-    [ExportIncrementalAnalyzerProvider(WorkspaceKind.Host), Shared]
-    internal class SymbolTreeInfoIncrementalAnalyzerProvider : IIncrementalAnalyzerProvider
+    /// <summary>
+    /// Features like add-using want to be able to quickly search symbol indices for projects and
+    /// metadata.  However, creating those indices can be expensive.  As such, we don't want to
+    /// construct them during the add-using process itself.  Instead, we expose this type as an 
+    /// Incremental-Analyzer to walk our projects/metadata in the background to keep the indices
+    /// up to date.
+    /// 
+    /// We also then export this type as a service that can give back the index for a project or
+    /// metadata dll on request.  If the index has been produced then it will be returned and 
+    /// can be used by add-using.  Otherwise, nothing is returned and no results will be found.
+    /// 
+    /// This means that as the project is being indexed, partial results may be returned.  However
+    /// once it is fully indexed, then total results will be returned.
+    /// </summary>
+    [Shared]
+    [ExportIncrementalAnalyzerProvider(nameof(SymbolTreeInfoIncrementalAnalyzerProvider), new[] { WorkspaceKind.Host, WorkspaceKind.RemoteWorkspace })]
+    [ExportWorkspaceServiceFactory(typeof(ISymbolTreeInfoCacheService))]
+    internal class SymbolTreeInfoIncrementalAnalyzerProvider : IIncrementalAnalyzerProvider, IWorkspaceServiceFactory
     {
+        private struct MetadataInfo
+        {
+            /// <summary>
+            /// Can't be null.  Even if we weren't able to read in metadata, we'll still create an empty
+            /// index.
+            /// </summary>
+            public readonly SymbolTreeInfo SymbolTreeInfo;
+
+            /// <summary>
+            /// Note: the Incremental-Analyzer infrastructure guarantees that it will call all the methods
+            /// on <see cref="IncrementalAnalyzer"/> in a serial fashion.  As that is the only type that
+            /// reads/writes these <see cref="MetadataInfo"/> objects, we don't need to lock this.
+            /// </summary>
+            public readonly HashSet<ProjectId> ReferencingProjects;
+
+            public MetadataInfo(SymbolTreeInfo info, HashSet<ProjectId> referencingProjects)
+            {
+                Contract.ThrowIfNull(info);
+                SymbolTreeInfo = info;
+                ReferencingProjects = referencingProjects;
+            }
+        }
+
+        // Concurrent dictionaries so they can be read from the SymbolTreeInfoCacheService while 
+        // they are being populated/updated by the IncrementalAnalyzer.
+        private readonly ConcurrentDictionary<ProjectId, SymbolTreeInfo> _projectToInfo = new ConcurrentDictionary<ProjectId, SymbolTreeInfo>();
+        private readonly ConcurrentDictionary<string, MetadataInfo> _metadataPathToInfo = new ConcurrentDictionary<string, MetadataInfo>();
+
         public IIncrementalAnalyzer CreateIncrementalAnalyzer(Workspace workspace)
         {
-            return new IncrementalAnalyzer();
+            var cacheService = workspace.Services.GetService<IWorkspaceCacheService>();
+            if (cacheService != null)
+            {
+                cacheService.CacheFlushRequested += OnCacheFlushRequested;
+            }
+
+            return new IncrementalAnalyzer(_projectToInfo, _metadataPathToInfo);
+        }
+
+        private void OnCacheFlushRequested(object sender, EventArgs e)
+        {
+            // If we hear about low memory conditions, flush our caches.  This will degrade the 
+            // experience a bit (as we will no longer offer to Add-Using for p2p refs/metadata),
+            // but will be better than OOM'ing.  These caches will be regenerated in the future
+            // when the incremental analyzer reanalyzers the projects in teh workspace.
+            _projectToInfo.Clear();
+            _metadataPathToInfo.Clear();
+        }
+
+        public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
+            => new SymbolTreeInfoCacheService(_projectToInfo, _metadataPathToInfo);
+
+        private static string GetReferenceKey(PortableExecutableReference reference)
+            => reference.FilePath ?? reference.Display;
+
+        private class SymbolTreeInfoCacheService : ISymbolTreeInfoCacheService
+        {
+            private readonly ConcurrentDictionary<ProjectId, SymbolTreeInfo> _projectToInfo;
+            private readonly ConcurrentDictionary<string, MetadataInfo> _metadataPathToInfo;
+
+            public SymbolTreeInfoCacheService(
+                ConcurrentDictionary<ProjectId, SymbolTreeInfo> projectToInfo,
+                ConcurrentDictionary<string, MetadataInfo> metadataPathToInfo)
+            {
+                _projectToInfo = projectToInfo;
+                _metadataPathToInfo = metadataPathToInfo;
+            }
+
+            public async Task<SymbolTreeInfo> TryGetMetadataSymbolTreeInfoAsync(
+                Solution solution,
+                PortableExecutableReference reference,
+                CancellationToken cancellationToken)
+            {
+                var checksum = SymbolTreeInfo.GetMetadataChecksum(solution, reference, cancellationToken);
+
+                var key = GetReferenceKey(reference);
+                if (key != null)
+                {
+                    if (_metadataPathToInfo.TryGetValue(key, out var metadataInfo) &&
+                        metadataInfo.SymbolTreeInfo.Checksum == checksum)
+                    {
+                        return metadataInfo.SymbolTreeInfo;
+                    }
+                }
+
+                // If we didn't have it in our cache, see if we can load it from disk.
+                // Note: pass 'loadOnly' so we only attempt to load from disk, not to actually
+                // try to create the metadata.
+                var info = await SymbolTreeInfo.GetInfoForMetadataReferenceAsync(
+                    solution, reference, checksum, loadOnly: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return info;
+            }
+
+            public async Task<SymbolTreeInfo> TryGetSourceSymbolTreeInfoAsync(
+                Project project, CancellationToken cancellationToken)
+            {
+                if (_projectToInfo.TryGetValue(project.Id, out var projectInfo) &&
+                    projectInfo.Checksum == await SymbolTreeInfo.GetSourceSymbolsChecksumAsync(project, cancellationToken).ConfigureAwait(false))
+                {
+                    return projectInfo;
+                }
+
+                return null;
+            }
         }
 
         private class IncrementalAnalyzer : IncrementalAnalyzerBase
         {
-            private SolutionId _solutionId;
-            private Dictionary<ProjectId, int> _symbolCountByProjectMap = new Dictionary<ProjectId, int>();
+            private readonly ConcurrentDictionary<ProjectId, SymbolTreeInfo> _projectToInfo;
+            private readonly ConcurrentDictionary<string, MetadataInfo> _metadataPathToInfo;
 
-            public override async Task AnalyzeProjectAsync(Project project, bool semanticsChanged, CancellationToken cancellationToken)
+            public IncrementalAnalyzer(
+                ConcurrentDictionary<ProjectId, SymbolTreeInfo> projectToInfo,
+                ConcurrentDictionary<string, MetadataInfo> metadataPathToInfo)
             {
-                if (_symbolCountByProjectMap == null || !project.SupportsCompilation || !semanticsChanged)
+                _projectToInfo = projectToInfo;
+                _metadataPathToInfo = metadataPathToInfo;
+            }
+
+            public override async Task AnalyzeDocumentAsync(Document document, SyntaxNode bodyOpt, InvocationReasons reasons, CancellationToken cancellationToken)
+            {
+                if (!document.SupportsSyntaxTree)
+                {
+                    // Not a language we can produce indices for (i.e. TypeScript).  Bail immediately.
+                    return;
+                }
+
+                if (bodyOpt != null)
+                {
+                    // This was a method body edit.  We can reuse the existing SymbolTreeInfo if
+                    // we have one.  We can't just bail out here as the change in the document means
+                    // we'll have a new checksum.  We need to get that new checksum so that our
+                    // cached information is valid.
+                    if (_projectToInfo.TryGetValue(document.Project.Id, out var cachedInfo))
+                    {
+                        var checksum = await SymbolTreeInfo.GetSourceSymbolsChecksumAsync(
+                            document.Project, cancellationToken).ConfigureAwait(false);
+
+                        var newInfo = cachedInfo.WithChecksum(checksum);
+                        _projectToInfo.AddOrUpdate(document.Project.Id, newInfo, (_1, _2) => newInfo);
+                        return;
+                    }
+                }
+
+                await UpdateSymbolTreeInfoAsync(document.Project, cancellationToken).ConfigureAwait(false);
+            }
+
+            public override Task AnalyzeProjectAsync(Project project, bool semanticsChanged, InvocationReasons reasons, CancellationToken cancellationToken)
+            {
+                return UpdateSymbolTreeInfoAsync(project, cancellationToken);
+            }
+
+            private async Task UpdateSymbolTreeInfoAsync(Project project, CancellationToken cancellationToken)
+            {
+                if (!project.SupportsCompilation)
+                {
+                    // Not a language we can produce indices for (i.e. TypeScript).  Bail immediately.
+                    return;
+                }
+
+                if (!RemoteFeatureOptions.ShouldComputeIndex(project.Solution.Workspace))
                 {
                     return;
                 }
 
-                // we do this just to report total symbol numbers
-                var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-
-                var info = SymbolTreeInfo.Create(VersionStamp.Default, compilation.Assembly, cancellationToken);
-                if (info != null)
+                // Produce the indices for the source and metadata symbols in parallel.
+                var tasks = new List<Task>
                 {
-                    RecordCount(project.Id, info.Count);
+                    GetTask(project, () => UpdateSourceSymbolTreeInfoAsync(project, cancellationToken), cancellationToken),
+                    GetTask(project, () => UpdateReferencesAync(project, cancellationToken), cancellationToken)
+                };
+
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+
+            private async Task UpdateSourceSymbolTreeInfoAsync(Project project, CancellationToken cancellationToken)
+            {
+                var checksum = await SymbolTreeInfo.GetSourceSymbolsChecksumAsync(project, cancellationToken).ConfigureAwait(false);
+                if (!_projectToInfo.TryGetValue(project.Id, out var projectInfo) ||
+                    projectInfo.Checksum != checksum)
+                {
+                    projectInfo = await SymbolTreeInfo.GetInfoForSourceAssemblyAsync(
+                        project, checksum, cancellationToken).ConfigureAwait(false);
+
+                    Contract.ThrowIfNull(projectInfo);
+                    Contract.ThrowIfTrue(projectInfo.Checksum != checksum, "If we computed a SymbolTreeInfo, then its checksum much match our checksum.");
+
+                    // Mark that we're up to date with this project.  Future calls with the same 
+                    // semantic version can bail out immediately.
+                    _projectToInfo.AddOrUpdate(project.Id, projectInfo, (_1, _2) => projectInfo);
                 }
             }
 
-            public override Task NewSolutionSnapshotAsync(Solution solution, CancellationToken cancellationToken)
+            private Task GetTask(Project project, Func<Task> func, CancellationToken cancellationToken)
             {
-                // check whether we are good to report total symbol numbers
-                if (_symbolCountByProjectMap == null || _symbolCountByProjectMap.Count < solution.ProjectIds.Count || string.IsNullOrEmpty(solution.FilePath))
+                var isRemoteWorkspace = project.Solution.Workspace.Kind == WorkspaceKind.RemoteWorkspace;
+                return isRemoteWorkspace
+                    ? Task.Run(func, cancellationToken)
+                    : func();
+            }
+
+            private Task UpdateReferencesAync(Project project, CancellationToken cancellationToken)
+            {
+                // Process all metadata references. If it remote workspace, do this in parallel.
+                var tasks = new List<Task>();
+
+                foreach (var reference in project.MetadataReferences.OfType<PortableExecutableReference>())
                 {
-                    return SpecializedTasks.EmptyTask;
+                    tasks.Add(
+                        GetTask(project, () => UpdateReferenceAsync(project, reference, cancellationToken), cancellationToken));
                 }
 
-                if (_solutionId != null && _solutionId != solution.Id)
+                return Task.WhenAll(tasks);
+            }
+
+            private async Task UpdateReferenceAsync(
+                Project project, PortableExecutableReference reference, CancellationToken cancellationToken)
+            {
+                var key = GetReferenceKey(reference);
+                if (key == null)
                 {
-                    ReportCount();
-                    return SpecializedTasks.EmptyTask;
+                    return;
                 }
 
-                _solutionId = solution.Id;
-                foreach (var projectId in solution.ProjectIds)
+                var checksum = SymbolTreeInfo.GetMetadataChecksum(project.Solution, reference, cancellationToken);
+                if (!_metadataPathToInfo.TryGetValue(key, out var metadataInfo) ||
+                    metadataInfo.SymbolTreeInfo.Checksum != checksum)
                 {
-                    if (!_symbolCountByProjectMap.ContainsKey(projectId))
-                    {
-                        return SpecializedTasks.EmptyTask;
-                    }
+                    var info = await SymbolTreeInfo.GetInfoForMetadataReferenceAsync(
+                        project.Solution, reference, checksum, loadOnly: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    Contract.ThrowIfNull(info);
+                    Contract.ThrowIfTrue(info.Checksum != checksum, "If we computed a SymbolTreeInfo, then its checksum much match our checksum.");
+
+                    // Note, getting the info may fail (for example, bogus metadata).  That's ok.  
+                    // We still want to cache that result so that don't try to continuously produce
+                    // this info over and over again.
+                    metadataInfo = new MetadataInfo(info, metadataInfo.ReferencingProjects ?? new HashSet<ProjectId>());
+                    _metadataPathToInfo.AddOrUpdate(key, metadataInfo, (_1, _2) => metadataInfo);
                 }
 
-                ReportCount();
-                return SpecializedTasks.EmptyTask;
+                // Keep track that this dll is referenced by this project.
+                metadataInfo.ReferencingProjects.Add(project.Id);
             }
 
             public override void RemoveProject(ProjectId projectId)
             {
-                if (_symbolCountByProjectMap != null)
-                {
-                    _symbolCountByProjectMap.Remove(projectId);
-                }
+                _projectToInfo.TryRemove(projectId, out var info);
+
+                RemoveMetadataReferences(projectId);
             }
 
-            private void ReportCount()
+            private void RemoveMetadataReferences(ProjectId projectId)
             {
-                var sourceSymbolCount = _symbolCountByProjectMap.Sum(kv => kv.Value);
-                Logger.Log(FunctionId.Run_Environment, KeyValueLogMessage.Create(m => m["SourceSymbolCount"] = sourceSymbolCount));
-
-                // we only report it once
-                _symbolCountByProjectMap = null;
-                _solutionId = null;
-            }
-
-            private void RecordCount(ProjectId id, int count)
-            {
-                if (_symbolCountByProjectMap == null)
+                foreach (var kvp in _metadataPathToInfo.ToArray())
                 {
-                    return;
+                    if (kvp.Value.ReferencingProjects.Remove(projectId))
+                    {
+                        if (kvp.Value.ReferencingProjects.Count == 0)
+                        {
+                            // This metadata dll isn't referenced by any project.  We can just dump it.
+                            _metadataPathToInfo.TryRemove(kvp.Key, out var unneeded);
+                        }
+                    }
                 }
-
-                _symbolCountByProjectMap[id] = count;
             }
         }
     }

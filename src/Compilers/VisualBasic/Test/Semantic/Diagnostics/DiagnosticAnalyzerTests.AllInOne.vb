@@ -12,19 +12,19 @@ Imports Roslyn.Test.Utilities
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Semantics
 
     Partial Public Class DiagnosticAnalyzerTests
-        <WorkItem(897137, "DevDiv")>
+        <WorkItem(897137, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/897137")>
         <Fact>
         Public Sub DiagnosticAnalyzerAllInOne()
             Dim source = TestResource.AllInOneVisualBasicBaseline
             Dim analyzer = New BasicTrackingDiagnosticAnalyzer()
-            CreateCompilationWithMscorlib({source}).VerifyAnalyzerDiagnostics({analyzer})
+            CreateCompilationWithMscorlib40({source}).VerifyAnalyzerDiagnostics({analyzer})
             analyzer.VerifyAllAnalyzerMembersWereCalled()
             analyzer.VerifyAnalyzeSymbolCalledForAllSymbolKinds()
-            analyzer.VerifyAnalyzeNodeCalledForAllSyntaxKinds()
+            analyzer.VerifyAnalyzeNodeCalledForAllSyntaxKinds(New HashSet(Of SyntaxKind)())
             analyzer.VerifyOnCodeBlockCalledForAllSymbolAndMethodKinds()
         End Sub
 
-        <WorkItem(896273, "DevDiv")>
+        <WorkItem(896273, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/896273")>
         <Fact>
         Public Sub DiagnosticAnalyzerEnumBlock()
             Dim source =
@@ -35,13 +35,13 @@ Public Enum E
     Two
 End Enum
 ]]></file></project>
-            CreateCompilationWithMscorlib(source).VerifyAnalyzerDiagnostics({New BasicTrackingDiagnosticAnalyzer()})
+            CreateCompilationWithMscorlib40(source).VerifyAnalyzerDiagnostics({New BasicTrackingDiagnosticAnalyzer()})
         End Sub
 
         <Fact>
-        <WorkItem(759)>
+        <WorkItem(759, "https://github.com/dotnet/roslyn/issues/759")>
         Public Sub AnalyzerDriverIsSafeAgainstAnalyzerExceptions()
-            Dim compilation = CreateCompilationWithMscorlib({TestResource.AllInOneVisualBasicCode})
+            Dim compilation = CreateCompilationWithMscorlib40({TestResource.AllInOneVisualBasicCode})
             ThrowingDiagnosticAnalyzer(Of SyntaxKind).VerifyAnalyzerEngineIsSafeAgainstExceptions(
                 Function(analyzer) compilation.GetAnalyzerDiagnostics({analyzer}, logAnalyzerExceptionAsDiagnostics:=True))
         End Sub
@@ -52,7 +52,7 @@ End Enum
             Dim additionalTexts As AdditionalText() = {New TestAdditionalText("myfilepath", sourceText)}
             Dim options = New AnalyzerOptions(additionalTexts.ToImmutableArray())
 
-            Dim compilation = CreateCompilationWithMscorlib({TestResource.AllInOneVisualBasicCode})
+            Dim compilation = CreateCompilationWithMscorlib40({TestResource.AllInOneVisualBasicCode})
             Dim analyzer = New OptionsDiagnosticAnalyzer(Of SyntaxKind)(options)
             compilation.GetAnalyzerDiagnostics({analyzer}, options)
             analyzer.VerifyAnalyzerOptions()

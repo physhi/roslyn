@@ -242,18 +242,18 @@ End Module
                 <file name="a.vb">
 public Module A
     Public Sub Main()
-        foo(Of String)()
-        c1(Of Long).foo()
+        goo(Of String)()
+        c1(Of Long).goo()
     End Sub
 
     Class c1(Of T)
-        Public Shared Sub foo()
+        Public Shared Sub goo()
             Dim arr As T(,) = New T(1, 2) {}
             System.Console.Write(arr.Length)
         End Sub
     End Class
 
-    Public Sub foo(Of T)()
+    Public Sub goo(Of T)()
         Dim arr As T(,) = New T(1, 2) {}
         System.Console.Write(arr.Length)
     End Sub
@@ -261,7 +261,7 @@ End Module
     </file>
             </compilation>,
             expectedOutput:="66").
-                        VerifyIL("A.foo(Of T)()",
+                        VerifyIL("A.goo(Of T)()",
             <![CDATA[
 {
   // Code size       18 (0x12)
@@ -283,12 +283,12 @@ End Module
                 <file name="a.vb">
 public Module A
     Public Sub Main()
-        foo(Of String)("hello")
-        c1(Of Long).foo(123)
+        goo(Of String)("hello")
+        c1(Of Long).goo(123)
     End Sub
 
     Class c1(Of T)
-        Public Shared Sub foo(e as T)
+        Public Shared Sub goo(e as T)
             Dim arr As T(,) = New T(2, 3) {}
             arr(1, 2) = e
 
@@ -299,7 +299,7 @@ public Module A
         End Sub
     End Class
 
-    Public Sub foo(Of T)(e as T)
+    Public Sub goo(Of T)(e as T)
         Dim arr As T(,) = New T(2, 3) {}
             arr(1, 2) = e
 
@@ -312,7 +312,7 @@ End Module
     </file>
             </compilation>,
             expectedOutput:="hellohello123123").
-                        VerifyIL("A.foo(Of T)(T)",
+                        VerifyIL("A.goo(Of T)(T)",
             <![CDATA[
 {
   // Code size       69 (0x45)
@@ -347,7 +347,7 @@ End Module
 ]]>)
         End Sub
 
-        <WorkItem(542259, "DevDiv")>
+        <WorkItem(542259, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542259")>
         <Fact>
         Public Sub MixMultiAndJaggedArray()
             CompileAndVerify(
@@ -662,7 +662,7 @@ Module Module1
     Function fun() As Integer
         Return 3
     End Function
-    Sub foo(x As Integer)
+    Sub goo(x As Integer)
         Dim arr1(3, x) As Integer
     End Sub
 End Module
@@ -780,7 +780,7 @@ End Module
         End Sub
 
         ' Accessing an array's 0th element should work fine
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AccessZero()
             CompileAndVerify(
@@ -817,7 +817,7 @@ End Module
         End Sub
 
         ' Accessing an array's maxlength element should work fine
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AccessMaxLength()
             CompileAndVerify(
@@ -854,7 +854,7 @@ End Module
         End Sub
 
         ' Accessing an array's -1 element should throw an exception
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AccessLessThanMin()
             CompileAndVerify(
@@ -916,7 +916,7 @@ End Module
         End Sub
 
         ' Accessing an array's maxlength+1 element should throw an exception
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AccessGreaterThanMax()
             CompileAndVerify(
@@ -975,7 +975,7 @@ End Module
         End Sub
 
         ' Accessing an array's index with a variable of type int, short, byte should work
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AccessWithDifferentType()
             CompileAndVerify(
@@ -1055,7 +1055,7 @@ End Module
         End Sub
 
         ' Passing an element to a function as a byVal or byRef parameter should work
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub ArrayAsArgument()
             CompileAndVerify(
@@ -1124,7 +1124,7 @@ End Module
         End Sub
 
         ' Passing an element to a function as a byVal or byRef parameter should work
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub ArrayAsArgument_1()
             CompileAndVerify(
@@ -1176,7 +1176,7 @@ End Module
         End Sub
 
         ' Assigning nothing to an array variable
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AssignNothingToArray()
             CompileAndVerify(
@@ -1264,7 +1264,7 @@ End Module
         End Sub
 
         ' Access index by enum
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AccessIndexByEnum()
             CompileAndVerify(
@@ -1305,7 +1305,7 @@ End Enum
         End Sub
 
         ' Assigning a struct variable to an element should work
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub AssigningStructToElement()
             CompileAndVerify(
@@ -1350,7 +1350,7 @@ End Structure
         End Sub
 
         ' Using foreach on a multi-dimensional array
-        <WorkItem(528752, "DevDiv")>
+        <WorkItem(528752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528752")>
         <Fact>
         Public Sub ForEachMultiDimensionalArray()
             CompileAndVerify(
@@ -1381,11 +1381,11 @@ End Module
 Module Program
     Sub Main(args As String())
     End Sub
-    Sub foo(ByRef arg(,,) As Integer)
+    Sub goo(ByRef arg(,,) As Integer)
     End Sub
-    Sub foo(ByRef arg(,) As Integer)
+    Sub goo(ByRef arg(,) As Integer)
     End Sub
-    Sub foo(ByRef arg() As Integer)
+    Sub goo(ByRef arg() As Integer)
     End Sub
 End Module
     </file>
@@ -1440,7 +1440,7 @@ End Class
     <file name="a.vb">
 Imports System
 &lt;TypeAttribute(GetType(Program(Of [String])(,)))&gt; _
-Public Class Foo
+Public Class Goo
 End Class
 Class Program(Of T)
 End Class

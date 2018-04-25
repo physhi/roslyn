@@ -20,7 +20,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
         while (true) { 
@@ -54,7 +54,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
         while (true) { 
@@ -87,7 +87,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int? x;
 /*<bind>*/
@@ -117,7 +117,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -147,7 +147,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -177,7 +177,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -207,7 +207,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -236,7 +236,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         bool x;
 /*<bind>*/
@@ -266,7 +266,7 @@ class C {
             var analysisResults = CompileAndAnalyzeControlFlowStatements(@"
 using System;
 class C {
-    static void Foo()
+    static void Goo()
     {
 /*<bind>*/
         while (DayOfWeek.Sunday == 0) { }
@@ -282,7 +282,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -311,7 +311,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -340,7 +340,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -369,7 +369,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -398,7 +398,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -427,7 +427,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static void Foo()
+    static void Goo()
     {
         int x;
 /*<bind>*/
@@ -576,7 +576,7 @@ class C {
             Assert.Equal(null, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside));
         }
 
-        [WorkItem(540183, "DevDiv")]
+        [WorkItem(540183, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540183")]
         [Fact]
         public void ControlledStatement01()
         {
@@ -593,7 +593,7 @@ class C
             Assert.True(controlFlowAnalysisResults.EndPointIsReachable);
         }
 
-        [WorkItem(540183, "DevDiv")]
+        [WorkItem(540183, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540183")]
         [Fact]
         public void ControlledStatement02()
         {
@@ -633,7 +633,7 @@ class C {
             Assert.Equal("i", GetSymbolNamesJoined(analysis.ReadInside));
         }
 
-        [WorkItem(539603, "DevDiv")]
+        [WorkItem(539603, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539603")]
         [Fact]
         public void TestForIncrement()
         {
@@ -694,7 +694,7 @@ class C
             Assert.Equal("i, j", GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside));
         }
 
-        [WorkItem(539701, "DevDiv")]
+        [WorkItem(539701, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539701")]
         [Fact]
         public void ContinueInForStatement()
         {
@@ -721,7 +721,7 @@ class Program
             Assert.True(controlFlowAnalysisResults.EndPointIsReachable);
         }
 
-        [WorkItem(528498, "DevDiv")]
+        [WorkItem(528498, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528498")]
         [Fact]
         public void TestVariablesDeclaredInForeachLoop01()
         {
@@ -741,7 +741,7 @@ class C {
             Assert.Equal(null, GetSymbolNamesJoined(analysis.ReadInside));
         }
 
-        [WorkItem(528498, "DevDiv")]
+        [WorkItem(528498, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528498")]
         [Fact]
         public void TestVariablesDeclaredInForeachLoop02()
         {
@@ -761,8 +761,8 @@ class C {
             Assert.Equal("x", GetSymbolNamesJoined(analysis.ReadInside));
         }
 
-        [WorkItem(528498, "DevDiv")]
-        [WorkItem(541438, "DevDiv")]
+        [WorkItem(528498, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528498")]
+        [WorkItem(541438, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541438")]
         [Fact]
         public void TestLocalsInForeachLoop()
         {
@@ -859,7 +859,7 @@ class Test
             Assert.Equal("this, ary, a, v", GetSymbolNamesJoined(analysis.WrittenOutside));
         }
 
-        [WorkItem(541711, "DevDiv")]
+        [WorkItem(541711, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541711")]
         [Fact]
         public void ForEachVariableShouldNotInVariableDeclaredTest()
         {
@@ -905,7 +905,7 @@ public class Program
         }
     }
 }");
-            var comp = CreateCompilationWithMscorlib(new[] { tree });
+            var comp = CreateCompilation(new[] { tree });
             var semanticModel = comp.GetSemanticModel(tree);
             var foreachNode = tree.GetCompilationUnitRoot().DescendantNodes().OfType<ForEachStatementSyntax>().Single();
             var flow = semanticModel.AnalyzeDataFlow(foreachNode);
@@ -985,7 +985,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static int Foo()
+    static int Goo()
     {
         int x = 1, y = x;
 /*<bind>*/
@@ -1013,7 +1013,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static int? Foo()
+    static int? Goo()
     {
         int x = 0;
 /*<bind>*/
@@ -1041,7 +1041,7 @@ class C {
         {
             var analysisResults = CompileAndAnalyzeControlAndDataFlowStatements(@"
 class C {
-    static int Foo()
+    static int Goo()
     {
         int? x;
 /*<bind>*/
@@ -1064,7 +1064,7 @@ class C {
             Assert.Equal(null, GetSymbolNamesJoined(dataFlowAnalysisResults.WrittenOutside));
         }
 
-        [WorkItem(528583, "DevDiv")]
+        [WorkItem(528583, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528583")]
         [Fact]
         public void InaccessibleVariables()
         {
@@ -1112,7 +1112,7 @@ class C {
 
         #region "Yield Return, Break"
 
-        [WorkItem(543070, "DevDiv")]
+        [WorkItem(543070, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543070")]
         [Fact]
         public void TestYieldStatements01()
         {
@@ -1167,7 +1167,7 @@ class Test
             }
         }
 
-        [WorkItem(543070, "DevDiv")]
+        [WorkItem(543070, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543070")]
         [Fact]
         public void TestYieldStatements02()
         {
@@ -1237,7 +1237,7 @@ class Test
             Assert.Equal(1, ctrlFlow.ExitPoints.Count());
         }
 
-        [WorkItem(543070, "DevDiv")]
+        [WorkItem(543070, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543070")]
         [Fact]
         public void TestYieldStatements03()
         {
@@ -1331,7 +1331,7 @@ class Test
             Assert.Equal(1, ctrlFlow.ExitPoints.Count());
         }
 
-        [WorkItem(543564, "DevDiv")]
+        [WorkItem(543564, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543564")]
         [Fact]
         public void YieldReturnStatement()
         {

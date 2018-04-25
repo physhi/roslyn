@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Emit;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.RuntimeMembers;
 using Microsoft.CodeAnalysis.Text;
 
@@ -46,7 +47,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal override void GenerateMethodBody(TypeCompilationState compilationState, DiagnosticBag diagnostics)
         {
             SyntheticBoundNodeFactory F = new SyntheticBoundNodeFactory(this, this.GetNonNullSyntaxNode(), compilationState, diagnostics);
-            F.CurrentMethod = this;
+            F.CurrentFunction = this;
 
             try
             {
@@ -99,7 +100,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                                                     F.Parameter(text),
                                                     F.SpecialMethod(SpecialMember.System_String__Chars),
                                                     F.Local(i)),
-                                                ConversionKind.ImplicitNumeric),
+                                                Conversion.ImplicitNumeric),
                                             F.Local(hashCode)),
                                         F.Literal(16777619))),
                                 F.Assignment(
@@ -136,18 +137,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         /// <summary>
         /// Given a SynthesizedExplicitImplementationMethod (effectively a tuple (interface method, implementing method, implementing type)),
-        /// construct a BoundBlock body.  Consider the tuple (Interface.Foo, Base.Foo, Derived).  The generated method will look like:
+        /// construct a BoundBlock body.  Consider the tuple (Interface.Goo, Base.Goo, Derived).  The generated method will look like:
         /// 
-        /// R Interface.Foo&lt;T1, T2, ...&gt;(A1 a1, A2 a2, ...)
+        /// R Interface.Goo&lt;T1, T2, ...&gt;(A1 a1, A2 a2, ...)
         /// {
         ///     //don't return the output if the return type is void
-        ///     return this.Foo&lt;T1, T2, ...&gt;(a1, a2, ...);
+        ///     return this.Goo&lt;T1, T2, ...&gt;(a1, a2, ...);
         /// }
         /// </summary>
         internal override void GenerateMethodBody(TypeCompilationState compilationState, DiagnosticBag diagnostics)
         {
             SyntheticBoundNodeFactory F = new SyntheticBoundNodeFactory(this, this.GetNonNullSyntaxNode(), compilationState, diagnostics);
-            F.CurrentMethod = (MethodSymbol)this.OriginalDefinition;
+            F.CurrentFunction = (MethodSymbol)this.OriginalDefinition;
 
             try
             {
@@ -185,7 +186,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal override void GenerateMethodBody(TypeCompilationState compilationState, DiagnosticBag diagnostics)
         {
             SyntheticBoundNodeFactory F = new SyntheticBoundNodeFactory(this, this.GetNonNullSyntaxNode(), compilationState, diagnostics);
-            F.CurrentMethod = (MethodSymbol)this.OriginalDefinition;
+            F.CurrentFunction = (MethodSymbol)this.OriginalDefinition;
 
             try
             {
@@ -199,7 +200,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         }
     }
 
-    internal abstract partial class MethodToClassRewriter 
+    internal abstract partial class MethodToClassRewriter
     {
         private sealed partial class BaseMethodWrapperSymbol : SynthesizedMethodBaseSymbol
         {
@@ -220,7 +221,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             internal override void GenerateMethodBody(TypeCompilationState compilationState, DiagnosticBag diagnostics)
             {
                 SyntheticBoundNodeFactory F = new SyntheticBoundNodeFactory(this, this.GetNonNullSyntaxNode(), compilationState, diagnostics);
-                F.CurrentMethod = this.OriginalDefinition;
+                F.CurrentFunction = this.OriginalDefinition;
 
                 try
                 {
@@ -262,7 +263,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             var argBuilder = ArrayBuilder<BoundExpression>.GetInstance();
             //var refKindBuilder = ArrayBuilder<RefKind>.GetInstance();
 
-            foreach (var param in F.CurrentMethod.Parameters)
+            foreach (var param in F.CurrentFunction.Parameters)
             {
                 argBuilder.Add(F.Parameter(param));
                 //refKindBuilder.Add(param.RefKind);
@@ -272,7 +273,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                                                 methodToInvoke,
                                                 argBuilder.ToImmutableAndFree());
 
-            return F.CurrentMethod.ReturnsVoid
+            return F.CurrentFunction.ReturnsVoid
                         ? F.Block(F.ExpressionStatement(invocation), F.Return())
                         : F.Block(F.Return(invocation));
         }

@@ -2,6 +2,7 @@
 
 Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
+Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
@@ -232,7 +233,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function RewriteInitializerAsStatement(initializer As BoundInitializer) As BoundStatement
             Select Case initializer.Kind
-                Case BoundKind.FieldOrPropertyInitializer
+                Case BoundKind.FieldInitializer, BoundKind.PropertyInitializer
                     Return initializer
                 Case BoundKind.GlobalStatementInitializer
                     Return DirectCast(initializer, BoundGlobalStatementInitializer).Statement

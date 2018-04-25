@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
@@ -8,8 +8,9 @@ using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
 using System;
 using Xunit;
 using Roslyn.Test.Utilities;
+using Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests;
 
-namespace Microsoft.CodeAnalysis.CSharp.UnitTests
+namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator.UnitTests
 {
     public class AccessibilityTests : ExpressionCompilerTestBase
     {
@@ -133,22 +134,21 @@ internal class C : B
         return this.M(this.P);
     }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(
+            var compilation0 = CreateCompilation(
                 source,
                 options: TestOptions.DebugDll,
                 assemblyName: Guid.NewGuid().ToString("D"));
 
-            var runtime = CreateRuntimeInstance(compilation0);
-            var context = CreateMethodContext(
-                runtime,
-                methodName: "C.M");
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateMethodContext(runtime, "C.M");
 
-            string error;
-            var testData = new CompilationTestData();
-            context.CompileExpression("this.M(this.P)", out error, testData);
+                string error;
+                var testData = new CompilationTestData();
+                context.CompileExpression("this.M(this.P)", out error, testData);
 
-            testData.GetMethodData("<>x.<>m0").VerifyIL(
-@"
+                testData.GetMethodData("<>x.<>m0").VerifyIL(
+    @"
 {
   // Code size       13 (0xd)
   .maxstack  2
@@ -160,6 +160,7 @@ internal class C : B
   IL_000c:  ret
 }
 ");
+            });
         }
 
         [Fact]

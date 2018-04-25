@@ -20,7 +20,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                               <file name="a.b">
                                 Module Module1
 
-                                    Sub Foo(z As Integer)
+                                    Sub Goo(z As Integer)
                                         Dim x As Integer
                                         If z = 2 Then
                                             Dim y As Integer = x : x = y ' ok to use unassigned integer local
@@ -32,7 +32,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
@@ -62,7 +62,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                <expected>
@@ -101,7 +101,7 @@ BC42024: Unused local variable: 'i4'.
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<expected>
@@ -146,7 +146,7 @@ BC42024: Unused local variable: 'i4'.
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<expected>
@@ -168,11 +168,11 @@ BC42024: Unused local variable: 'i4'.
                               <file name="a.b">
 Imports System
 Partial Class C
-    Partial Private Shared Sub Foo(a As action)
+    Partial Private Shared Sub Goo(a As action)
     End Sub
 
     Public Shared Sub Main()
-        Foo(DirectCast(Sub()
+        Goo(DirectCast(Sub()
                            Dim x As Integer
                            Dim y As Integer = x
                        End Sub, Action))
@@ -180,7 +180,7 @@ Partial Class C
 End Class
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs, (<errors></errors>))
         End Sub
@@ -191,18 +191,18 @@ End Class
                               <file name="a.b">
 Imports System
 Partial Class C
-    Partial Private Shared Sub Foo(a As action)
+    Partial Private Shared Sub Goo(a As action)
     End Sub
 
     Public Shared Sub Main()
-        Foo(DirectCast(Sub()
+        Goo(DirectCast(Sub()
                            Dim x As Integer
                        End Sub, Action))
     End Sub
 End Class
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<errors>
@@ -212,7 +212,7 @@ BC42024: Unused local variable: 'x'.
 </errors>))
         End Sub
 
-        <WorkItem(722619, "DevDiv")>
+        <WorkItem(722619, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/722619")>
         <Fact()>
         Public Sub Bug_722619()
             Dim program =
@@ -237,7 +237,7 @@ L1:
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp,
 <errors>
 BC42104: Variable 'x' is used before it has been assigned a value. A null reference exception could result at runtime.
@@ -246,7 +246,7 @@ BC42104: Variable 'x' is used before it has been assigned a value. A null refere
 </errors>)
         End Sub
 
-        <WorkItem(722575, "DevDiv")>
+        <WorkItem(722575, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/722575")>
         <Fact()>
         Public Sub Bug_722575a()
             Dim program =
@@ -258,7 +258,7 @@ Friend Module TestNone
     Structure Str1(Of T)
         Dim x As T
 
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1(Of T)
             o = s1
@@ -275,11 +275,11 @@ Friend Module TestNone
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp, <errors></errors>)
         End Sub
 
-        <WorkItem(722575, "DevDiv")>
+        <WorkItem(722575, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/722575")>
         <Fact()>
         Public Sub Bug_722575b()
             Dim program =
@@ -291,7 +291,7 @@ Friend Module TestStruct
     Structure Str1(Of T As Structure)
         Dim x As T
 
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1(Of T)
             o = s1
@@ -308,11 +308,11 @@ Friend Module TestStruct
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp, <errors></errors>)
         End Sub
 
-        <WorkItem(722575, "DevDiv")>
+        <WorkItem(722575, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/722575")>
         <Fact()>
         Public Sub Bug_722575c()
             Dim program =
@@ -324,7 +324,7 @@ Friend Module TestClass
     Structure Str1(Of T As Class)
         Dim x As T
 
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1(Of T)
             o = s1
@@ -341,7 +341,7 @@ Friend Module TestClass
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp,
 <errors>
 BC42109: Variable 's1' is used before it has been assigned a value. A null reference exception could result at runtime. Make sure the structure or all the reference members are initialized before use
@@ -353,7 +353,7 @@ BC42104: Variable 'x' is used before it has been assigned a value. A null refere
 </errors>)
         End Sub
 
-        <WorkItem(722575, "DevDiv")>
+        <WorkItem(722575, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/722575")>
         <Fact()>
         Public Sub Bug_722575d()
             Dim program =
@@ -364,7 +364,7 @@ Imports System
 Friend Module TestNewAndDisposable
     Structure Str1(Of T As {IDisposable, New})
         Dim x As T
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1(Of T)
             o = s1
@@ -381,11 +381,11 @@ Friend Module TestNewAndDisposable
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp, <errors></errors>)
         End Sub
 
-        <WorkItem(722575, "DevDiv")>
+        <WorkItem(722575, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/722575")>
         <Fact()>
         Public Sub Bug_722575e()
             Dim program =
@@ -396,7 +396,7 @@ Imports System
 Friend Class TestNone(Of T)
     Structure Str1
         Dim x As T
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1
             o = s1
@@ -415,7 +415,7 @@ End Class
 Friend Class TestStruct(Of T As Structure)
     Structure Str1
         Dim x As T
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1
             o = s1
@@ -434,7 +434,7 @@ End Class
 Friend Class TestClass(Of T As Class)
     Structure Str1
         Dim x As T
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1
             o = s1
@@ -453,7 +453,7 @@ End Class
 Friend Class TestNewAndDisposable(Of T As {IDisposable, New})
     Structure Str1
         Dim x As T
-        Sub foo()
+        Sub goo()
             Dim o As Object
             Dim s1 As Str1
             o = s1
@@ -470,7 +470,7 @@ Friend Class TestNewAndDisposable(Of T As {IDisposable, New})
 End Class
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp,
 <errors>
 BC42109: Variable 's1' is used before it has been assigned a value. A null reference exception could result at runtime. Make sure the structure or all the reference members are initialized before use
@@ -482,7 +482,7 @@ BC42104: Variable 'x' is used before it has been assigned a value. A null refere
 </errors>)
         End Sub
 
-        <WorkItem(617061, "DevDiv")>
+        <WorkItem(617061, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/617061")>
         <Fact()>
         Public Sub Bug_617061()
             Dim program =
@@ -504,11 +504,11 @@ Structure MEMORY_BASIC_INFORMATION
 End Structure
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, additionalRefs:={SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, references:={SystemCoreRef})
             CompilationUtils.AssertTheseDiagnostics(comp, <errors></errors>)
         End Sub
 
-        <WorkItem(544072, "DevDiv")>
+        <WorkItem(544072, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544072")>
         <Fact()>
         Public Sub TestBug12221a()
             Dim program =
@@ -530,7 +530,7 @@ Module Program222
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
@@ -540,7 +540,7 @@ BC42109: Variable 's' is used before it has been assigned a value. A null refere
 </expected>))
         End Sub
 
-        <WorkItem(544072, "DevDiv")>
+        <WorkItem(544072, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544072")>
         <Fact()>
         Public Sub TestBug12221b()
             Dim program =
@@ -562,14 +562,14 @@ Module Program222
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
  </expected>))
         End Sub
 
-        <WorkItem(544072, "DevDiv")>
+        <WorkItem(544072, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544072")>
         <Fact()>
         Public Sub TestBug12221c()
             Dim program =
@@ -588,14 +588,14 @@ Module Program222
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
  </expected>))
         End Sub
 
-        <WorkItem(544072, "DevDiv")>
+        <WorkItem(544072, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544072")>
         <Fact()>
         Public Sub TestBug12221d()
             Dim program =
@@ -611,7 +611,7 @@ Module Program222
 End Module
     </file>
 </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
@@ -639,7 +639,7 @@ BC42104: Variable 's' is used before it has been assigned a value. A null refere
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<expected>
@@ -664,7 +664,7 @@ BC42104: Variable 's' is used before it has been assigned a value. A null refere
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<expected>
@@ -697,7 +697,7 @@ BC42104: Variable 's' is used before it has been assigned a value. A null refere
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<expected>
@@ -729,7 +729,7 @@ End Module
                             </file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
@@ -756,7 +756,7 @@ End Module
                             </file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
@@ -785,7 +785,7 @@ End Module
                             </file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
 (<expected>
@@ -820,7 +820,7 @@ End Module
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<expected>
@@ -857,7 +857,7 @@ BC42104: Variable 'o2' is used before it has been assigned a value. A null refer
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
 
@@ -889,7 +889,7 @@ BC42104: Variable 'o2' is used before it has been assigned a value. A null refer
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
 
@@ -908,7 +908,7 @@ class Program
     end sub
 end class</file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Assert.NotEmpty(Me.FlowDiagnostics(comp).AsEnumerable().Where(Function(e) e.Severity = DiagnosticSeverity.[Warning]))
         End Sub
 
@@ -917,15 +917,15 @@ end class</file>
             Dim program = <compilation name="FunctionDoesNotReturnAValue">
                               <file name="a.b">
 class Program
-    public function foo() as integer
+    public function goo() as integer
     end function
 end class</file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<errors>
-BC42353: Function 'foo' doesn't return a value on all code paths. Are you missing a 'Return' statement?
+BC42353: Function 'goo' doesn't return a value on all code paths. Are you missing a 'Return' statement?
     end function
     ~~~~~~~~~~~~                                                   
                                                </errors>))
@@ -936,7 +936,7 @@ BC42353: Function 'foo' doesn't return a value on all code paths. Are you missin
             Dim program = <compilation name="FunctionDoesNotReturnAValue">
                               <file name="a.b">
 class Program
-    public function foo() as integer
+    public function goo() as integer
         return 0
     end function
 
@@ -945,14 +945,14 @@ class Program
     end function
 end class</file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<errors>
                                                 </errors>))
         End Sub
 
-        <WorkItem(540687, "DevDiv")>
+        <WorkItem(540687, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540687")>
         <Fact>
         Public Sub FunctionDoesNotReturnAnEnumValue()
             Dim program = <compilation name="FunctionDoesNotReturnAValue">
@@ -978,7 +978,7 @@ Module Program
     End Sub
 End Module</file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<errors>
@@ -993,7 +993,7 @@ BC42353: Function '<anonymous method>' doesn't return a value on all code paths.
                                                 </errors>))
         End Sub
 
-        <WorkItem(541005, "DevDiv")>
+        <WorkItem(541005, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541005")>
         <Fact>
         Public Sub TestLocalsInitializedByAsNew()
             Dim program = <compilation name="TestLocalsInitializedByAsNew">
@@ -1005,19 +1005,19 @@ BC42353: Function '<anonymous method>' doesn't return a value on all code paths.
                                         End Class
                                     End Class
 
-                                    Sub Foo()
+                                    Sub Goo()
                                         Dim x, y, z as New C
                                     End Sub
 
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
 
-        <WorkItem(542817, "DevDiv")>
+        <WorkItem(542817, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/542817")>
         <Fact>
         Public Sub ConditionalStateInsideQueryLambda()
             Dim program = <compilation name="ConditionalStateInsideQueryLambda">
@@ -1053,7 +1053,7 @@ Imports System.Linq
                             </file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim diags = comp.GetDiagnostics()
 
         End Sub
@@ -1093,7 +1093,7 @@ Imports System.Linq
                                         ]]>
                               </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
@@ -1112,7 +1112,7 @@ Imports System.Linq
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
@@ -1135,7 +1135,7 @@ Imports System.Linq
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                                (<errors>
@@ -1168,7 +1168,7 @@ BC42104: Variable 'obj' is used before it has been assigned a value. A null refe
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
@@ -1190,7 +1190,7 @@ BC42104: Variable 'obj' is used before it has been assigned a value. A null refe
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             CompilationUtils.AssertTheseDiagnostics(errs,
                                     (<errors>
@@ -1220,12 +1220,12 @@ BC42104: Variable 'obj' is used before it has been assigned a value. A null refe
                                 End Module
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
 
-        <WorkItem(543095, "DevDiv")>
+        <WorkItem(543095, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543095")>
         <Fact()>
         Public Sub TestSelectCase_Error_MissingCaseStatement()
             Dim program = <compilation name="TestSelectCase_Error_MissingCaseStatement">
@@ -1245,12 +1245,12 @@ BC42104: Variable 'obj' is used before it has been assigned a value. A null refe
                                 End Structure
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
 
-        <WorkItem(543095, "DevDiv")>
+        <WorkItem(543095, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543095")>
         <Fact()>
         Public Sub TestSelectCase_Error_MissingCaseExpression()
             Dim program = <compilation name="TestSelectCase_Error_MissingCaseExpression">
@@ -1271,12 +1271,14 @@ BC42104: Variable 'obj' is used before it has been assigned a value. A null refe
                                 End Structure
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program)
             Dim errs = Me.FlowDiagnostics(comp)
             errs.AssertNoErrors()
         End Sub
 
-        <Fact(Skip:="529405"), WorkItem(529405, "DevDiv")>
+        <Fact>
+        <WorkItem(100475, "https://devdiv.visualstudio.com/defaultcollection/DevDiv/_workitems?_a=edit&id=100475")>
+        <WorkItem(529405, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529405")>
         Public Sub TestThrowDoNotReportUnreachable()
             Dim program =
 <compilation>
@@ -1298,10 +1300,10 @@ Class Test
 End Class
     </file>
 </compilation>
-            CompilationUtils.CreateCompilationWithMscorlib(program).VerifyDiagnostics()
+            CompilationUtils.CreateCompilationWithMscorlib40(program).VerifyDiagnostics()
         End Sub
 
-        <WorkItem(531310, "DevDiv")>
+        <WorkItem(531310, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531310")>
         <Fact()>
         Public Sub Bug_17926()
             Dim program =
@@ -1326,11 +1328,11 @@ Module Module1
 End Module
     </file>
 </compilation>
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(program)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(program)
             CompilationUtils.AssertTheseDiagnostics(compilation, <errors></errors>)
         End Sub
 
-        <WorkItem(531529, "DevDiv")>
+        <WorkItem(531529, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531529")>
         <Fact()>
         Public Sub Bug_18255()
             Dim program =
@@ -1346,13 +1348,13 @@ Public Class TestState
 End Class    
     </file>
 </compilation>
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(program)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(program)
             CompilationUtils.AssertTheseDiagnostics(compilation,
 <errors>
 </errors>)
         End Sub
 
-        <WorkItem(531530, "DevDiv")>
+        <WorkItem(531530, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531530")>
         <Fact()>
         Public Sub Bug_18256()
             Dim program =
@@ -1400,7 +1402,7 @@ End Class
     </file>
 </compilation>
 
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(program)
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(program)
             CompilationUtils.AssertTheseDiagnostics(compilation,
 <errors>
 BC42107: Property 'Prop3' doesn't return a value on all code paths. A null reference exception could occur at run time when the result is used.
@@ -1418,7 +1420,7 @@ BC42355: Property 'Prop6' doesn't return a value on all code paths. Are you miss
 </errors>)
         End Sub
 
-        <Fact(), WorkItem(531237, "DevDiv")>
+        <Fact(), WorkItem(531237, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531237")>
         Public Sub Bug17796()
             Dim program = <compilation>
                               <file name="a.b"><![CDATA[
@@ -1469,7 +1471,7 @@ End Module
                             ]]></file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(program, {SystemCoreRef})
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(program, {SystemCoreRef})
 
             CompilationUtils.AssertTheseDiagnostics(comp,
 <errors>
@@ -1482,7 +1484,7 @@ BC42104: Variable 'del5' is used before it has been assigned a value. A null ref
 </errors>)
         End Sub
 
-        <Fact(), WorkItem(530465, "DevDiv")>
+        <Fact(), WorkItem(530465, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530465")>
         Public Sub SuppressErrorReportingForSynthesizedLocalSymbolWithEmptyName()
             Dim program = <compilation>
                               <file name="a.b"><![CDATA[
@@ -1497,7 +1499,7 @@ End Module
                             ]]></file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(program)
 
             CompilationUtils.AssertTheseDiagnostics(comp,
 <errors>
@@ -1528,7 +1530,7 @@ End Class
                             ]]></file>
                           </compilation>
 
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(program)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntime(program)
 
             CompilationUtils.AssertTheseDiagnostics(comp)
         End Sub
@@ -1553,7 +1555,7 @@ Public Structure S1
 End Structure
                             </file>
                           </compilation>
-            Dim comp = CompilationUtils.CreateCompilationWithMscorlib(program, options:=TestOptions.DebugDll)
+            Dim comp = CompilationUtils.CreateCompilationWithMscorlib40(program, options:=TestOptions.DebugDll)
 
             comp.AssertTheseDiagnostics(
 <expected>

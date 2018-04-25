@@ -1,9 +1,11 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading.Tasks
+Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.DebuggerIntelliSense
+    <[UseExportProvider]>
     Public Class VisualBasicDebuggerIntellisenseTests
         <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Async Function QueryVariables() As Task
@@ -230,8 +232,8 @@ End Module</Document>
                                <Document>$$</Document>
 
                                <Document>Module Program
-    Sub Self(Of T)(foo as T)
-        Return foo
+    Sub Self(Of T)(goo as T)
+        Return goo
     End Sub
 
     Sub Main(args As String())
@@ -256,8 +258,8 @@ End Module</Document>
                                <Document>$$</Document>
 
                                <Document>Module Program
-    Sub Self(Of T)(foo as T)
-        Return foo
+    Sub Self(Of T)(goo as T)
+        Return goo
     End Sub
 
     Sub Main(args As String())
@@ -314,8 +316,8 @@ End Class
                                <Document>$$</Document>
 
                                <Document>Module Program
-    Sub Self(Of T)(foo as T)
-        Return foo
+    Sub Self(Of T)(goo as T)
+        Return goo
     End Sub
 
     Sub Main(args As String())
@@ -375,7 +377,7 @@ End Module</Document>
             Next
         End Function
 
-        <WorkItem(1044441)>
+        <WorkItem(1044441, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1044441")>
         <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Async Sub StoppedOnEndSub()
             Dim text = <Workspace>
@@ -392,7 +394,7 @@ End Module</Document>
             End Using
         End Sub
 
-        <WorkItem(1044441)>
+        <WorkItem(1044441, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1044441")>
         <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Async Sub StoppedOnEndProperty()
             Dim text = <Workspace>

@@ -1,12 +1,12 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editor.Implementation.Highlighting;
-using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighlighters
@@ -29,10 +29,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighli
                     spans.Add(EmptySpan(label.ColonToken.Span.End));
                 }
 
-                foreach (var statement in switchSection.Statements)
-                {
-                    HighlightRelatedKeywords(statement, spans);
-                }
+                HighlightRelatedKeywords(switchSection, spans, highlightBreaks: true, highlightGotos: true);
             }
 
             return spans;
@@ -42,15 +39,23 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighli
         /// Finds all breaks and continues that are a child of this node, and adds the appropriate spans to the spans
         /// list.
         /// </summary>
-        private void HighlightRelatedKeywords(SyntaxNode node, List<TextSpan> spans)
+        private void HighlightRelatedKeywords(SyntaxNode node, List<TextSpan> spans,
+            bool highlightBreaks, bool highlightGotos)
         {
-            node.TypeSwitch(
-                (BreakStatementSyntax breakStatement) =>
-                {
-                    spans.Add(breakStatement.BreakKeyword.Span);
-                    spans.Add(EmptySpan(breakStatement.SemicolonToken.Span.End));
-                },
-                (GotoStatementSyntax gotoStatement) =>
+            Debug.Assert(highlightBreaks || highlightGotos);
+
+            if (highlightBreaks && node is BreakStatementSyntax breakStatement)
+            {
+                spans.Add(breakStatement.BreakKeyword.Span);
+                spans.Add(EmptySpan(breakStatement.SemicolonToken.Span.End));
+            }
+            else if (highlightGotos && node is GotoStatementSyntax gotoStatement)
+            {
+                // We only want to highlight 'goto case' and 'goto default', not plain old goto statements,
+                // but if the label is missing, we do highlight 'goto' assuming it's more likely that
+                // the user is in the middle of typing 'goto case' or 'goto default'.
+                if (gotoStatement.IsKind(SyntaxKind.GotoCaseStatement, SyntaxKind.GotoDefaultStatement) ||
+                    gotoStatement.Expression.IsMissing)
                 {
                     var start = gotoStatement.GotoKeyword.SpanStart;
                     var end = !gotoStatement.CaseOrDefaultKeyword.IsKind(SyntaxKind.None)
@@ -59,18 +64,22 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.KeywordHighlighting.KeywordHighli
 
                     spans.Add(TextSpan.FromBounds(start, end));
                     spans.Add(EmptySpan(gotoStatement.SemicolonToken.Span.End));
-                },
-                _ =>
+                }
+            }
+            else
+            {
+                foreach (var child in node.ChildNodes())
                 {
-                    foreach (var child in node.ChildNodes())
+                    var highlightBreaksForChild = highlightBreaks && !child.IsBreakableConstruct();
+                    var highlightGotosForChild = highlightGotos && !child.IsKind(SyntaxKind.SwitchStatement);
+
+                    // Only recurse if we have anything to do
+                    if (highlightBreaksForChild || highlightGotosForChild)
                     {
-                        // Only recurse if we have anything to do
-                        if (child.IsBreakableConstruct())
-                        {
-                            HighlightRelatedKeywords(child, spans);
-                        }
+                        HighlightRelatedKeywords(child, spans, highlightBreaksForChild, highlightGotosForChild);
                     }
-                });
+                }
+            }
         }
     }
 }

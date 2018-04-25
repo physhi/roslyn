@@ -257,7 +257,7 @@ namespace Microsoft.CodeAnalysis
 
             if (IsKeyOrTokenEmpty(nameObject, PropertyId.NULL_PUBLIC_KEY_TOKEN))
             {
-                return SpecializedCollections.EmptyArray<byte>();
+                return Array.Empty<byte>();
             }
 
             return null;
@@ -273,7 +273,7 @@ namespace Microsoft.CodeAnalysis
 
             if (IsKeyOrTokenEmpty(nameObject, PropertyId.NULL_PUBLIC_KEY))
             {
-                return SpecializedCollections.EmptyArray<byte>();
+                return Array.Empty<byte>();
             }
 
             return null;
@@ -439,15 +439,15 @@ namespace Microsoft.CodeAnalysis
                 {
 #if SCRIPTING
 
-                    throw new ArgumentException(Scripting.ScriptingResources.InvalidCharactersInAssemblyName, "name");
+                    throw new ArgumentException(Scripting.ScriptingResources.InvalidCharactersInAssemblyName, nameof(name));
 
-#elif WORKSPACE_DESKTOP
+#elif WORKSPACE_DESKTOP || EDITOR_FEATURES
 
-                    throw new ArgumentException(Microsoft.CodeAnalysis.WorkspaceDesktopResources.InvalidCharactersInAssemblyName, "name");
+                    throw new ArgumentException(Microsoft.CodeAnalysis.WorkspaceDesktopResources.Invalid_characters_in_assembly_name, nameof(name));
 
 #else
 
-                    throw new ArgumentException(Microsoft.CodeAnalysis.CodeAnalysisResources.InvalidCharactersInAssemblyName, "name");
+                    throw new ArgumentException(Microsoft.CodeAnalysis.CodeAnalysisResources.InvalidCharactersInAssemblyName, nameof(name));
 #endif
                 }
 
@@ -469,15 +469,15 @@ namespace Microsoft.CodeAnalysis
                 {
 #if SCRIPTING
 
-                    throw new ArgumentException(Microsoft.CodeAnalysis.Scripting.ScriptingResources.InvalidCharactersInAssemblyName, "name");
+                    throw new ArgumentException(Microsoft.CodeAnalysis.Scripting.ScriptingResources.InvalidCharactersInAssemblyName, nameof(name));
 
-#elif WORKSPACE_DESKTOP
+#elif WORKSPACE_DESKTOP || EDITOR_FEATURES
 
-                    throw new ArgumentException(Microsoft.CodeAnalysis.WorkspaceDesktopResources.InvalidCharactersInAssemblyName, "name");
+                    throw new ArgumentException(Microsoft.CodeAnalysis.WorkspaceDesktopResources.Invalid_characters_in_assembly_name, nameof(name));
 
 #else
 
-                    throw new ArgumentException(Microsoft.CodeAnalysis.CodeAnalysisResources.InvalidCharactersInAssemblyName, "name");
+                    throw new ArgumentException(Microsoft.CodeAnalysis.CodeAnalysisResources.InvalidCharactersInAssemblyName, nameof(name));
 #endif
                 }
 

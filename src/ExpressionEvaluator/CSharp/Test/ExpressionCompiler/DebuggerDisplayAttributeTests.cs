@@ -1,17 +1,14 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeGen;
-using Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
-using Microsoft.CodeAnalysis.Test.Utilities;
-using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
+using Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.CSharp.UnitTests
+namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator.UnitTests
 {
     /// <summary>
     /// Compile expressions at type-scope to support
@@ -32,47 +29,50 @@ class C
     static int P { get { return 3; } }
     object Q { get { return 4; } }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "C");
-            // Static field.
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "F"),
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll);
+
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "C");
+                // Static field.
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "F"),
+    @"{
   // Code size        6 (0x6)
   .maxstack  1
   IL_0000:  ldsfld     ""object C.F""
   IL_0005:  ret
 }");
-            // Instance field.
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "G"),
-@"{
+                // Instance field.
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "G"),
+    @"{
   // Code size        7 (0x7)
   .maxstack  1
   IL_0000:  ldarg.0
   IL_0001:  ldfld      ""int C.G""
   IL_0006:  ret
 }");
-            // Static property.
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "P"),
-@"{
+                // Static property.
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "P"),
+    @"{
   // Code size        6 (0x6)
   .maxstack  1
   IL_0000:  call       ""int C.P.get""
   IL_0005:  ret
 }");
-            // Instance property.
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "Q"),
-@"{
+                // Instance property.
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "Q"),
+    @"{
   // Code size        7 (0x7)
   .maxstack  1
   IL_0000:  ldarg.0
   IL_0001:  callvirt   ""object C.Q.get""
   IL_0006:  ret
 }");
+            });
         }
 
         [Fact]
@@ -86,12 +86,13 @@ class C
     const string F = ""str"";
     const int G = 2;
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "C");
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "F[G]"),
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "C");
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "F[G]"),
+    @"{
   // Code size       12 (0xc)
   .maxstack  2
   IL_0000:  ldstr      ""str""
@@ -99,6 +100,7 @@ class C
   IL_0006:  call       ""char string.this[int].get""
   IL_000b:  ret
 }");
+            });
         }
 
         [Fact]
@@ -114,18 +116,20 @@ class C
         return c;
     }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "C");
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "F(this)"),
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "C");
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "F(this)"),
+    @"{
   // Code size        7 (0x7)
   .maxstack  1
   IL_0000:  ldarg.0
   IL_0001:  call       ""object C.F(C)""
   IL_0006:  ret
 }");
+            });
         }
 
         [Fact]
@@ -148,18 +152,20 @@ class B : A
         return 2;
     }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "B");
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                CompileExpression(context, "base.F()"),
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "B");
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    CompileExpression(context, "base.F()"),
+    @"{
   // Code size        7 (0x7)
   .maxstack  1
   IL_0000:  ldarg.0
   IL_0001:  call       ""object A.F()""
   IL_0006:  ret
 }");
+            });
         }
 
         [Fact]
@@ -178,16 +184,17 @@ class A<T> where T : class
         }
     }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "A.B");
-            string error;
-            var testData = new CompilationTestData();
-            var result = context.CompileExpression("F(default(T), default(U))", out error, testData);
-            string actualIL = testData.GetMethodData("<>x<T, U>.<>m0").GetMethodIL();
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                actualIL,
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "A.B");
+                string error;
+                var testData = new CompilationTestData();
+                var result = context.CompileExpression("F(default(T), default(U))", out error, testData);
+                string actualIL = testData.GetMethodData("<>x<T, U>.<>m0").GetMethodIL();
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    actualIL,
+    @"{
   // Code size       24 (0x18)
   .maxstack  2
   .locals init (T V_0,
@@ -201,15 +208,16 @@ class A<T> where T : class
   IL_0012:  call       ""object A<T>.B<U>.F<T, U>(T, U)""
   IL_0017:  ret
 }");
-            // Verify generated type is generic, but method is not.
-            using (var metadata = ModuleMetadata.CreateFromImage(ImmutableArray.CreateRange(result.Assembly)))
-            {
-                var reader = metadata.MetadataReader;
-                var typeDef = reader.GetTypeDef(result.TypeName);
-                reader.CheckTypeParameters(typeDef.GetGenericParameters(), "T", "U");
-                var methodDef = reader.GetMethodDef(typeDef, result.MethodName);
-                reader.CheckTypeParameters(methodDef.GetGenericParameters());
-            }
+                // Verify generated type is generic, but method is not.
+                using (var metadata = ModuleMetadata.CreateFromImage(ImmutableArray.CreateRange(result.Assembly)))
+                {
+                    var reader = metadata.MetadataReader;
+                    var typeDef = reader.GetTypeDef(result.TypeName);
+                    reader.CheckTypeParameters(typeDef.GetGenericParameters(), "T", "U");
+                    var methodDef = reader.GetMethodDef(typeDef, result.MethodName);
+                    reader.CheckTypeParameters(methodDef.GetGenericParameters());
+                }
+            });
         }
 
         [Fact]
@@ -229,17 +237,18 @@ namespace N
         }
     }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "N.C");
-            string error;
-            var testData = new CompilationTestData();
-            // Expression compilation should succeed without imports.
-            var result = context.CompileExpression("typeof(N.C) ?? typeof(C)", out error, testData);
-            Assert.Null(error);
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-                testData.GetMethodData("<>x.<>m0").GetMethodIL(),
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "N.C");
+                string error;
+                var testData = new CompilationTestData();
+                // Expression compilation should succeed without imports.
+                var result = context.CompileExpression("typeof(N.C) ?? typeof(C)", out error, testData);
+                Assert.Null(error);
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                    testData.GetMethodData("<>x.<>m0").GetMethodIL(),
+    @"{
   // Code size       25 (0x19)
   .maxstack  2
   IL_0000:  ldtoken    ""N.C""
@@ -251,14 +260,15 @@ namespace N
   IL_0013:  call       ""System.Type System.Type.GetTypeFromHandle(System.RuntimeTypeHandle)""
   IL_0018:  ret
 }");
-            // Expression compilation should fail using imports since there are no symbols.
-            context = CreateTypeContext(runtime, "N.C");
-            testData = new CompilationTestData();
-            result = context.CompileExpression("typeof(A.C) ?? typeof(B) ?? typeof(C)", out error, testData);
-            Assert.Equal(error, "error CS0246: The type or namespace name 'A' could not be found (are you missing a using directive or an assembly reference?)");
-            testData = new CompilationTestData();
-            result = context.CompileExpression("typeof(B) ?? typeof(C)", out error, testData);
-            Assert.Equal(error, "error CS0246: The type or namespace name 'B' could not be found (are you missing a using directive or an assembly reference?)");
+                // Expression compilation should fail using imports since there are no symbols.
+                context = CreateTypeContext(runtime, "N.C");
+                testData = new CompilationTestData();
+                result = context.CompileExpression("typeof(A.C) ?? typeof(B) ?? typeof(C)", out error, testData);
+                Assert.Equal(error, "error CS0246: The type or namespace name 'A' could not be found (are you missing a using directive or an assembly reference?)");
+                testData = new CompilationTestData();
+                result = context.CompileExpression("typeof(B) ?? typeof(C)", out error, testData);
+                Assert.Equal(error, "error CS0246: The type or namespace name 'B' could not be found (are you missing a using directive or an assembly reference?)");
+            });
         }
 
         [Fact]
@@ -270,13 +280,15 @@ namespace N
 class C
 {
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "C");
-            string error;
-            var testData = new CompilationTestData();
-            var result = context.CompileExpression("$ReturnValue", out error, testData);
-            Assert.Equal(error, "error CS0103: The name '$ReturnValue' does not exist in the current context");
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "C");
+                string error;
+                var testData = new CompilationTestData();
+                var result = context.CompileExpression("$ReturnValue", out error, testData);
+                Assert.Equal(error, "error CS0103: The name '$ReturnValue' does not exist in the current context");
+            });
         }
 
         [Fact]
@@ -291,11 +303,12 @@ class C
         return f();
     }
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "C");
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "C");
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(
+    @"{
   // Code size       29 (0x1d)
   .maxstack  3
   IL_0000:  newobj     ""<>x.<>c__DisplayClass0_0..ctor()""
@@ -307,7 +320,8 @@ class C
   IL_0017:  call       ""object C.F(System.Func<object>)""
   IL_001c:  ret
 }",
-            CompileExpression(context, "F(() => this.o)"));
+                CompileExpression(context, "F(() => this.o)"));
+            });
         }
 
         [Fact]
@@ -320,20 +334,22 @@ class C
 {
     object F = ""f"";
 }";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "C");
-            // No format specifiers.
-            string error;
-            var result = context.CompileExpression("F", out error);
-            Assert.NotNull(result.Assembly);
-            Assert.Null(result.FormatSpecifiers);
-            // Format specifiers.
-            result = context.CompileExpression("F, nq,ac", out error);
-            Assert.NotNull(result.Assembly);
-            Assert.Equal(result.FormatSpecifiers.Count, 2);
-            Assert.Equal(result.FormatSpecifiers[0], "nq");
-            Assert.Equal(result.FormatSpecifiers[1], "ac");
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "C");
+                // No format specifiers.
+                string error;
+                var result = context.CompileExpression("F", out error);
+                Assert.NotNull(result.Assembly);
+                Assert.Null(result.FormatSpecifiers);
+                // Format specifiers.
+                result = context.CompileExpression("F, nq,ac", out error);
+                Assert.NotNull(result.Assembly);
+                Assert.Equal(result.FormatSpecifiers.Count, 2);
+                Assert.Equal(result.FormatSpecifiers[0], "nq");
+                Assert.Equal(result.FormatSpecifiers[1], "ac");
+            });
         }
 
         [Fact]
@@ -359,23 +375,25 @@ public class Derived : Base
     }
 }
 ";
-            var compilation0 = CreateCompilationWithMscorlib(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
-            var runtime = CreateRuntimeInstance(compilation0, includeSymbols: false);
-            var context = CreateTypeContext(runtime, "Derived");
-            string error;
-            var testData = new CompilationTestData();
-            var result = context.CompileExpression("GetDebuggerDisplay()", out error, testData);
-            Assert.Null(error);
-            var actualIL = testData.GetMethodData("<>x.<>m0").GetMethodIL();
-            var expectedIL =
-@"{
+            var compilation0 = CreateCompilation(source, options: TestOptions.DebugDll, assemblyName: ExpressionCompilerUtilities.GenerateUniqueName());
+            WithRuntimeInstance(compilation0, runtime =>
+            {
+                var context = CreateTypeContext(runtime, "Derived");
+                string error;
+                var testData = new CompilationTestData();
+                var result = context.CompileExpression("GetDebuggerDisplay()", out error, testData);
+                Assert.Null(error);
+                var actualIL = testData.GetMethodData("<>x.<>m0").GetMethodIL();
+                var expectedIL =
+    @"{
   // Code size        7 (0x7)
   .maxstack  1
   IL_0000:  ldarg.0
   IL_0001:  callvirt   ""string Derived.GetDebuggerDisplay()""
   IL_0006:  ret
 }";
-            AssertEx.AssertEqualToleratingWhitespaceDifferences(expectedIL, actualIL);
+                AssertEx.AssertEqualToleratingWhitespaceDifferences(expectedIL, actualIL);
+            });
         }
 
         private static string CompileExpression(EvaluationContext context, string expr)

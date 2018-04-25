@@ -12,7 +12,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     public class BreakingChanges : CSharpTestBase
     {
-        [Fact, WorkItem(527050, "DevDiv")]
+        [Fact, WorkItem(527050, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527050")]
         [Trait("Feature", "Directives")]
         public void TestCS1024DefineWithUnicodeInMiddle()
         {
@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             SyntaxFactory.ParseSyntaxTree(test).GetDiagnostics().Verify(Diagnostic(ErrorCode.ERR_PPDirectiveExpected, @"de\u0066in\U00000065"));
         }
 
-        [Fact, WorkItem(527951, "DevDiv")]
+        [Fact, WorkItem(527951, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527951")]
         public void CS0133ERR_NotConstantExpression05()
         {
             var text = @"
@@ -35,7 +35,7 @@ class A
     }
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
                 // (7,22): warning CS0219: The variable 'o2' is assigned but its value is never used
                 //         const string o2 = (string)o1; // Dev10 reports CS0133
@@ -43,7 +43,7 @@ class A
                 );
         }
 
-        [WorkItem(527943, "DevDiv")]
+        [WorkItem(527943, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527943")]
         [Fact]
         public void CS0146ERR_CircularBase05()
         {
@@ -58,11 +58,11 @@ class B : IFace<B.C.D>
     }
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             // In Dev10, there was an error - ErrorCode.ERR_CircularBase at (4,7)
             Assert.Equal(0, comp.GetDiagnostics().Count());
         }
-        [WorkItem(540371, "DevDiv"), WorkItem(530792, "DevDiv")]
+        [WorkItem(540371, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/540371"), WorkItem(530792, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530792")]
         [Fact]
 
         private void CS0507ERR_CantChangeAccessOnOverride_TestSynthesizedSealedAccessorsInDifferentAssembly()
@@ -75,7 +75,7 @@ public class Base<T>
     public virtual List<T> Property1 { get { return null; } protected internal set { } }
     public virtual List<T> Property2 { protected internal get { return null; } set { } }
 }";
-            var compilation1 = CreateCompilationWithMscorlib(source1);
+            var compilation1 = CreateCompilation(source1);
 
             var source2 = @"
 using System.Collections.Generic;
@@ -85,7 +85,7 @@ public class Derived : Base<int>
     public sealed override List<int> Property1 { get { return null; } }
     public sealed override List<int> Property2 { set { } }
 }";
-            var comp = CreateCompilationWithMscorlib(source2, new[] { new CSharpCompilationReference(compilation1) });
+            var comp = CreateCompilation(source2, new[] { new CSharpCompilationReference(compilation1) });
             comp.VerifyDiagnostics();
 
             // This is not a breaking change - but it is a change in behavior from Dev10
@@ -154,7 +154,7 @@ public class MonthDays : idx
    }
 }
 ";
-            var compilation = CreateCompilationWithMscorlib(text);
+            var compilation = CreateCompilation(text);
 
             compilation.VerifyDiagnostics();
 
@@ -163,7 +163,7 @@ public class MonthDays : idx
             Assert.Equal("MonthInfoIndexer", indexer.MetadataName);
         }
 
-        [WorkItem(527116, "DevDiv")]
+        [WorkItem(527116, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527116")]
         [Fact]
         public void RegressWarningInSingleMultiLineMixedXml()
         {
@@ -198,7 +198,7 @@ class Test
             Assert.Equal(8, tree.GetDiagnostics().Count());
         }
 
-        [Fact, WorkItem(527093, "DevDiv")]
+        [Fact, WorkItem(527093, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527093")]
         public void NoCS1570ForUndefinedXmlNamespace()
         {
             var text = @"
@@ -217,7 +217,7 @@ class A { }
             Assert.Empty(tree.GetDiagnostics());
         }
 
-        [Fact, WorkItem(541345, "DevDiv")]
+        [Fact, WorkItem(541345, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/541345")]
         public void CS0019_TestNullCoalesceWithNullOperandsErrors()
         {
             var source = @"
@@ -244,13 +244,13 @@ class Program
     }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_BadBinaryOps, "null ?? null").WithArguments("??", "<null>", "<null>"),
                 Diagnostic(ErrorCode.ERR_NotConstantExpression, @"null ?? ""ABC""").WithArguments("b"),
                 Diagnostic(ErrorCode.ERR_NotConstantExpression, @"""DEF"" ?? null").WithArguments("c"),
                 Diagnostic(ErrorCode.ERR_NotConstantExpression, "(int?)null ?? 123").WithArguments("d"));
         }
-        [Fact, WorkItem(528676, "DevDiv"), WorkItem(528676, "DevDiv")]
+        [Fact, WorkItem(528676, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528676"), WorkItem(528676, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528676")]
 
         private         // CS0657WRN_AttributeLocationOnBadDeclaration_AfterAttrDeclOrDelegate
                 void CS1730ERR_CantUseAttributeOnInvaildLocation()
@@ -258,15 +258,15 @@ class Program
             var test = @"using System;
 
 [AttributeUsage(AttributeTargets.All)]
-public class Foo : Attribute
+public class Goo : Attribute
 {
     public int Name;
-    public Foo(int sName) { Name = sName; }
+    public Goo(int sName) { Name = sName; }
 }
 
 public delegate void EventHandler(object sender, EventArgs e);
 
-[assembly: Foo(5)]
+[assembly: Goo(5)]
 public class Test { }
 ";
 
@@ -275,7 +275,7 @@ public class Test { }
             SyntaxFactory.ParseSyntaxTree(test).GetDiagnostics().Verify(Diagnostic(ErrorCode.ERR_GlobalAttributesNotFirst, "assembly"));
         }
 
-        [WorkItem(528711, "DevDiv")]
+        [WorkItem(528711, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528711")]
         [Fact]
         public void CS9259_StructLayoutCycle()
         {
@@ -288,7 +288,7 @@ public class Test { }
         static T x;
     }
 }";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
                 // (3,18): warning CS0169: The field 'S1<T>.x' is never used
                 //     S1<S1<T>>.S2 x;
@@ -299,7 +299,7 @@ public class Test { }
                 );
         }
 
-        [WorkItem(528094, "DevDiv")]
+        [WorkItem(528094, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528094")]
         [Fact]
         public void FormattingUnicodeNotPartOfId()
         {
@@ -334,7 +334,7 @@ class Program
             CompileAndVerify(source, expectedOutput: "1");
         }
 
-        [WorkItem(529000, "DevDiv")]
+        [WorkItem(529000, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529000")]
         [Fact]
         public void NoCS0121ForSwitchedParamNames_Dev10814222()
         {
@@ -359,8 +359,8 @@ class Test01
     public static int Bar<T>(int x, T y, params int[] z) { return 1; }
     public static int Bar<T>(string y, int x) { return 0; } // Roslyn pick this one
 
-    public static int Foo<T>(int x, T y) { return 1; }
-    public static int Foo<T>(string y, int x) { return 0; } // Roslyn pick this one
+    public static int Goo<T>(int x, T y) { return 1; }
+    public static int Goo<T>(string y, int x) { return 0; } // Roslyn pick this one
 
     public static int AbcDef<T>(int x, T y) { return 0; } // Roslyn pick this one
     public static int AbcDef<T>(string y, int x, params int[] z) { return 1; }
@@ -368,7 +368,7 @@ class Test01
     public static void Main01()
     {
         Console.Write(Bar<string>(x: 1, y: ""T1""));    // Dev10:CS0121
-        Console.Write(Foo<string>(x: 1, y: ""T2""));    // Dev10:CS0121
+        Console.Write(Goo<string>(x: 1, y: ""T2""));    // Dev10:CS0121
         Console.Write(AbcDef<string>(x: 1, y: ""T3"")); // Dev10:CS0121
     }
 }
@@ -377,8 +377,8 @@ class Test01
             CompileAndVerify(source, expectedOutput: "0000");
         }
 
-        [WorkItem(529001, "DevDiv")]
-        [WorkItem(529002, "DevDiv")]
+        [WorkItem(529001, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529001")]
+        [WorkItem(529002, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529002")]
         [WorkItem(1067, "https://github.com/dotnet/roslyn/issues/1067")]
         [Fact]
         public void CS0185ERR_LockNeedsReference_RequireRefType()
@@ -399,8 +399,8 @@ class C
     }
 }
 ";
-            var standardCompilation = CreateCompilationWithMscorlib(source);
-            var strictCompilation = CreateCompilationWithMscorlib(source, parseOptions: TestOptions.Regular.WithStrictFeature());
+            var standardCompilation = CreateCompilation(source);
+            var strictCompilation = CreateCompilation(source, parseOptions: TestOptions.Regular.WithStrictFeature());
 
             standardCompilation.VerifyDiagnostics(
                 // (8,32): warning CS0642: Possible mistaken empty statement
@@ -438,7 +438,7 @@ class C
                 );
         }
 
-        [WorkItem(528972, "DevDiv")]
+        [WorkItem(528972, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/528972")]
         [Fact]
         public void CS0121ERR_AmbigCall_Lambda1()
         {
@@ -449,14 +449,14 @@ class A
 {
     static void Main()
     {
-        Foo( delegate () { throw new Exception(); }); // both Dev10 & Roslyn no error
-        Foo(x: () => { throw new Exception(); });    // Dev10: CS0121, Roslyn: no error
+        Goo( delegate () { throw new Exception(); }); // both Dev10 & Roslyn no error
+        Goo(x: () => { throw new Exception(); });    // Dev10: CS0121, Roslyn: no error
     }
-    public static void Foo(Action x)
+    public static void Goo(Action x)
     {
         Console.WriteLine(1);
     }
-    public static void Foo(Func<int> x)
+    public static void Goo(Func<int> x)
     {
         Console.WriteLine(2);   // Roslyn call this one
     }
@@ -466,10 +466,10 @@ class A
             // Dev10 reports CS0121 because ExpressionBinder::WhichConversionIsBetter fails to unwrap
             // the NamedArgumentSpecification to find the UNBOUNDLAMBDA and, thus, never calls
             // WhichLambdaConversionIsBetter.
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics();
+            CreateCompilation(text).VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(529202, "DevDiv")]
+        [Fact, WorkItem(529202, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529202")]
         public void NoCS0029_ErrorOnZeroToEnumToTypeConversion()
         {
             string source = @"
@@ -494,14 +494,14 @@ struct S
     }
 }";
             // Dev10/11: (11,9): error CS0029: Cannot implicitly convert type 'int' to 'S'
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (6,15): error CS0029: Cannot implicitly convert type 'int' to 'S'
                 //         S s = 0;
                 Diagnostic(ErrorCode.ERR_NoImplicitConv, "0").WithArguments("int", "S")
                 );
         }
 
-        [Fact, WorkItem(529242, "DevDiv")]
+        [Fact, WorkItem(529242, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529242")]
         public void ThrowOverflowExceptionForUncheckedCheckedLambda()
         {
             string source = @"
@@ -532,7 +532,7 @@ class Program
             CompileAndVerify(source, expectedOutput: "OV 9");
         }
 
-        [WorkItem(529262)]
+        [WorkItem(529262, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529262")]
         [Fact]
         public void PartialMethod_ParameterAndTypeParameterNames()
         {
@@ -560,7 +560,7 @@ partial class C
             CompileAndVerify(source, expectedOutput: "2, 1 | T, U | x, y");
         }
 
-        [Fact, WorkItem(529279, "DevDiv")]
+        [Fact, WorkItem(529279, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529279")]
         public void NewCS0029_ImplicitlyUnwrapGenericNullable()
         {
             string source = @"
@@ -572,13 +572,13 @@ public class GenC<T, U> where T : struct, U
         U valueUn = nt;
     }
 }";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (7,21): error CS0029: Cannot implicitly convert type 'T?' to 'U'
                 //         U valueUn = nt;
                 Diagnostic(ErrorCode.ERR_NoImplicitConv, "nt").WithArguments("T?", "U"));
         }
 
-        [Fact, WorkItem(529280, "DevDiv"), WorkItem(546864, "DevDiv")]
+        [Fact, WorkItem(529280, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529280"), WorkItem(546864, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546864")]
         public void ExplicitUDCWithGenericConstraints()
         {
             // This compiles successfully in Dev10 dues to a bug; a user-defined conversion
@@ -593,10 +593,10 @@ public class GenC<T, U> where T : struct, U
 
             string source = @"using System;
 
-public interface IFoo {    void Method();    }
-public class CT : IFoo {    public void Method() { }    }
+public interface IGoo {    void Method();    }
+public class CT : IGoo {    public void Method() { }    }
 
-public class GenC<T>  where T : IFoo
+public class GenC<T>  where T : IGoo
 {
     public T valueT;
     public static explicit operator T(GenC<T> val)
@@ -610,17 +610,17 @@ public class Test
 {
     public static void Main()
     {
-        var _class = new GenC<IFoo>();
+        var _class = new GenC<IGoo>();
         var ret = (CT)_class;
     }
 }
 ";
 
             // CompileAndVerify(source, expectedOutput: "ExpConv");
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
+            CreateCompilation(source).VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(529362, "DevDiv")]
+        [Fact, WorkItem(529362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529362")]
         public void TestNullCoalescingOverImplicitExplicitUDC()
         {
             string source = @"using System;
@@ -659,7 +659,7 @@ class Program
             CompileAndVerify(source, expectedOutput: "2");
         }
 
-        [Fact, WorkItem(529362, "DevDiv")]
+        [Fact, WorkItem(529362, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529362")]
         public void TestNullCoalescingOverImplicitExplicitUDC_2()
         {
             string source = @"using System;
@@ -693,7 +693,7 @@ class Program
             CompileAndVerify(source, expectedOutput: "Implicit");
         }
 
-        [Fact, WorkItem(529363, "DevDiv")]
+        [Fact, WorkItem(529363, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529363")]
         public void AssignmentNullCoalescingOperator()
         {
             string source = @"using System;
@@ -710,7 +710,7 @@ class NullCoalescingTest
 }
 ";
             // Native compiler no error (print -123)
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (10,27): error CS0165: Use of unassigned local variable 'c'
                 //         Console.WriteLine(c);
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "c").WithArguments("c"),
@@ -719,7 +719,7 @@ class NullCoalescingTest
                 Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "a").WithArguments("a"));
         }
 
-        [Fact, WorkItem(529464, "DevDiv")]
+        [Fact, WorkItem(529464, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529464")]
         public void MultiDimensionArrayWithDiffTypeIndexDevDiv31328()
         {
             var text = @"
@@ -736,7 +736,7 @@ class A
 ";
             // Dev10 Won't fix bug#31328 for md array with different types' index and involving ulong
             // CS0266: Cannot implicitly convert type 'ulong' to 'int'. ...
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics();
+            CreateCompilation(text).VerifyDiagnostics();
         }
 
         [Fact]
@@ -753,7 +753,7 @@ unsafe class C
 ";
             // Dev10: the null literal is treated as though it is converted to void*, making the subtraction illegal (ExpressionBinder::GetPtrBinOpSigs).
             // Roslyn: the null literal is converted to int*, making the subtraction legal.
-            CreateCompilationWithMscorlib(text, options: TestOptions.UnsafeReleaseDll).VerifyDiagnostics();
+            CreateCompilation(text, options: TestOptions.UnsafeReleaseDll).VerifyDiagnostics();
         }
 
         [Fact]
@@ -773,11 +773,11 @@ class Boom : System.Attribute
 ";
             // Roslyn: error CS0181: Attribute constructor parameter 'x' has type 'int?', which is not a valid attribute parameter type
             // Dev10/11: no error, but throw at runtime - System.Reflection.CustomAttributeFormatException
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
+            CreateCompilation(text).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_BadAttributeParamType, "Boom").WithArguments("x", "int?"));
         }
 
-        [Fact, WorkItem(544232, "DevDiv"), WorkItem(544232, "DevDiv")]
+        [Fact, WorkItem(544232, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544232"), WorkItem(544232, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544232")]
         public void CS0208ERR_ManagedAddr_TypeParamPtr_Dev10_133087()
         {
             var text = @"
@@ -800,11 +800,11 @@ public class Test
 ";
             // Roslyn: error CS0208: Cannot take the address of, get the size of, or declare a pointer to a managed type ('T')
             // Dev10/11: no error
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
+            CreateCompilation(text).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_ManagedAddr, "T*").WithArguments("T"));
         }
 
-        [Fact, WorkItem(544232, "DevDiv"), WorkItem(544232, "DevDiv")]
+        [Fact, WorkItem(544232, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544232"), WorkItem(544232, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544232")]
         public void CS0208ERR_ManagedAddr_TypeParamPtr_Dev10_176771()
         {
             var text = @"
@@ -813,7 +813,7 @@ class F<T> : A where T : F<object*>.I { }
 ";
             // Roslyn: error CS0208: Cannot take the address of, get the size of, or declare a pointer to a managed type ('object')
             // Dev10/11: no error
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
+            CreateCompilation(text).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_ManagedAddr, "object*").WithArguments("object"));
         }
 
@@ -843,7 +843,7 @@ class C
 ";
             // Roslyn: error CS0208: Cannot take the address of, get the size of, or declare a pointer to a managed type ('object')
             // Dev10/11: no error
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
+            CreateCompilation(text).VerifyDiagnostics(
                 // This is new in Roslyn.
 
                 // (7,29): error CS0165: Use of unassigned local variable 'i'
@@ -860,7 +860,7 @@ class C
                 Diagnostic(ErrorCode.ERR_UseDefViolation, "m").WithArguments("m"));
         }
 
-        [WorkItem(529974, "DevDiv")]
+        [WorkItem(529974, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/529974")]
         [Fact]
         public void TestCollisionForLoopControlVariable()
         {
@@ -930,13 +930,13 @@ public class Program
             // Dev11 reported no errors for the above repro and allowed the name 'count' to bind to different
             // variables within the same declaration space. According to the old spec the error should be reported.
             // In Roslyn the single definition rule is relaxed and we do not give an error, but for a different reason.
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
+            CreateCompilation(source).VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(530301, "DevDiv")]
+        [Fact, WorkItem(530301, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530301")]
         public void NoMore_CS0458WRN_AlwaysNull02()
         {
-            CreateCompilationWithMscorlib(
+            CreateCompilation(
 @"
 public class Test
 {
@@ -972,7 +972,7 @@ public class Test
                     );
         }
 
-        [WorkItem(530403, "DevDiv")]
+        [WorkItem(530403, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530403")]
         [Fact]
         public void CS0135_local_param_cannot_be_declared()
         {
@@ -1000,13 +1000,14 @@ public class c
    }
 } 
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             // In Roslyn the single definition rule is relaxed and we do not give an error.
             comp.VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(530518, "DevDiv")]
+        [ConditionalFact(typeof(DesktopOnly))]
+        [WorkItem(530518, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530518")]
         public void ExpressionTreeExplicitOpVsConvert()
         {
             var text = @"
@@ -1027,13 +1028,14 @@ Console.WriteLine(testExpr2);
 ";
 
             // Native Compiler: x => Convert(Convert(op_Explicit(x)))
-            CompileAndVerify(text, additionalRefs: new[] { LinqAssemblyRef }, expectedOutput:
+            CompileAndVerify(text, expectedOutput:
 @"x => Convert(Convert(Convert(x)))
 x => Convert(Convert(Convert(x)))
 ");
         }
-        [Fact, WorkItem(530531, "DevDiv")]
 
+        [WorkItem(530531, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530531")]
+        [ConditionalFact(typeof(DesktopOnly))]
         private void ExpressionTreeNoCovertForIdentityConversion()
         {
             var source = @"
@@ -1053,13 +1055,13 @@ static void Main()
 ";
 
             // Native compiler: x => (Convert(x) != Convert(null))
-            CompileAndVerify(source, additionalRefs: new[] { LinqAssemblyRef }, expectedOutput:
+            CompileAndVerify(source, expectedOutput:
 @"x => (Convert(x) != null)
 True
 ");
         }
 
-        [Fact, WorkItem(530548, "DevDiv")]
+        [Fact, WorkItem(530548, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530548")]
         public void CS0219WRN_UnreferencedVarAssg_RHSMidRefType()
         {
             string source = @"
@@ -1076,7 +1078,7 @@ public class Test
 }
 ";
             // Native compiler no error (print -123)
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
     // (8,13): warning CS0219: The variable 'b1' is assigned but its value is never used
     //         var b1 = new Derived(); // Both Warning CS0219
     Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "b1").WithArguments("b1"),
@@ -1085,7 +1087,7 @@ public class Test
     Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "b3").WithArguments("b3"));
         }
 
-        [Fact, WorkItem(530556, "DevDiv")]
+        [Fact, WorkItem(530556, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530556")]
         public void NoCS0591ERR_InvalidAttributeArgument()
         {
             string source = @"
@@ -1097,10 +1099,10 @@ class MyAtt1 : Attribute { }
 public class Test {}
 ";
             // Native compiler  error CS0591: Invalid value for argument to 'AttributeUsage' attribute
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
+            CreateCompilation(source).VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(530586, "DevDiv")]
+        [Fact, WorkItem(530586, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530586")]
         public void ThrowOnceInIteratorFinallyBlock()
         {
             string source = @"
@@ -1115,7 +1117,7 @@ class Program
         var demo = new test();
         try
         {
-            foreach (var x in demo.Foo()) { }
+            foreach (var x in demo.Goo()) { }
         }
         catch (Exception)
         {
@@ -1126,7 +1128,7 @@ class Program
     class test
     {
         public int count = 0;
-        public IEnumerable Foo()
+        public IEnumerable Goo()
         {
             try
             {
@@ -1149,10 +1151,105 @@ class Program
 }
 ";
             // Native print "++ ++ EX 2"
-            CompileAndVerify(source, expectedOutput: " ++ EX 1");
+            var verifier = CompileAndVerify(source, expectedOutput: " ++ EX 1");
+
+            // must not load "<>4__this"
+            verifier.VerifyIL("Program.test.<Goo>d__1.System.Collections.IEnumerator.MoveNext()", @"
+{
+  // Code size      101 (0x65)
+  .maxstack  2
+  .locals init (bool V_0,
+                int V_1)
+  .try
+  {
+    IL_0000:  ldarg.0
+    IL_0001:  ldfld      ""int Program.test.<Goo>d__1.<>1__state""
+    IL_0006:  stloc.1
+    IL_0007:  ldloc.1
+    IL_0008:  brfalse.s  IL_0012
+    IL_000a:  ldloc.1
+    IL_000b:  ldc.i4.1
+    IL_000c:  beq.s      IL_0033
+    IL_000e:  ldc.i4.0
+    IL_000f:  stloc.0
+    IL_0010:  leave.s    IL_0063
+    IL_0012:  ldarg.0
+    IL_0013:  ldc.i4.m1
+    IL_0014:  stfld      ""int Program.test.<Goo>d__1.<>1__state""
+    IL_0019:  ldarg.0
+    IL_001a:  ldc.i4.s   -3
+    IL_001c:  stfld      ""int Program.test.<Goo>d__1.<>1__state""
+    IL_0021:  ldarg.0
+    IL_0022:  ldnull
+    IL_0023:  stfld      ""object Program.test.<Goo>d__1.<>2__current""
+    IL_0028:  ldarg.0
+    IL_0029:  ldc.i4.1
+    IL_002a:  stfld      ""int Program.test.<Goo>d__1.<>1__state""
+    IL_002f:  ldc.i4.1
+    IL_0030:  stloc.0
+    IL_0031:  leave.s    IL_0063
+    IL_0033:  ldarg.0
+    IL_0034:  ldc.i4.s   -3
+    IL_0036:  stfld      ""int Program.test.<Goo>d__1.<>1__state""
+    .try
+    {
+      IL_003b:  ldc.i4.0
+      IL_003c:  stloc.0
+      IL_003d:  leave.s    IL_004a
+    }
+    catch object
+    {
+      IL_003f:  pop
+      IL_0040:  leave.s    IL_0042
+    }
+    IL_0042:  ldarg.0
+    IL_0043:  call       ""void Program.test.<Goo>d__1.<>m__Finally1()""
+    IL_0048:  br.s       IL_0052
+    IL_004a:  ldarg.0
+    IL_004b:  call       ""void Program.test.<Goo>d__1.<>m__Finally1()""
+    IL_0050:  leave.s    IL_0063
+    IL_0052:  leave.s    IL_005b
+  }
+  fault
+  {
+    IL_0054:  ldarg.0
+    IL_0055:  call       ""void Program.test.<Goo>d__1.Dispose()""
+    IL_005a:  endfinally
+  }
+  IL_005b:  ldarg.0
+  IL_005c:  call       ""void Program.test.<Goo>d__1.Dispose()""
+  IL_0061:  ldc.i4.1
+  IL_0062:  stloc.0
+  IL_0063:  ldloc.0
+  IL_0064:  ret
+}
+");
+
+            // must load "<>4__this"
+            verifier.VerifyIL("Program.test.<Goo>d__1.<>m__Finally1()", @"
+{
+  // Code size       42 (0x2a)
+  .maxstack  3
+  IL_0000:  ldarg.0
+  IL_0001:  ldc.i4.m1
+  IL_0002:  stfld      ""int Program.test.<Goo>d__1.<>1__state""
+  IL_0007:  ldarg.0
+  IL_0008:  ldfld      ""Program.test Program.test.<Goo>d__1.<>4__this""
+  IL_000d:  ldstr      ""++ ""
+  IL_0012:  call       ""void System.Console.Write(string)""
+  IL_0017:  dup
+  IL_0018:  ldfld      ""int Program.test.count""
+  IL_001d:  ldc.i4.1
+  IL_001e:  add
+  IL_001f:  stfld      ""int Program.test.count""
+  IL_0024:  newobj     ""System.Exception..ctor()""
+  IL_0029:  throw
+}
+");
+
         }
 
-        [Fact, WorkItem(530587, "DevDiv")]
+        [Fact, WorkItem(530587, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530587")]
         public void NoFormatCharInIDEqual()
         {
             string source = @"
@@ -1174,7 +1271,7 @@ return x;
             CompileAndVerify(source, expectedOutput: "1"); // Native print 0
         }
 
-        [Fact, WorkItem(530614, "DevDiv")]
+        [Fact, WorkItem(530614, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530614")]
         public void CS1718WRN_ComparisonToSelf_Roslyn()
         {
             string source = @"
@@ -1190,12 +1287,12 @@ if (esbyte.e0 == esbyte.e0)
 }}
 ";
             // Native compiler no warn
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (7,5): warning CS1718: Comparison made to same variable; did you mean to compare something else?
                 Diagnostic(ErrorCode.WRN_ComparisonToSelf, "esbyte.e0 == esbyte.e0"));
         }
 
-        [Fact, WorkItem(530629, "DevDiv")]
+        [Fact, WorkItem(530629, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530629")]
         public void CS0414WRN_UnreferencedFieldAssg_Roslyn()
         {
             string source = @"
@@ -1208,7 +1305,7 @@ namespace VS7_336319
     public class ExpressionBinder
     {
         private static PredefinedTypes PredefinedTypes = null;
-        private void Foo()
+        private void Goo()
         {
             if (0 == (int)PredefinedTypes.Kind.Decimal) { }
         }
@@ -1216,13 +1313,14 @@ namespace VS7_336319
 }
 ";
             // Native compiler no warn
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
     // (10,40): warning CS0414: The field 'VS7_336319.ExpressionBinder.PredefinedTypes' is assigned but its value is never used
     //         private static PredefinedTypes PredefinedTypes = null;
     Diagnostic(ErrorCode.WRN_UnreferencedFieldAssg, "PredefinedTypes").WithArguments("VS7_336319.ExpressionBinder.PredefinedTypes"));
         }
 
-        [Fact, WorkItem(530666, "DevDiv")]
+        [WorkItem(530666, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530666")]
+        [ConditionalFact(typeof(DesktopOnly))]
         public void ExpressionTreeWithNullableUDCandOperator()
         {
             string source = @"
@@ -1250,10 +1348,10 @@ static int Main()
 }
 ";
             // Native compiler throw
-            CompileAndVerify(source, additionalRefs: new[] { SystemCoreRef }, expectedOutput: "3");
+            CompileAndVerify(source, references: new[] { SystemCoreRef }, expectedOutput: "3");
         }
 
-        [Fact, WorkItem(530696, "DevDiv")]
+        [Fact, WorkItem(530696, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530696")]
         public void CS0121Err_AmbiguousMethodCall()
         {
             string source = @"
@@ -1275,13 +1373,13 @@ static int Main()
     }
 ";
 
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
     // (15,13): error CS0121: The call is ambiguous between the following methods or properties: 'C.M(params double[])' and 'C.M(params G<int>[])'
     //             M();
     Diagnostic(ErrorCode.ERR_AmbigCall, "M").WithArguments("C.M(params double[])", "C.M(params G<int>[])"));
         }
 
-        [Fact, WorkItem(530653, "DevDiv")]
+        [Fact, WorkItem(530653, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530653")]
         public void RepeatedObsoleteWarnings()
         {
             // <quote source="Srivatsn's comments from bug 16642">
@@ -1324,7 +1422,7 @@ public class Program
                 Diagnostic(ErrorCode.WRN_DeprecatedSymbol, "ObsoleteType").WithArguments("ObsoleteType"));
         }
 
-        [Fact, WorkItem(530303, "DevDiv")]
+        [Fact, WorkItem(530303, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530303")]
         public void TestReferenceResolution()
         {
             var cs1Compilation = CreateCSharpCompilation("CS1",
@@ -1360,7 +1458,7 @@ public class Program
             cs4Compilation.VerifyDiagnostics();
         }
 
-        [Fact, WorkItem(531014, "DevDiv")]
+        [Fact, WorkItem(531014, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/531014")]
         public void TestVariableAndTypeNameClashes()
         {
             CompileAndVerify(@"
@@ -1397,7 +1495,7 @@ public class Class1
                 Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "A6").WithArguments("A6"));
         }
 
-        [WorkItem(530584, "DevDiv")]
+        [WorkItem(530584, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530584")]
         [Fact]
         public void NotRuntimeAmbiguousBecauseOfReturnTypes()
         {
@@ -1406,8 +1504,8 @@ using System;
 
 class Base<T, S>
 {
-    public virtual int Foo(ref S x) { return 0; }
-    public virtual string Foo(out T x)
+    public virtual int Goo(ref S x) { return 0; }
+    public virtual string Goo(out T x)
     {
         x = default(T); return ""Base.Out"";
     }
@@ -1415,14 +1513,14 @@ class Base<T, S>
 
 class Derived : Base<int, int>
 {
-    public override string Foo(out int x)
+    public override string Goo(out int x)
     {
         x = 0; return ""Derived.Out"";
     }
     static void Main()
     {
         int x;
-        Console.WriteLine(new Derived().Foo(out x));
+        Console.WriteLine(new Derived().Goo(out x));
     }
 }
 ";
@@ -1431,7 +1529,7 @@ class Derived : Base<int, int>
             CompileAndVerify(source, expectedOutput: "Derived.Out");
         }
 
-        [WorkItem(695311, "DevDiv")]
+        [WorkItem(695311, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/695311")]
         [Fact]
         public void NestedCollectionInitializerOnGenericProperty()
         {
@@ -1500,7 +1598,7 @@ public static class Util
 }
 ";
 
-            var libRef = CreateCompilationWithMscorlib(libSource, assemblyName: "lib").EmitToImageReference();
+            var libRef = CreateCompilation(libSource, assemblyName: "lib").EmitToImageReference();
 
             {
                 var source = @"
@@ -1511,11 +1609,11 @@ class Test
 {
     static void Main()
     {
-        Console.Write(Util.Count(Foo<S>()));
-        Console.Write(Util.Count(Foo<C>()));
+        Console.Write(Util.Count(Goo<S>()));
+        Console.Write(Util.Count(Goo<C>()));
     }
 
-    static Wrapper<T> Foo<T>() where T : IEnumerable, IAdd, new()
+    static Wrapper<T> Goo<T>() where T : IEnumerable, IAdd, new()
     {
         return new Wrapper<T> { Item = { 1, 2, 3} };
     }
@@ -1523,7 +1621,7 @@ class Test
 ";
 
                 // As in dev11.
-                var comp = CreateCompilationWithMscorlib(source, new[] { libRef }, TestOptions.ReleaseExe);
+                var comp = CreateCompilation(source, new[] { libRef }, TestOptions.ReleaseExe);
                 CompileAndVerify(comp, expectedOutput: "03");
             }
 
@@ -1536,10 +1634,10 @@ class Test
 {
     static void Main()
     {
-        Console.Write(Util.Count(Foo<C>()));
+        Console.Write(Util.Count(Goo<C>()));
     }
 
-    static Wrapper<T> Foo<T>() where T : class, IEnumerable, IAdd, new()
+    static Wrapper<T> Goo<T>() where T : class, IEnumerable, IAdd, new()
     {
         return new Wrapper<T> { Item = { 1, 2, 3} };
     }
@@ -1548,7 +1646,7 @@ class Test
 
                 // As in dev11.
                 // NOTE: The spec will likely be updated to make this illegal.
-                var comp = CreateCompilationWithMscorlib(source, new[] { libRef }, TestOptions.ReleaseExe);
+                var comp = CreateCompilation(source, new[] { libRef }, TestOptions.ReleaseExe);
                 CompileAndVerify(comp, expectedOutput: "3");
             }
 
@@ -1561,10 +1659,10 @@ class Test
 {
     static void Main()
     {
-        Console.Write(Util.Count(Foo<S>()));
+        Console.Write(Util.Count(Goo<S>()));
     }
 
-    static Wrapper<T> Foo<T>() where T : struct, IEnumerable, IAdd
+    static Wrapper<T> Goo<T>() where T : struct, IEnumerable, IAdd
     {
         return new Wrapper<T> { Item = { 1, 2, 3} };
     }
@@ -1572,7 +1670,7 @@ class Test
 ";
 
                 // BREAK: dev11 compiles and prints "0"
-                var comp = CreateCompilationWithMscorlib(source, new[] { libRef }, TestOptions.ReleaseExe);
+                var comp = CreateCompilation(source, new[] { libRef }, TestOptions.ReleaseExe);
                 comp.VerifyDiagnostics(
                     // (15,33): error CS1918: Members of property 'Wrapper<T>.Item' of type 'T' cannot be assigned with an object initializer because it is of a value type
                     //         return new Wrapper<T> { Item = { 1, 2, 3} };
@@ -1580,7 +1678,7 @@ class Test
             }
         }
 
-        [Fact, WorkItem(770424, "DevDiv"), WorkItem(1079034, "DevDiv")]
+        [Fact, WorkItem(770424, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/770424"), WorkItem(1079034, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1079034")]
         public void UserDefinedShortCircuitingOperators()
         {
             var source = @"

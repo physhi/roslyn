@@ -128,7 +128,7 @@ public struct C
     public static bool N(__arglist) { return true;}
 }";
 
-            var comp = CreateCompilationWithMscorlibAndSystemCore(text);
+            var comp = CreateCompilationWithMscorlib40AndSystemCore(text);
             comp.VerifyDiagnostics(
 // (8,44): error CS7053: An expression tree may not contain '__makeref'
 //         Expression<Func<bool>> ex1 = ()=>M(__makeref(S)); // CS7053
@@ -207,20 +207,86 @@ public struct C
 
             // UNDONE: Test what happens when __makereffing a volatile field, readonly field, etc.
 
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
-// (8,30): error CS1601: Cannot make reference to variable of type 'System.TypedReference'
-//         TypedReference tr2 = __makeref(tr1); // CS1601
-Diagnostic(ErrorCode.ERR_MethodArgCantBeRefAny, "__makeref(tr1)").WithArguments("System.TypedReference"),
-// (9,40): error CS1510: A ref or out argument must be an assignable variable
-//         TypedReference tr3 = __makeref(123); // CS1510
-Diagnostic(ErrorCode.ERR_RefLvalueExpected, "123"),
-// (10,40): error CS0206: A property or indexer may not be passed as an out or ref parameter
-//         TypedReference tr4 = __makeref(P); // CS0206
-Diagnostic(ErrorCode.ERR_RefProperty, "P").WithArguments("C.P"),
-// (11,40): error CS0199: A static readonly field cannot be passed ref or out (except in a static constructor)
-//         TypedReference tr5 = __makeref(R);
-Diagnostic(ErrorCode.ERR_RefReadonlyStatic, "R")
+    // (8,30): error CS1601: Cannot make reference to variable of type 'TypedReference'
+    //         TypedReference tr2 = __makeref(tr1); // CS1601
+    Diagnostic(ErrorCode.ERR_MethodArgCantBeRefAny, "__makeref(tr1)").WithArguments("System.TypedReference").WithLocation(8, 30),
+    // (9,40): error CS1510: A ref or out value must be an assignable variable
+    //         TypedReference tr3 = __makeref(123); // CS1510
+    Diagnostic(ErrorCode.ERR_RefLvalueExpected, "123").WithLocation(9, 40),
+    // (10,40): error CS0206: A property or indexer may not be passed as an out or ref parameter
+    //         TypedReference tr4 = __makeref(P); // CS0206
+    Diagnostic(ErrorCode.ERR_RefProperty, "P").WithArguments("C.P").WithLocation(10, 40),
+    // (11,40): error CS0199: A static readonly field cannot be used as a ref or out value (except in a static constructor)
+    //         TypedReference tr5 = __makeref(R); // CS0199
+    Diagnostic(ErrorCode.ERR_RefReadonlyStatic, "R").WithLocation(11, 40)
+
+                );
+        }
+
+        [Fact]
+        [WorkItem(23369, "https://github.com/dotnet/roslyn/issues/23369")]
+        public void ArglistWithVoidMethod()
+        {
+            var text = @"
+public class C
+{
+    void M()
+    {
+        M2(__arglist(1, M()));
+    }
+    void M2(__arglist)
+    {
+    }
+}";
+
+            var comp = CreateCompilation(text);
+            comp.VerifyDiagnostics(
+                // (6,25): error CS8361: __arglist cannot have an argument of void type
+                //         M2(__arglist(1, M()));
+                Diagnostic(ErrorCode.ERR_CantUseVoidInArglist, "M()").WithLocation(6, 25)
+                );
+        }
+
+        [Fact]
+        public void RefValueUnsafeToReturn()
+        {
+            var text = @"
+using System;
+
+class C
+{
+    private static ref int Test()
+    {
+        int aa = 42;
+        var tr = __makeref(aa);
+
+        ref var r = ref Test2(ref __refvalue(tr, int));
+
+        return ref r;
+    }
+
+    private static ref int Test2(ref int r)
+    {
+        return ref r;
+    }
+
+    private static ref int Test3(TypedReference tr)
+    {
+        return ref __refvalue(tr, int);
+    }
+}";
+
+            var comp = CreateCompilation(text);
+            comp.VerifyDiagnostics(
+                // (13,20): error CS8157: Cannot return 'r' by reference because it was initialized to a value that cannot be returned by reference
+                //         return ref r;
+                Diagnostic(ErrorCode.ERR_RefReturnNonreturnableLocal, "r").WithArguments("r").WithLocation(13, 20),
+                // (23,20): error CS8156: An expression cannot be used in this context because it may not be returned by reference
+                //         return ref __refvalue(tr, int);
+                Diagnostic(ErrorCode.ERR_RefReturnLvalueExpected, "__refvalue(tr, int)").WithLocation(23, 20)
+
                 );
         }
 
@@ -242,7 +308,7 @@ public struct C
     }
 }";
 
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics();
+            CreateCompilation(text).VerifyDiagnostics();
         }
 
         [ClrOnlyFact(ClrOnlyReason.Ilasm)]
@@ -295,7 +361,7 @@ public struct C
 }";
 
 
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
 // (6,25): error CS0037: Cannot convert null to 'System.TypedReference' because it is a non-nullable value type
 //         System.Type t = __reftype(null);
@@ -457,7 +523,7 @@ public class MyAttribute : System.Attribute
 }
 ";
 
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
                 // (5,26): error CS1669: __arglist is not valid in this context
                 //     static void N(params __arglist) {}
@@ -520,7 +586,7 @@ class error
 }
 ";
 
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
+            CreateCompilation(text).VerifyDiagnostics(
                 // (7,24): error CS1669: __arglist is not valid in this context
                 // 		Action a = delegate (__arglist) { };
                 Diagnostic(ErrorCode.ERR_IllegalVarArgs, "__arglist"));
@@ -743,7 +809,7 @@ static class C
             // CS0246: The type or namespace name 'Main' could not be found
             // The native compiler behavior seems better here; we might consider fixing Roslyn to match.
 
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
 // (9,17): error CS0029: Cannot implicitly convert type 'int' to 'System.TypedReference'
 //         int b = __refvalue(123, int);
@@ -790,7 +856,84 @@ public struct C
     }
 }";
 
-            CreateCompilationWithMscorlibAndSystemCore(text).VerifyDiagnostics();
+            CreateCompilationWithMscorlib40AndSystemCore(text).VerifyDiagnostics();
+        }
+
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
+        public void RefValueTest04_optimizer()
+        {
+            var text = @"
+using System;
+public struct C
+{
+    static void Main()
+    {
+        int k = 42;
+
+        int i = 1;
+        TypedReference tr1 = __makeref(i);
+
+        __refvalue(tr1, int) = k;
+        __refvalue(tr1, int) = k;
+
+        int j = 1;
+        TypedReference tr2 = __makeref(j);
+
+        int l = 42;
+
+        __refvalue(tr1, int) = l;
+        __refvalue(tr2, int) = l;
+
+        Console.Write(i);
+        Console.Write(j);
+    }
+}";
+
+            var verifier = CompileAndVerify(source: text, expectedOutput: "4242");
+            verifier.VerifyIL("C.Main", @"
+{
+  // Code size       72 (0x48)
+  .maxstack  3
+  .locals init (int V_0, //k
+                int V_1, //i
+                System.TypedReference V_2, //tr1
+                int V_3, //j
+                int V_4) //l
+  IL_0000:  ldc.i4.s   42
+  IL_0002:  stloc.0
+  IL_0003:  ldc.i4.1
+  IL_0004:  stloc.1
+  IL_0005:  ldloca.s   V_1
+  IL_0007:  mkrefany   ""int""
+  IL_000c:  stloc.2
+  IL_000d:  ldloc.2
+  IL_000e:  refanyval  ""int""
+  IL_0013:  ldloc.0
+  IL_0014:  stind.i4
+  IL_0015:  ldloc.2
+  IL_0016:  refanyval  ""int""
+  IL_001b:  ldloc.0
+  IL_001c:  stind.i4
+  IL_001d:  ldc.i4.1
+  IL_001e:  stloc.3
+  IL_001f:  ldloca.s   V_3
+  IL_0021:  mkrefany   ""int""
+  IL_0026:  ldc.i4.s   42
+  IL_0028:  stloc.s    V_4
+  IL_002a:  ldloc.2
+  IL_002b:  refanyval  ""int""
+  IL_0030:  ldloc.s    V_4
+  IL_0032:  stind.i4
+  IL_0033:  refanyval  ""int""
+  IL_0038:  ldloc.s    V_4
+  IL_003a:  stind.i4
+  IL_003b:  ldloc.1
+  IL_003c:  call       ""void System.Console.Write(int)""
+  IL_0041:  ldloc.3
+  IL_0042:  call       ""void System.Console.Write(int)""
+  IL_0047:  ret
+}
+");
         }
 
         [Fact]
@@ -798,7 +941,7 @@ public struct C
         {
             var text = @"public class C { public void M() { var t = __makeref(delegate); } }";
             var tree = Parse(text);
-            var comp = CreateCompilationWithMscorlib(tree);
+            var comp = CreateCompilation(tree);
             var model = comp.GetSemanticModel(tree);
             var root = tree.GetCompilationUnitRoot();
             var clss = root.Members[0] as ClassDeclarationSyntax;
@@ -809,8 +952,8 @@ public struct C
             Assert.Equal("TypedReference", info.Symbol.Name);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void MethodArgListParameterCount()
         {
@@ -823,7 +966,7 @@ class A
     public void M4(__arglist, int x, __arglist) { } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -844,8 +987,8 @@ class A
             Assert.Equal(1, m4.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ILMethodArgListParameterCount()
         {
@@ -882,7 +1025,7 @@ class Unused
 } // end of class A
 ";
 
-            var comp = CreateCompilationWithCustomILSource(csharp, il);
+            var comp = CreateCompilationWithILAndMscorlib40(csharp, il);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -895,8 +1038,8 @@ class Unused
             Assert.Equal(1, m2.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void OperatorArgListParameterCount()
         {
@@ -909,7 +1052,7 @@ class A
     public int operator /(__arglist, A a, __arglist) { return 0; } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -930,8 +1073,8 @@ class A
             Assert.Equal(1, m4.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConversionArgListParameterCount1()
         {
@@ -941,7 +1084,7 @@ class A
     public explicit operator A(__arglist) { return null; } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -950,8 +1093,8 @@ class A
             Assert.Equal(0, conversion.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConversionArgListParameterCount2()
         {
@@ -961,7 +1104,7 @@ class A
     public explicit operator A(int x, __arglist) { return null; } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -970,8 +1113,8 @@ class A
             Assert.Equal(1, conversion.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConversionArgListParameterCount3()
         {
@@ -981,7 +1124,7 @@ class A
     public explicit operator A(__arglist, A a) { return null; } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -990,8 +1133,8 @@ class A
             Assert.Equal(1, conversion.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConversionArgListParameterCount4()
         {
@@ -1001,7 +1144,7 @@ class A
     public explicit operator A(__arglist, A a, __arglist) { return null; } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A");
 
@@ -1010,8 +1153,8 @@ class A
             Assert.Equal(1, conversion.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConstructorArgListParameterCount1()
         {
@@ -1021,15 +1164,15 @@ class A
     public A(__arglist) { }
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var constructor = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<MethodSymbol>(WellKnownMemberNames.InstanceConstructorName);
             Assert.Equal(0, constructor.ParameterCount); //doesn't use syntax
             Assert.Equal(0, constructor.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConstructorArgListParameterCount2()
         {
@@ -1039,7 +1182,7 @@ class A
     public A(int x, __arglist) { }
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var constructor = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<MethodSymbol>(WellKnownMemberNames.InstanceConstructorName);
             Assert.Equal(1, constructor.ParameterCount); //doesn't use syntax
@@ -1047,8 +1190,8 @@ class A
         }
 
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConstructorArgListParameterCount3()
         {
@@ -1058,15 +1201,15 @@ class A
     public A(__arglist, int x) { } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var constructor = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<MethodSymbol>(WellKnownMemberNames.InstanceConstructorName);
             Assert.Equal(1, constructor.ParameterCount); //doesn't use syntax
             Assert.Equal(1, constructor.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void ConstructorArgListParameterCount4()
         {
@@ -1076,15 +1219,15 @@ class A
     public A(__arglist, int x, __arglist) { } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var constructor = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<MethodSymbol>(WellKnownMemberNames.InstanceConstructorName);
             Assert.Equal(1, constructor.ParameterCount); //doesn't use syntax
             Assert.Equal(1, constructor.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void IndexerArgListParameterCount1()
         {
@@ -1094,7 +1237,7 @@ class A
     public int this[__arglist] { get { return 0; } set { } } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var indexer = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<PropertySymbol>(WellKnownMemberNames.Indexer);
             Assert.Equal(0, indexer.ParameterCount); //doesn't use syntax
@@ -1109,8 +1252,8 @@ class A
             Assert.Equal(1, setter.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void IndexerArgListParameterCount2()
         {
@@ -1120,7 +1263,7 @@ class A
     public int this[int x, __arglist] { get { return 0; } set { } } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var indexer = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<PropertySymbol>(WellKnownMemberNames.Indexer);
             Assert.Equal(1, indexer.ParameterCount); //doesn't use syntax
@@ -1135,8 +1278,8 @@ class A
             Assert.Equal(2, setter.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void IndexerArgListParameterCount3()
         {
@@ -1146,7 +1289,7 @@ class A
     public int this[__arglist, int x] { get { return 0; } set { } } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var indexer = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<PropertySymbol>(WellKnownMemberNames.Indexer);
             Assert.Equal(1, indexer.ParameterCount); //doesn't use syntax
@@ -1161,8 +1304,8 @@ class A
             Assert.Equal(2, setter.Parameters.Length);
         }
 
-        [WorkItem(545055, "DevDiv")]
-        [WorkItem(545056, "DevDiv")]
+        [WorkItem(545055, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545055")]
+        [WorkItem(545056, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545056")]
         [Fact]
         public void IndexerArgListParameterCount4()
         {
@@ -1172,7 +1315,7 @@ class A
     public int this[__arglist, int x, __arglist] { get { return 0; } set { } } //illegal, but shouldn't break
 }
 ";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
 
             var indexer = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("A").GetMember<PropertySymbol>(WellKnownMemberNames.Indexer);
             Assert.Equal(1, indexer.ParameterCount); //doesn't use syntax
@@ -1187,7 +1330,7 @@ class A
             Assert.Equal(2, setter.Parameters.Length);
         }
 
-        [WorkItem(545086, "DevDiv")]
+        [WorkItem(545086, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/545086")]
         [Fact]
         public void BoxReceiverTest()
         {
@@ -1195,7 +1338,7 @@ class A
 using System;
 class C
 {
-    static void Foo()
+    static void Goo()
     {
         RuntimeArgumentHandle rah = default(RuntimeArgumentHandle);
         ArgIterator ai = default(ArgIterator);
@@ -1212,7 +1355,7 @@ class C
         tr.GetHashCode();   // no error: virtual, overridden on TypedReference
     }
 }";
-            var comp = CreateCompilationWithMscorlib(text);
+            var comp = CreateCompilation(text);
             comp.VerifyDiagnostics(
 // (11,9): error CS0029: Cannot implicitly convert type 'System.RuntimeArgumentHandle' to 'object'
 //         rah.GetType(); // not virtual
@@ -1238,7 +1381,7 @@ Diagnostic(ErrorCode.ERR_NoImplicitConv, "rah").WithArguments("System.RuntimeArg
                 );
         }
 
-        [WorkItem(649808, "DevDiv")]
+        [WorkItem(649808, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/649808")]
         [Fact]
         public void MissingArgumentsAndOptionalParameters_1()
         {
@@ -1293,7 +1436,7 @@ class E
         D.M(null, null, __arglist());
     }
 }";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+            CreateCompilation(source).VerifyDiagnostics(
                 // (26,13): error CS7036: There is no argument given that corresponds to the required formal parameter '__arglist' of 'A.A(object, __arglist)'
                 //         new A(__arglist());
                 Diagnostic(ErrorCode.ERR_NoCorrespondingArgument, "A").WithArguments("__arglist", "A.A(object, __arglist)").WithLocation(26, 13),
@@ -1332,7 +1475,7 @@ class E
                 Diagnostic(ErrorCode.ERR_NoCorrespondingArgument, "M").WithArguments("__arglist", "D.M(object, object, __arglist)").WithLocation(47, 11));
         }
 
-        [WorkItem(649808, "DevDiv")]
+        [WorkItem(649808, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/649808")]
         [Fact]
         public void MissingArgumentsAndOptionalParameters_2()
         {
@@ -1353,7 +1496,7 @@ class E
         d(__arglist());
     }
 }";
-            var compilation = CreateCompilationWithCustomILSource(source, ilSource);
+            var compilation = CreateCompilationWithILAndMscorlib40(source, ilSource);
             compilation.VerifyDiagnostics(
                 // (6,9): error CS7036: There is no argument given that corresponds to the required formal parameter '__arglist' of 'D'
                 //         d(__arglist());
@@ -1371,7 +1514,7 @@ using System.Threading;
 
 namespace ConsoleApplication21
 {
-    public unsafe class FooBar : IDisposable
+    public unsafe class GooBar : IDisposable
     {
         public void Dispose()
         {
@@ -1385,11 +1528,124 @@ namespace ConsoleApplication21
     }
 }
 ";
-            CreateCompilationWithMscorlib(source, options: TestOptions.UnsafeReleaseDll).VerifyDiagnostics(
-    // (12,44): error CS7036: There is no argument given that corresponds to the required formal parameter 'context' of 'FooBar.AllocateNativeOverlapped(IOCompletionCallback, object, byte[])'
+            CreateCompilation(source, options: TestOptions.UnsafeReleaseDll).VerifyDiagnostics(
+    // (12,44): error CS7036: There is no argument given that corresponds to the required formal parameter 'context' of 'GooBar.AllocateNativeOverlapped(IOCompletionCallback, object, byte[])'
     //             NativeOverlapped* overlapped = AllocateNativeOverlapped(() => { });
-    Diagnostic(ErrorCode.ERR_NoCorrespondingArgument, "AllocateNativeOverlapped").WithArguments("context", "ConsoleApplication21.FooBar.AllocateNativeOverlapped(System.Threading.IOCompletionCallback, object, byte[])").WithLocation(12, 44)
+    Diagnostic(ErrorCode.ERR_NoCorrespondingArgument, "AllocateNativeOverlapped").WithArguments("context", "ConsoleApplication21.GooBar.AllocateNativeOverlapped(System.Threading.IOCompletionCallback, object, byte[])").WithLocation(12, 44)
 );
+        }
+
+        [Fact, WorkItem(8152, "https://github.com/dotnet/roslyn/issues/8152")]
+        public void DuplicateDeclaration()
+        {
+            var source =
+@"
+public class SpecialCases
+{
+    public void ArgListMethod(__arglist)
+    {
+        ArgListMethod(__arglist(""""));
+    }
+    public void ArgListMethod(__arglist)
+    {
+        ArgListMethod(__arglist(""""));
+    }
+}
+";
+            CreateCompilation(source, options: TestOptions.UnsafeReleaseDll).VerifyDiagnostics(
+    // (8,17): error CS0111: Type 'SpecialCases' already defines a member called 'ArgListMethod' with the same parameter types
+    //     public void ArgListMethod(__arglist)
+    Diagnostic(ErrorCode.ERR_MemberAlreadyExists, "ArgListMethod").WithArguments("ArgListMethod", "SpecialCases").WithLocation(8, 17),
+    // (6,9): error CS0121: The call is ambiguous between the following methods or properties: 'SpecialCases.ArgListMethod(__arglist)' and 'SpecialCases.ArgListMethod(__arglist)'
+    //         ArgListMethod(__arglist(""));
+    Diagnostic(ErrorCode.ERR_AmbigCall, "ArgListMethod").WithArguments("SpecialCases.ArgListMethod(__arglist)", "SpecialCases.ArgListMethod(__arglist)").WithLocation(6, 9),
+    // (10,9): error CS0121: The call is ambiguous between the following methods or properties: 'SpecialCases.ArgListMethod(__arglist)' and 'SpecialCases.ArgListMethod(__arglist)'
+    //         ArgListMethod(__arglist(""));
+    Diagnostic(ErrorCode.ERR_AmbigCall, "ArgListMethod").WithArguments("SpecialCases.ArgListMethod(__arglist)", "SpecialCases.ArgListMethod(__arglist)").WithLocation(10, 9)
+                );
+        }
+
+        [Fact]
+        public void ArgListMayNotHaveAnOutArgument()
+        {
+            CreateCompilation(@"
+class Program
+{
+    static void Test(__arglist)
+    {
+        var a = 1;
+    	Test(__arglist(out a));
+    }
+}
+").VerifyDiagnostics(
+                // (7,25): error CS8378: __arglist cannot have an argument passed by 'in' or 'out'
+                //     	Test(__arglist(out a));
+                Diagnostic(ErrorCode.ERR_CantUseInOrOutInArglist, "a").WithLocation(7, 25));
+        }
+
+        [Fact]
+        public void ArgListMayNotHaveAnInArgument()
+        {
+            CreateCompilation(@"
+class Program
+{
+    static void Test(__arglist)
+    {
+        var a = 1;
+    	Test(__arglist(in a));
+    }
+}
+").VerifyDiagnostics(
+                // (7,24): error CS8378: __arglist cannot have an argument passed by 'in' or 'out'
+                //     	Test(__arglist(in a));
+                Diagnostic(ErrorCode.ERR_CantUseInOrOutInArglist, "a").WithLocation(7, 24));
+        }
+
+        [Fact]
+        public void ArgListMayHaveARefArgument()
+        {
+            CompileAndVerify(@"
+using System;
+class Program
+{
+    static void Test(__arglist)
+    {
+        var args = new ArgIterator(__arglist);
+        ref int a = ref __refvalue(args.GetNextArg(), int);
+        a = 5;
+    }
+    static void Main()
+    {
+        int a = 0;
+        Test(__arglist(ref a));
+        Console.WriteLine(a);
+    }
+}",
+                options: new CSharpCompilationOptions(OutputKind.ConsoleApplication, optimizationLevel: OptimizationLevel.Debug),
+                expectedOutput: "5");
+        }
+
+        [Fact]
+        public void ArgListMayHaveAByValArgument()
+        {
+            CompileAndVerify(@"
+using System;
+class Program
+{
+    static void Test(__arglist)
+    {
+        var args = new ArgIterator(__arglist);
+        int a = __refvalue(args.GetNextArg(), int);
+        Console.WriteLine(a);
+    }
+    static void Main()
+    {
+        int a = 5;
+        Test(__arglist(a));
+    }
+}",
+                options: new CSharpCompilationOptions(OutputKind.ConsoleApplication, optimizationLevel: OptimizationLevel.Debug),
+                expectedOutput: "5");
         }
     }
 }

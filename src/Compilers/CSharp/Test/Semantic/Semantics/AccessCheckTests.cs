@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Semantics
         [Fact]
         public void AccessCheckOutsideToInner()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 class C
 {
     static public int c_pub;
@@ -133,7 +133,7 @@ class C
         [Fact]
         public void AccessCheckInnerToOuter()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 class C
 {
     static public int c_pub;
@@ -222,7 +222,7 @@ class C
         [Fact]
         public void AccessCheckDerived()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 class C
 {
     static public int c_pub;
@@ -341,7 +341,7 @@ class E: D
         [Fact]
         public void AccessCheckProtected()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class A
 {
     protected int iField;
@@ -381,11 +381,11 @@ public class E : B.N
                 Diagnostic(ErrorCode.ERR_BadProtectedAccess, "iField").WithArguments("A.iField", "D", "B.N.NN").WithLocation(19, 27));
         }
 
-        [WorkItem(539561, "DevDiv")]
+        [WorkItem(539561, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539561")]
         [Fact]
         public void AccessCheckProtected02()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 interface I<T> { }
  
 class A { }
@@ -402,11 +402,11 @@ class C : I<C.D.E>
             c.VerifyDiagnostics();
         }
 
-        [WorkItem(539561, "DevDiv")]
+        [WorkItem(539561, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539561")]
         [Fact]
         public void AccessCheckProtected03()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 class X<T> { }
 
 class A { }
@@ -442,7 +442,7 @@ class B
             // SPEC VIOLATION: compiler behavior; it is arguably sensible and would be a 
             // SPEC VIOLATION: bad breaking change to fix now.
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class B
 {
     protected void M(int x) {}
@@ -488,7 +488,7 @@ public class D : B
             // have a way to succeed, either by calling a protected static method or a non-protected
             // instance method.
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 namespace CS1540
 {
     public class Base
@@ -569,11 +569,11 @@ namespace CS1540
             c.VerifyDiagnostics();
         }
 
-        [WorkItem(539561, "DevDiv")]
+        [WorkItem(539561, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539561")]
         [Fact]
         public void AccessCheckPrivate()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 interface I<T> { }
  
 class A { }
@@ -590,11 +590,11 @@ class C : I<C.D.E>
             c.VerifyDiagnostics();
         }
 
-        [WorkItem(539561, "DevDiv")]
+        [WorkItem(539561, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/539561")]
         [Fact]
         public void AccessCheckPrivate02()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 class X<T> { }
 
 class A { }
@@ -620,7 +620,7 @@ class B
         [Fact]
         public void AccessCheckCrossAssembly()
         {
-            CSharpCompilation other = CreateCompilationWithMscorlib(@"
+            CSharpCompilation other = CreateCompilation(@"
 public class C
 {
     static public int c_pub;
@@ -635,7 +635,7 @@ internal class D
     static public int d_pub;
 }");
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class A
 {
     public void m() {
@@ -669,7 +669,7 @@ public class A
         [Fact]
         public void AccessCheckCrossAssemblyDerived()
         {
-            CSharpCompilation other = CreateCompilationWithMscorlib(@"
+            CSharpCompilation other = CreateCompilation(@"
 public class C
 {
     static public int c_pub;
@@ -684,7 +684,7 @@ internal class D
     static public int d_pub;
 }");
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class A: C
 {
     public void m() {
@@ -712,14 +712,14 @@ public class A: C
         [Fact]
         public void AccessCheckApi1()
         {
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 using System.Collections.Generic;
 class A
 {
     static private int priv;
     static public int pub;
     protected int prot;
-    static private Foo unknowntype;
+    static private Goo unknowntype;
     
     private class K {}
 
@@ -784,13 +784,13 @@ class ADerived2: A
         [Fact]
         public void AccessCheckCrossAssemblyParameterProtectedMethodP2P()
         {
-            CSharpCompilation other = CreateCompilationWithMscorlib(@"
+            CSharpCompilation other = CreateCompilation(@"
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(""AccessCheckCrossAssemblyParameterProtectedMethod2"")]
 internal class C {}",
                     assemblyName: "AccessCheckCrossAssemblyParameterProtectedMethod1");
             Assert.Empty(other.GetDiagnostics());
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class A
 {
   internal class B
@@ -804,13 +804,13 @@ public class A
         [Fact]
         public void EnsureAccessCheckWithBadIVTDenies()
         {
-            CSharpCompilation other = CreateCompilationWithMscorlib(@"
+            CSharpCompilation other = CreateCompilation(@"
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(""AccessCheckCrossAssemblyParameterProtectedMethod2000000"")]
 internal class C {}",
                     assemblyName: "AccessCheckCrossAssemblyParameterProtectedMethod1");
             Assert.Empty(other.GetDiagnostics());
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class A
 {
   internal class B
@@ -827,12 +827,12 @@ public class A
         [Fact]
         public void AccessCheckCrossAssemblyParameterProtectedMethodMD()
         {
-            var other = CreateCompilationWithMscorlib(@"
+            var other = CreateCompilation(@"
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(""AccessCheckCrossAssemblyParameterProtectedMethod2"")]
 internal class C {}",
                     assemblyName: "AccessCheckCrossAssemblyParameterProtectedMethod1").EmitToArray();
 
-            CSharpCompilation c = CreateCompilationWithMscorlib(@"
+            CSharpCompilation c = CreateCompilation(@"
 public class A
 {
   internal class B
@@ -843,7 +843,7 @@ public class A
             Assert.Empty(c.GetDiagnostics());
         }
 
-        [WorkItem(543745, "DevDiv")]
+        [WorkItem(543745, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543745")]
         [Fact]
         public void InternalInaccessibleProperty()
         {
@@ -875,7 +875,7 @@ public class A
                 Diagnostic(ErrorCode.ERR_BadAccess, "PropIntProProSet").WithArguments("InstancePropertyContainer.PropIntProProSet"));
         }
 
-        [WorkItem(546209, "DevDiv")]
+        [WorkItem(546209, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546209")]
         [Fact]
         public void OverriddenMemberFromInternalType()
         {
@@ -886,7 +886,7 @@ internal class A
     public virtual void M() { }
     public virtual object P { get { return null; } set { } }
 }";
-            var compilation1 = CreateCompilationWithMscorlib(source1, assemblyName: "A");
+            var compilation1 = CreateCompilation(source1, assemblyName: "A");
             compilation1.VerifyDiagnostics();
             var compilationVerifier = CompileAndVerify(compilation1);
             var reference1 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
@@ -912,7 +912,7 @@ internal abstract class B3 : A
 {
     public override object P { set { } }
 }";
-            var compilation2 = CreateCompilationWithMscorlib(source2, assemblyName: "B", references: new[] { reference1 });
+            var compilation2 = CreateCompilation(source2, assemblyName: "B", references: new[] { reference1 });
             compilation2.VerifyDiagnostics();
             compilationVerifier = CompileAndVerify(compilation2);
             var reference2 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
@@ -934,7 +934,7 @@ internal abstract class B3 : A
         b3.P = o;
     }
 }";
-            var compilation3 = CreateCompilationWithMscorlib(source3, assemblyName: "C", references: new[] { reference1, reference2 });
+            var compilation3 = CreateCompilation(source3, assemblyName: "C", references: new[] { reference1, reference2 });
             compilation3.VerifyDiagnostics(
                 // (6,12): error CS0122: 'A.M()' is inaccessible due to its protection level
                 Diagnostic(ErrorCode.ERR_BadAccess, "M").WithArguments("A.M()").WithLocation(6, 12),
@@ -948,7 +948,7 @@ internal abstract class B3 : A
                 Diagnostic(ErrorCode.ERR_InaccessibleGetter, "b3.P").WithArguments("B3.P").WithLocation(14, 13));
         }
 
-        [WorkItem(546209, "DevDiv")]
+        [WorkItem(546209, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/546209")]
         [Fact]
         public void InternalOverriddenMember()
         {
@@ -959,7 +959,7 @@ public abstract class A
     internal abstract void M();
     internal abstract object P { get; }
 }";
-            var compilation1 = CreateCompilationWithMscorlib(source1, assemblyName: "A");
+            var compilation1 = CreateCompilation(source1, assemblyName: "A");
             compilation1.VerifyDiagnostics();
             var compilationVerifier = CompileAndVerify(compilation1);
             var reference1 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
@@ -970,7 +970,7 @@ public abstract class B : A
     internal override abstract void M();
     internal override abstract object P { get; }
 }";
-            var compilation2 = CreateCompilationWithMscorlib(source2, assemblyName: "B", references: new[] { reference1 });
+            var compilation2 = CreateCompilation(source2, assemblyName: "B", references: new[] { reference1 });
             compilation2.VerifyDiagnostics();
             compilationVerifier = CompileAndVerify(compilation2);
             var reference2 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
@@ -983,11 +983,11 @@ public abstract class B : A
         return b.P;
     }
 }";
-            var compilation3 = CreateCompilationWithMscorlib(source3, assemblyName: "C", references: new[] { reference1, reference2 });
+            var compilation3 = CreateCompilation(source3, assemblyName: "C", references: new[] { reference1, reference2 });
             compilation3.VerifyDiagnostics();
         }
 
-        [WorkItem(530360, "DevDiv")]
+        [WorkItem(530360, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530360")]
         [Fact]
         public void InaccessibleReturnType()
         {
@@ -997,7 +997,7 @@ internal class A
 {
 }
 ";
-            var compilationA = CreateCompilationWithMscorlib(sourceA, assemblyName: "A");
+            var compilationA = CreateCompilation(sourceA, assemblyName: "A");
             var compilationVerifier = CompileAndVerify(compilationA);
             var referenceA = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
@@ -1009,7 +1009,7 @@ public class B
     internal A M() { return null; }
 }
 ";
-            var compilationB = CreateCompilationWithMscorlib(sourceB, assemblyName: "B", references: new[] { referenceA });
+            var compilationB = CreateCompilation(sourceB, assemblyName: "B", references: new[] { referenceA });
             compilationVerifier = CompileAndVerify(compilationB);
             var referenceB = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
@@ -1022,14 +1022,14 @@ class C
     }
 }
 ";
-            var compilationC = CreateCompilationWithMscorlib(sourceC, assemblyName: "C", references: new[] { referenceA, referenceB });
+            var compilationC = CreateCompilation(sourceC, assemblyName: "C", references: new[] { referenceA, referenceB });
             compilationC.VerifyDiagnostics(
                 // (5,9): error CS0122: 'B.M()' is inaccessible due to its protection level
                 //         b.M();
                 Diagnostic(ErrorCode.ERR_BadAccess, "b.M").WithArguments("B.M()"));
         }
 
-        [WorkItem(530360, "DevDiv")]
+        [WorkItem(530360, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/530360")]
         [Fact]
         public void InaccessibleReturnType_Dynamic()
         {
@@ -1039,7 +1039,7 @@ internal class A
 {
 }
 ";
-            var compilationA = CreateCompilationWithMscorlib(sourceA, assemblyName: "A");
+            var compilationA = CreateCompilation(sourceA, assemblyName: "A");
             var compilationVerifier = CompileAndVerify(compilationA);
             var referenceA = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
@@ -1050,7 +1050,7 @@ public class B
     internal A M(int a) { return null; }
 }
 ";
-            var compilationB = CreateCompilationWithMscorlib(sourceB, assemblyName: "B", references: new[] { referenceA });
+            var compilationB = CreateCompilation(sourceB, assemblyName: "B", references: new[] { referenceA });
             compilationVerifier = CompileAndVerify(compilationB);
             var referenceB = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
@@ -1063,14 +1063,14 @@ class C
     }
 }
 ";
-            var compilationC = CreateCompilationWithMscorlib(sourceC, assemblyName: "C", references: new[] { referenceA, referenceB, SystemCoreRef });
+            var compilationC = CreateCompilation(sourceC, assemblyName: "C", references: new[] { referenceA, referenceB, SystemCoreRef });
             compilationC.VerifyDiagnostics(
                 // (6,9): error CS0122: 'B.M(int)' is inaccessible due to its protection level
                 //         b.M(d);
                 Diagnostic(ErrorCode.ERR_BadAccess, "b.M(d)").WithArguments("B.M(int)"));
         }
 
-        [WorkItem(563573, "DevDiv")]
+        [WorkItem(563573, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/563573")]
         [Fact]
         public void MissingIdentifier01()
         {
@@ -1094,10 +1094,10 @@ class C
         return MI.MyMeth(new MyInner2());
     }
 }";
-            CreateCompilationWithMscorlib(source).GetDiagnostics();
+            CreateCompilation(source).GetDiagnostics();
         }
 
-        [WorkItem(563563, "DevDiv"), WorkItem(563573, "DevDiv")]
+        [WorkItem(563563, "DevDiv"), WorkItem(563573, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/563573")]
         [Fact]
         public void MissingIdentifier02()
         {
@@ -1121,11 +1121,11 @@ class C
         return MI.MyMeth(new MyInner2());
     }
 }";
-            CreateCompilationWithMscorlib(source).GetDiagnostics();
+            CreateCompilation(source).GetDiagnostics();
         }
 
         [Fact]
-        [WorkItem(552452, "DevDiv")]
+        [WorkItem(552452, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/552452")]
         public void AccessTestInBadCode01()
         {
             var source =
@@ -1151,7 +1151,93 @@ public clas TestClass2 { }
 [MyAttribut(object) ((new E()).Test()))]
 public class TestClass1 { }
 ///////////////";
-            CreateCompilationWithMscorlib(source).GetDiagnostics();
+            CreateCompilation(source).GetDiagnostics();
+        }
+
+        [Fact, WorkItem(13652, "https://github.com/dotnet/roslyn/issues/13652")]
+        public void UnusedFieldInAbstractClassShouldTriggerWarning()
+        {
+            var text = @"
+abstract class Class1
+{
+    private int _UnusedField;
+}";
+            CompileAndVerify(text).VerifyDiagnostics(
+                // (4,21): warning CS0169: The field 'Class1._UnusedField' is never used
+                //         private int _UnusedField;
+                Diagnostic(ErrorCode.WRN_UnreferencedField, "_UnusedField").WithArguments("Class1._UnusedField").WithLocation(4, 17));
+        }
+
+        [Fact, WorkItem(13652, "https://github.com/dotnet/roslyn/issues/13652")]
+        public void AssignedButNotReadFieldInAbstractClassShouldTriggerWarning()
+        {
+            var text = @"
+abstract class Class1
+{
+    private int _AssignedButNotReadField;
+
+    public Class1()
+    {
+        _AssignedButNotReadField = 1;
+    }
+}";
+            CompileAndVerify(text).VerifyDiagnostics(
+                // (4,21): warning CS0414: The field 'Class1._AssignedButNotReadField' is assigned but its value is never used
+                //         private int _AssignedButNotReadField;
+                Diagnostic(ErrorCode.WRN_UnreferencedFieldAssg, "_AssignedButNotReadField").WithArguments("Class1._AssignedButNotReadField").WithLocation(4, 17));
+        }
+
+        [Fact, WorkItem(13652, "https://github.com/dotnet/roslyn/issues/13652")]
+        public void UsedButNotAssignedFieldInAbstractClassShouldTriggerWarning()
+        {
+            var text = @"
+internal abstract class Class1
+{
+    protected int _UnAssignedField1;
+
+    public Class1()
+    {
+        System.Console.WriteLine(_UnAssignedField1);
+    }
+}";
+            CompileAndVerify(text).VerifyDiagnostics(
+                // (4,18): warning CS0649: Field 'Class1._UnAssignedField1' is never assigned to, and will always have its default value 0
+                //     internal int _UnAssignedField;
+                Diagnostic(ErrorCode.WRN_UnassignedInternalField, "_UnAssignedField1").WithArguments("Class1._UnAssignedField1", "0").WithLocation(4, 19));
+        }
+
+        [Fact, WorkItem(13652, "https://github.com/dotnet/roslyn/issues/13652")]
+        public void UsedButNotAssignedFieldInAbstractInternalClassWithIVTsShouldNotTriggerWarning()
+        {
+            var text = @"
+[assembly:System.Runtime.CompilerServices.InternalsVisibleTo(""Test2.dll"")]
+
+internal abstract class Class1
+{
+    protected int _UnAssignedField1;
+
+    public Class1()
+    {
+        System.Console.WriteLine(_UnAssignedField1);
+    }
+}";
+            CompileAndVerify(text).VerifyDiagnostics();
+        }
+
+        [Fact, WorkItem(13652, "https://github.com/dotnet/roslyn/issues/13652")]
+        public void UsedButNotAssignedFieldInAbstractPublicClassShouldNotTriggerWarning()
+        {
+            var text = @"
+public abstract class Class1
+{
+    protected int _UnAssignedField1;
+
+    public Class1()
+    {
+        System.Console.WriteLine(_UnAssignedField1);
+    }
+}";
+            CompileAndVerify(text).VerifyDiagnostics();
         }
     }
 }

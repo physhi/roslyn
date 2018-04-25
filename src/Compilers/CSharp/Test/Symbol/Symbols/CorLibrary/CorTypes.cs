@@ -166,7 +166,7 @@ namespace System
             Assert.Throws<ArgumentOutOfRangeException>(() => c1.GetSpecialType(SpecialType.Count + 1));
         }
 
-        [WorkItem(697521, "DevDiv")]
+        [WorkItem(697521, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/697521")]
         [Fact]
         public void SubclassSystemArray()
         {
@@ -174,6 +174,10 @@ namespace System
 namespace System
 {
     public class Object
+    {
+    }
+
+    public class Void
     {
     }
 
@@ -193,10 +197,10 @@ namespace System
 ";
 
             // Fine in corlib.
-            CreateCompilation(source1 + source2).VerifyDiagnostics();
+            CreateEmptyCompilation(source1 + source2).VerifyDiagnostics();
 
             // Error elsewhere.
-            CreateCompilationWithMscorlib(source2).VerifyDiagnostics(
+            CreateCompilation(source2).VerifyDiagnostics(
                 // (4,20): error CS0644: 'System.ArrayContract' cannot derive from special class 'System.Array'
                 //     internal class ArrayContract : Array
                 Diagnostic(ErrorCode.ERR_DeriveFromEnumOrValueType, "ArrayContract").WithArguments("System.ArrayContract", "System.Array"));

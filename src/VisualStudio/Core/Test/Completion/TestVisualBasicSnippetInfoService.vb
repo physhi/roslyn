@@ -1,5 +1,6 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+Imports System.Collections.Immutable
 Imports System.Composition
 Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis
@@ -16,18 +17,16 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Completion
         Inherits VisualBasicSnippetInfoService
 
         <ImportingConstructor>
-        Friend Sub New(<ImportMany> asyncListeners As IEnumerable(Of Lazy(Of IAsynchronousOperationListener, FeatureMetadata)))
-            MyBase.New(Nothing, asyncListeners)
+        Friend Sub New(listenerProvider As IAsynchronousOperationListenerProvider)
+            MyBase.New(Nothing, listenerProvider)
         End Sub
 
-        Friend Async Function SetSnippetShortcuts(newSnippetShortcuts As String()) As Task
-            Await InitialCachePopulationTask
-
+        Friend Sub SetSnippetShortcuts(newSnippetShortcuts As String())
             SyncLock cacheGuard
-                snippets = newSnippetShortcuts.Select(Function(shortcut) New SnippetInfo(shortcut, "title", "description", "path")).ToList()
+                snippets = newSnippetShortcuts.Select(Function(shortcut) New SnippetInfo(shortcut, "title", "description", "path")).ToImmutableArray()
                 snippetShortcuts = GetShortcutsHashFromSnippets(snippets)
             End SyncLock
-        End Function
+        End Sub
     End Class
 End Namespace
 

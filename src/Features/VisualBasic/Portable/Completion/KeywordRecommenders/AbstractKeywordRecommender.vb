@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
 Imports Microsoft.CodeAnalysis.Completion.Providers
@@ -9,12 +9,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.KeywordRecommenders
     Friend MustInherit Class AbstractKeywordRecommender
         Implements IKeywordRecommender(Of VisualBasicSyntaxContext)
 
-        Public Function RecommendKeywords(
+        Public Function RecommendKeywordsAsync(
             position As Integer,
             context As VisualBasicSyntaxContext,
-            cancellationToken As CancellationToken) As IEnumerable(Of RecommendedKeyword) Implements IKeywordRecommender(Of VisualBasicSyntaxContext).RecommendKeywords
+            cancellationToken As CancellationToken) As Task(Of IEnumerable(Of RecommendedKeyword)) Implements IKeywordRecommender(Of VisualBasicSyntaxContext).RecommendKeywordsAsync
 
-            Return RecommendKeywords(context, cancellationToken)
+            Return Task.FromResult(RecommendKeywords(context, cancellationToken))
         End Function
 
         Friend Function RecommendKeywords_Test(context As VisualBasicSyntaxContext) As IEnumerable(Of RecommendedKeyword)

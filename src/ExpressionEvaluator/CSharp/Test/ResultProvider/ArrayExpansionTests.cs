@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.Debugger.Evaluation;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-namespace Microsoft.CodeAnalysis.CSharp.UnitTests
+namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator.UnitTests
 {
     public class ArrayExpansionTests : CSharpResultProviderTestBase
     {
@@ -151,7 +151,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 EvalResult("[1]", "2", "int", "((int[])(new C()).o)[1]"));
         }
 
-        [WorkItem(933845)]
+        [WorkItem(933845, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/933845")]
         [Fact]
         public void BaseElementType()
         {
@@ -184,7 +184,7 @@ class B : A
                 EvalResult("P", "2", "object {int}", "((B)o[1]).P", DkmEvaluationResultFlags.ReadOnly));
         }
 
-        [WorkItem(1022157)]
+        [WorkItem(1022157, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1022157")]
         [Fact]
         public void Covariance()
         {
@@ -226,7 +226,7 @@ class C
                 EvalResult("[0]", "{B}", "I {B}", "((B[])o.H)[0]", DkmEvaluationResultFlags.Expandable));
         }
 
-        [WorkItem(1001844)]
+        [WorkItem(1001844, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1001844")]
         [Fact]
         public void Interface()
         {
@@ -277,6 +277,40 @@ class C
                 EvalResult("[4, 4]", "4", "int", "arrayExpr[4, 4]"),
                 EvalResult("[4, 5]", "5", "int", "arrayExpr[4, 5]"),
                 EvalResult("[4, 6]", "6", "int", "arrayExpr[4, 6]"));
+        }
+
+        [Fact]
+        public void Hexadecimal()
+        {
+            var value = CreateDkmClrValue(new[] { 10, 20, 30 });
+            var inspectionContext = CreateDkmInspectionContext(radix: 16);
+            var evalResult = FormatResult("o", value, inspectionContext: inspectionContext);
+            Verify(evalResult,
+                EvalResult("o", "{int[0x00000003]}", "int[]", "o", DkmEvaluationResultFlags.Expandable));
+            var children = GetChildren(evalResult, inspectionContext);
+            // Hex could be used for indices: [0x00000000], etc.
+            Verify(children,
+                EvalResult("[0]", "0x0000000a", "int", "o[0]"),
+                EvalResult("[1]", "0x00000014", "int", "o[1]"),
+                EvalResult("[2]", "0x0000001e", "int", "o[2]"));
+        }
+
+        [Fact]
+        public void HexadecimalNonZeroLowerBounds()
+        {
+            var array = (int[,])System.Array.CreateInstance(typeof(int), new[] { 2, 1 }, new[] { -3, 4 });
+            array[-3, 4] = 1;
+            array[-2, 4] = 2;
+            var value = CreateDkmClrValue(array);
+            var inspectionContext = CreateDkmInspectionContext(radix: 16);
+            var evalResult = FormatResult("a", value, inspectionContext: inspectionContext);
+            Verify(evalResult,
+                EvalResult("a", "{int[0xfffffffd..0xfffffffe, 0x00000004..0x00000004]}", "int[,]", "a", DkmEvaluationResultFlags.Expandable));
+            var children = GetChildren(evalResult, inspectionContext);
+            // Hex could be used for indices: [0xfffffffd, 0x00000004], etc.
+            Verify(children,
+                EvalResult("[-3, 4]", "0x00000001", "int", "a[-3, 4]"),
+                EvalResult("[-2, 4]", "0x00000002", "int", "a[-2, 4]"));
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Threading
 Imports System.Threading.Tasks
@@ -8,6 +8,7 @@ Imports Microsoft.CodeAnalysis.LanguageServices
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 
+    <[UseExportProvider]>
     Public Class SymbolDescriptionServiceTests
 
         Private Async Function TestAsync(languageServiceProvider As HostLanguageServices, workspace As TestWorkspace, expectedDescription As String) As Task
@@ -19,8 +20,9 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 
             Dim document = workspace.CurrentSolution.GetDocument(cursorDocument.Id)
 
-            ' using GetTouchingWord instead of FindToken allows us to test scenarios where cursor is at the end of token (E.g: Foo$$)
-            Dim commonSyntaxToken = (Await document.GetSyntaxTreeAsync()).GetTouchingWord(cursorPosition, languageServiceProvider.GetService(Of ISyntaxFactsService), Nothing)
+            ' using GetTouchingWord instead of FindToken allows us to test scenarios where cursor is at the end of token (E.g: Goo$$)
+            Dim tree = Await document.GetSyntaxTreeAsync()
+            Dim commonSyntaxToken = Await tree.GetTouchingWordAsync(cursorPosition, languageServiceProvider.GetService(Of ISyntaxFactsService), Nothing)
 
             ' For String Literals GetTouchingWord returns Nothing, we still need this for Quick Info. Quick Info code does exactly the following.
             ' caveat: The comment above the previous line of code. Do not put the cursor at the end of the token.
@@ -29,7 +31,10 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             End If
 
             Dim semanticModel = Await document.GetSemanticModelAsync()
-            Dim symbol = semanticModel.GetSymbols(commonSyntaxToken, document.Project.Solution.Workspace, bindLiteralsToUnderlyingType:=True, cancellationToken:=CancellationToken.None).AsImmutable()
+            Dim symbol = semanticModel.GetSemanticInfo(commonSyntaxToken, document.Project.Solution.Workspace, CancellationToken.None).
+                                       GetSymbols(includeType:=True).
+                                       AsImmutable()
+
             Dim symbolDescriptionService = languageServiceProvider.GetService(Of ISymbolDisplayService)()
 
             Dim actualDescription = Await symbolDescriptionService.ToDescriptionStringAsync(workspace, semanticModel, cursorPosition, symbol)
@@ -43,13 +48,13 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         End Function
 
         Private Async Function TestCSharpAsync(workspaceDefinition As XElement, expectedDescription As String) As Tasks.Task
-            Using workspace = Await TestWorkspaceFactory.CreateWorkspaceAsync(workspaceDefinition)
+            Using workspace = TestWorkspace.Create(workspaceDefinition)
                 Await TestAsync(GetLanguageServiceProvider(workspace, LanguageNames.CSharp), workspace, expectedDescription)
             End Using
         End Function
 
         Private Async Function TestBasicAsync(workspaceDefinition As XElement, expectedDescription As String) As Tasks.Task
-            Using workspace = Await TestWorkspaceFactory.CreateWorkspaceAsync(workspaceDefinition)
+            Using workspace = TestWorkspace.Create(workspaceDefinition)
                 Await TestAsync(GetLanguageServiceProvider(workspace, LanguageNames.VisualBasic), workspace, expectedDescription)
             End Using
         End Function
@@ -74,23 +79,23 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="C#" CommonReferences="true">
         <Document>
-            class Foo { void M() { dyn$$amic d; } }
+            class Goo { void M() { dyn$$amic d; } }
         </Document>
     </Project>
 </Workspace>
             Await TestCSharpAsync(workspace,
                        StringFromLines("dynamic",
-                                       FeaturesResources.RepresentsAnObjectWhoseOperations))
+                                       FeaturesResources.Represents_an_object_whose_operations_will_be_resolved_at_runtime))
         End Function
 
-        <WorkItem(543912)>
+        <WorkItem(543912, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543912")>
         <Fact>
         Public Async Function TestCSharpLocalConstant() As Task
             Dim workspace =
 <Workspace>
     <Project Language="C#" CommonReferences="true">
         <Document>
-            class Foo
+            class Goo
             {
                 void Method()
                 {
@@ -100,7 +105,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestCSharpAsync(workspace, $"({FeaturesResources.LocalConstant}) int x = 2")
+            Await TestCSharpAsync(workspace, $"({FeaturesResources.local_constant}) int x = 2")
         End Function
 
 #End Region
@@ -189,13 +194,13 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Public Class Foo(Of T)
+            Public Class Goo(Of T)
                 Dim x as T$$
             End Class
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"T {FeaturesResources.In} Foo(Of T)")
+            Await TestBasicAsync(workspace, $"T {FeaturesResources.in_} Goo(Of T)")
         End Function
 
         <Fact>
@@ -213,7 +218,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"T {FeaturesResources.In} Outer(Of T)")
+            Await TestBasicAsync(workspace, $"T {FeaturesResources.in_} Outer(Of T)")
         End Function
 
         <Fact>
@@ -231,7 +236,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"T {FeaturesResources.In} Outer(Of T)")
+            Await TestBasicAsync(workspace, $"T {FeaturesResources.in_} Outer(Of T)")
         End Function
 
         <Fact>
@@ -241,7 +246,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
             Imports System
-            Public Class Foo
+            Public Class Goo
                 Dim x as Nullab$$le(Of Integer)
             End Class
         </Document>
@@ -250,7 +255,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             Await TestBasicAsync(workspace,
                       StringFromLines("Structure System.Nullable(Of T As Structure)",
                                       String.Empty,
-                                      $"T {FeaturesResources.Is} Integer"))
+                                      $"T {FeaturesResources.is_} Integer"))
         End Function
 
         <Fact>
@@ -347,19 +352,19 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Interface Foo
+            Interface Goo
 
             End Interface
 
             Module M1
                 Sub Main(args As String())
-                    Dim p as Foo$$
+                    Dim p as Goo$$
                 End Sub
             End Module
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, "Interface Foo")
+            Await TestBasicAsync(workspace, "Interface Goo")
         End Function
 
         <Fact>
@@ -368,7 +373,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 sub Method()
                     $$M1.M()
                 End sub
@@ -391,7 +396,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 sub Method()
                     Sys$$tem.Console.Write(5)
                 End sub
@@ -421,7 +426,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 private field as Integer
                 sub Method()
                     fie$$ld = 5
@@ -430,7 +435,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"({FeaturesResources.Field}) Foo.field As Integer")
+            Await TestBasicAsync(workspace, $"({FeaturesResources.field}) Goo.field As Integer")
         End Function
 
         <Fact>
@@ -439,7 +444,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 sub Method()
                     Dim x as String
                     x$$ = "Hello"
@@ -448,7 +453,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"({FeaturesResources.LocalVariable}) x As String")
+            Await TestBasicAsync(workspace, $"({FeaturesResources.local_variable}) x As String")
         End Function
 
         <Fact>
@@ -457,7 +462,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                     Dim x As String = "Hel$$lo"
                 End Sub
@@ -474,7 +479,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                     Dim x = 4$$2
                 End Sub
@@ -491,7 +496,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                        Dim d As Date
                        d = #8/23/1970 $$3:45:39 AM#
@@ -510,7 +515,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                     Dim x = Nothin$$g
                 End Sub
@@ -527,7 +532,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                     Dim x = Tr$$ue
                 End Sub
@@ -538,14 +543,14 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             Await TestBasicAsync(workspace, "Structure System.Boolean")
         End Function
 
-        <WorkItem(538732)>
+        <WorkItem(538732, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538732")>
         <Fact>
         Public Async Function TestMethod() As Task
             Dim workspace =
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                     Fu$$n()
                 End Sub
@@ -556,7 +561,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, "Function Foo.Fun() As Integer")
+            Await TestBasicAsync(workspace, "Function Goo.Fun() As Integer")
         End Function
 
         ''' <summary>
@@ -564,14 +569,14 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         ''' VB / C# Quick Info Consistency
         ''' </summary>
         ''' <remarks></remarks>
-        <WorkItem(538732)>
+        <WorkItem(538732, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538732")>
         <Fact>
         Public Async Function TestPEMethod() As Task
             Dim workspace =
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                     System.Console.Writ$$e(5)
                 End Sub
@@ -593,7 +598,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method()
                 End Sub
                 Function Fun(x$$ As String) As Integer
@@ -603,7 +608,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"({FeaturesResources.Parameter}) x As String")
+            Await TestBasicAsync(workspace, $"({FeaturesResources.parameter}) x As String")
         End Function
 
         <Fact>
@@ -612,7 +617,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Sub Method(x As Short, Optional y As Integer = 10)
                 End Sub
                 Sub Test
@@ -622,7 +627,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, "Sub Foo.Method(x As Short, [y As Integer = 10])")
+            Await TestBasicAsync(workspace, "Sub Goo.Method(x As Short, [y As Integer = 10])")
         End Function
 
         <Fact>
@@ -631,7 +636,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Overloads Sub Method(x As Integer)
                 End Sub
 
@@ -645,7 +650,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, "Sub Foo.Method(x As String)")
+            Await TestBasicAsync(workspace, "Sub Goo.Method(x As String)")
         End Function
 
         <Fact>
@@ -654,7 +659,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 Overloads Sub Method(x As Integer)
                 End Sub
 
@@ -671,67 +676,67 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, "Sub Foo.Method(x As String)")
+            Await TestBasicAsync(workspace, "Sub Goo.Method(x As String)")
         End Function
 
-        <WorkItem(527639)>
+        <WorkItem(527639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527639")>
         <Fact>
         Public Async Function TestInterfaceConstraintOnClass() As Task
             Dim workspace = WrapCodeInWorkspace("Imports System.Collections.Generic",
                                                 "Class CC(Of T$$ As IEnumerable(Of Integer))",
                                                 "End Class")
-            Dim expectedDescription = $"T {FeaturesResources.In} CC(Of T As IEnumerable(Of Integer))"
+            Dim expectedDescription = $"T {FeaturesResources.in_} CC(Of T As IEnumerable(Of Integer))"
 
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
-        <WorkItem(527639)>
+        <WorkItem(527639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527639")>
         <Fact>
         Public Async Function TestInterfaceConstraintOnInterface() As Task
             Dim workspace = WrapCodeInWorkspace("Imports System.Collections.Generic",
                                                 "Interface IMyInterface(Of T$$ As IEnumerable(Of Integer))",
                                                 "End Interface")
-            Dim expectedDescription = $"T {FeaturesResources.In} IMyInterface(Of T As IEnumerable(Of Integer))"
+            Dim expectedDescription = $"T {FeaturesResources.in_} IMyInterface(Of T As IEnumerable(Of Integer))"
 
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
-        <WorkItem(527639)>
+        <WorkItem(527639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527639")>
         <Fact>
         Public Async Function TestReferenceTypeConstraintOnClass() As Task
             Dim workspace = WrapCodeInWorkspace("Class CC(Of T$$ As Class)",
                                                 "End Class")
-            Dim expectedDescription = $"T {FeaturesResources.In} CC(Of T As Class)"
+            Dim expectedDescription = $"T {FeaturesResources.in_} CC(Of T As Class)"
 
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
-        <WorkItem(527639)>
+        <WorkItem(527639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527639")>
         <Fact>
         Public Async Function TestValueTypeConstraintOnClass() As Task
             Dim workspace = WrapCodeInWorkspace("Class CC(Of T$$ As Structure)",
                                                 "End Class")
-            Dim expectedDescription = $"T {FeaturesResources.In} CC(Of T As Structure)"
+            Dim expectedDescription = $"T {FeaturesResources.in_} CC(Of T As Structure)"
 
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
-        <WorkItem(527639)>
+        <WorkItem(527639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527639")>
         <Fact>
         Public Async Function TestValueTypeConstraintOnStructure() As Task
             Dim workspace = WrapCodeInWorkspace("Structure S(Of T$$ As Class)",
                                                 "End Structure")
-            Dim expectedDescription = $"T {FeaturesResources.In} S(Of T As Class)"
+            Dim expectedDescription = $"T {FeaturesResources.in_} S(Of T As Class)"
 
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
-        <WorkItem(527639)>
+        <WorkItem(527639, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527639")>
         <Fact>
         Public Async Function TestMultipleConstraintsOnClass() As Task
             Dim workspace = WrapCodeInWorkspace("Public Class CC(Of T$$ As {IComparable, IDisposable, Class, New})",
                                                 "End Class")
-            Dim expectedDescription = $"T {FeaturesResources.In} CC(Of T As {{Class, IComparable, IDisposable, New}})"
+            Dim expectedDescription = $"T {FeaturesResources.in_} CC(Of T As {{Class, IComparable, IDisposable, New}})"
 
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
@@ -744,11 +749,11 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
                                                 "End Class")
             Dim expectedDescription = StringFromLines("Interface System.Collections.Generic.IEnumerable(Of Out T)",
                                                       String.Empty,
-                                                      $"T {FeaturesResources.Is} Integer")
+                                                      $"T {FeaturesResources.is_} Integer")
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
-        <WorkItem(527655)>
+        <WorkItem(527655, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/527655")>
         <Fact>
         Public Async Function TestMinimalDisplayName() As Task
             Dim workspace = WrapCodeInWorkspace("Imports System",
@@ -757,7 +762,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
                                                 "End Class")
             Dim expectedDescription = StringFromLines("Interface System.Collections.Generic.IEnumerable(Of Out T)",
                                                       String.Empty,
-                                                      $"T {FeaturesResources.Is} IEnumerable(Of Integer)")
+                                                      $"T {FeaturesResources.is_} IEnumerable(Of Integer)")
             Await TestBasicAsync(workspace, expectedDescription)
         End Function
 
@@ -853,16 +858,16 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         <Project Language="Visual Basic" CommonReferences="true">
             <Document>
             Imports System.Collections.Generic
-            Class Foo
+            Class Goo
                 Public Property It$$ems As New List(Of String) From {"M", "T", "W"}
             End Class
         </Document>
         </Project>
     </Workspace>
-            Await TestBasicAsync(workspace, "Property Foo.Items As List(Of String)")
+            Await TestBasicAsync(workspace, "Property Goo.Items As List(Of String)")
         End Function
 
-        <WorkItem(538806)>
+        <WorkItem(538806, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538806")>
         <Fact>
         Public Async Function TestField1() As Task
             Dim workspace =
@@ -879,10 +884,10 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"({FeaturesResources.Field}) C.x As Integer")
+            Await TestBasicAsync(workspace, $"({FeaturesResources.field}) C.x As Integer")
         End Function
 
-        <WorkItem(538806)>
+        <WorkItem(538806, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/538806")>
         <Fact>
         Public Async Function TestProperty1() As Task
             Dim workspace =
@@ -899,17 +904,17 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"({FeaturesResources.LocalVariable}) y As Integer")
+            Await TestBasicAsync(workspace, $"({FeaturesResources.local_variable}) y As Integer")
         End Function
 
-        <WorkItem(543911)>
+        <WorkItem(543911, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543911")>
         <Fact>
         Public Async Function TestVBLocalConstant() As Task
             Dim workspace =
 <Workspace>
     <Project Language="Visual Basic" CommonReferences="true">
         <Document>
-            Class Foo
+            Class Goo
                 sub Method()
                     Const $$b = 2
                 End sub
@@ -917,7 +922,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         </Document>
     </Project>
 </Workspace>
-            Await TestBasicAsync(workspace, $"({FeaturesResources.LocalConstant}) b As Integer = 2")
+            Await TestBasicAsync(workspace, $"({FeaturesResources.local_constant}) b As Integer = 2")
         End Function
 
 #End Region

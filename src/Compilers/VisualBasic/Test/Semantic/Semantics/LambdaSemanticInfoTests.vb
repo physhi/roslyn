@@ -14,7 +14,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
 
         <Fact>
         Public Sub Lambda1()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -49,7 +49,7 @@ End Module
 
         <Fact>
         Public Sub Lambda2()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -82,7 +82,7 @@ End Module
 
         <Fact>
         Public Sub Lambda3()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -117,7 +117,7 @@ End Module
 
         <Fact>
         Public Sub Lambda4()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -150,7 +150,7 @@ End Module
 
         <Fact>
         Public Sub Lambda5()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="GetSemanticInfo">
     <file name="a.vb">
 Module Module1
@@ -188,7 +188,7 @@ End Module
 
         <Fact>
         Public Sub Lambda6()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -226,7 +226,7 @@ End Module
 
         <Fact>
         Public Sub Lambda7()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -262,7 +262,7 @@ End Module
 
         <Fact>
         Public Sub Lambda8()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -298,7 +298,7 @@ End Module
 
         <Fact>
         Public Sub Lambda9()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -337,7 +337,7 @@ End Module
 
         <Fact>
         Public Sub Lambda10()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -373,7 +373,7 @@ End Module
 
         <Fact>
         Public Sub Lambda11()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -413,7 +413,7 @@ End Module
 
         <Fact>
         Public Sub Lambda12()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -454,7 +454,7 @@ End Module
 
         <Fact>
         Public Sub Lambda13()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation name="GetSemanticInfo">
     <file name="a.vb">
 Module Module1
@@ -489,7 +489,7 @@ End Module
 
         <Fact>
         Public Sub Lambda14()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Module1
@@ -519,7 +519,7 @@ End Module
 
         <Fact>
         Public Sub Bug8643()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Imports System
@@ -556,7 +556,7 @@ End Module
 
         <Fact>
         Public Sub Bug8522()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Class A
@@ -596,7 +596,7 @@ End Module
         <WorkItem(9805, "DevDiv_Projects/Roslyn")>
         <Fact>
         Public Sub LambdaInWhileStatement()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Test
@@ -618,7 +618,7 @@ End Module
 
         <Fact>
         Public Sub SingleLineLambdaWithDimStatement()
-            Dim compilation = CreateCompilationWithMscorlib(
+            Dim compilation = CreateCompilationWithMscorlib40(
 <compilation>
     <file name="a.vb"><![CDATA[
 Module Test
@@ -639,10 +639,10 @@ End Module
             Assert.Equal("System.Int32", symbol.Type.ToTestDisplayString())
         End Sub
 
-        <Fact, WorkItem(544647, "DevDiv")>
+        <Fact, WorkItem(544647, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544647")>
         Public Sub InvokeGenericOverloadedMethod()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System
@@ -665,7 +665,7 @@ Module M
 
 End Module
     </file>
-    </compilation>, additionalRefs:={SystemCoreRef})
+    </compilation>, references:={SystemCoreRef})
 
             Dim tree = compilation.SyntaxTrees(0)
             Dim model = compilation.GetSemanticModel(tree)
@@ -678,9 +678,9 @@ End Module
             Assert.NotNull(info.Symbol)
         End Sub
 
-        <Fact, WorkItem(566495, "DevDiv")>
+        <Fact, WorkItem(566495, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/566495")>
         Public Sub Bug566495()
-            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib40AndVBRuntimeAndReferences(
         <compilation>
             <file name="a.vb"><![CDATA[
         Imports System.Linq
@@ -689,10 +689,10 @@ End Module
 
         Module Program
             Sub Main()
-                Dim L As New List(Of Foo)
+                Dim L As New List(Of Goo)
 
                 For i As Integer = 1 To 10
-                    Dim F As New Foo
+                    Dim F As New Goo
                     F.Id = i
                     F.Name = "some text"
                     L.Add(F)
@@ -703,7 +703,7 @@ End Module
                           End Function).ToList 
             End Sub
 
-            Public Class Foo
+            Public Class Goo
                 Public Property Name As String
                 Public Property Id As Integer
             End Class
@@ -713,7 +713,7 @@ End Module
 
             AssertTheseDiagnostics(compilation,
 <expected>
-BC36646: Data type(s) of the type parameter(s) in extension method 'Public Function Zip(Of TSecond, TResult)(second As IEnumerable(Of TSecond), resultSelector As Func(Of Program.Foo, TSecond, TResult)) As IEnumerable(Of TResult)' defined in 'Enumerable' cannot be inferred from these arguments. Specifying the data type(s) explicitly might correct this error.
+BC36646: Data type(s) of the type parameter(s) in extension method 'Public Function Zip(Of TSecond, TResult)(second As IEnumerable(Of TSecond), resultSelector As Func(Of Program.Goo, TSecond, TResult)) As IEnumerable(Of TResult)' defined in 'Enumerable' cannot be inferred from these arguments. Specifying the data type(s) explicitly might correct this error.
         Dim L2 = L.Zip(L, Function(x, y) 
                    ~~~
 BC30203: Identifier expected.
@@ -723,13 +723,13 @@ BC30203: Identifier expected.
 
             Dim semanticInfo = CompilationUtils.GetSemanticInfoSummary(Of IdentifierNameSyntax)(compilation, "a.vb")
 
-            Assert.Equal("Program.Foo", semanticInfo.Type.ToTestDisplayString())
+            Assert.Equal("Program.Goo", semanticInfo.Type.ToTestDisplayString())
             Assert.Equal(TypeKind.Class, semanticInfo.Type.TypeKind)
-            Assert.Equal("Program.Foo", semanticInfo.ConvertedType.ToTestDisplayString())
+            Assert.Equal("Program.Goo", semanticInfo.ConvertedType.ToTestDisplayString())
             Assert.Equal(TypeKind.Class, semanticInfo.ConvertedType.TypeKind)
             Assert.Equal(ConversionKind.Identity, semanticInfo.ImplicitConversion.Kind)
 
-            Assert.Equal("x As Program.Foo", semanticInfo.Symbol.ToTestDisplayString())
+            Assert.Equal("x As Program.Goo", semanticInfo.Symbol.ToTestDisplayString())
             Assert.Equal(SymbolKind.Parameter, semanticInfo.Symbol.Kind)
             Assert.Equal(0, semanticInfo.CandidateSymbols.Length)
 
@@ -738,10 +738,10 @@ BC30203: Identifier expected.
             Assert.False(semanticInfo.ConstantValue.HasValue)
         End Sub
 
-        <Fact, WorkItem(960755, "DevDiv")>
+        <Fact, WorkItem(960755, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/960755")>
         Public Sub Bug960755_01()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System.Collections.Generic
@@ -765,10 +765,10 @@ End Class
             Assert.Equal(CandidateReason.OverloadResolutionFailure, symbolInfo.CandidateReason)
         End Sub
 
-        <Fact, WorkItem(960755, "DevDiv")>
+        <Fact, WorkItem(960755, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/960755")>
         Public Sub Bug960755_02()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System.Collections.Generic
@@ -791,10 +791,10 @@ End Class
             Assert.Equal(CandidateReason.OverloadResolutionFailure, symbolInfo.CandidateReason)
         End Sub
 
-        <Fact, WorkItem(960755, "DevDiv")>
+        <Fact, WorkItem(960755, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/960755")>
         Public Sub Bug960755_03()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System.Collections.Generic
@@ -821,10 +821,10 @@ End Class
             Assert.Equal(CandidateReason.None, symbolInfo.CandidateReason)
         End Sub
 
-        <Fact, WorkItem(1179899, "DevDiv")>
+        <Fact, WorkItem(1179899, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1179899")>
         Public Sub ParameterReference_01()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System
@@ -858,10 +858,10 @@ BC30203: Identifier expected.
             Assert.Equal("a As Program", symbolInfo.Symbol.ToTestDisplayString())
         End Sub
 
-        <Fact, WorkItem(1179899, "DevDiv")>
+        <Fact, WorkItem(1179899, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1179899")>
         Public Sub ParameterReference_02()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System
@@ -897,10 +897,10 @@ BC30203: Identifier expected.
             Assert.Equal("a As Program", symbolInfo.Symbol.ToTestDisplayString())
         End Sub
 
-        <Fact, WorkItem(1179899, "DevDiv")>
+        <Fact, WorkItem(1179899, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1179899")>
         Public Sub ParameterReference_03()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System
@@ -933,10 +933,10 @@ BC30203: Identifier expected.
             Assert.Equal("a As Program", symbolInfo.Symbol.ToTestDisplayString())
         End Sub
 
-        <Fact, WorkItem(1179899, "DevDiv")>
+        <Fact, WorkItem(1179899, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1179899")>
         Public Sub ParameterReference_04()
 
-            Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
+            Dim compilation = CreateCompilationWithMscorlib40AndVBRuntime(
     <compilation name="InstantiatingNamespace">
         <file name="a.vb">
 Imports System

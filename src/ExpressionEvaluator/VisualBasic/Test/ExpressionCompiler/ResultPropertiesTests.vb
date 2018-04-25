@@ -3,13 +3,15 @@
 Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.ExpressionEvaluator
+Imports Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
 Imports Microsoft.VisualStudio.Debugger.Evaluation
 Imports Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation
+Imports Microsoft.CodeAnalysis.VisualBasic.UnitTests
 Imports Roslyn.Test.PdbUtilities
 Imports Roslyn.Test.Utilities
 Imports Xunit
 
-Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
+Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator.UnitTests
     Public Class ResultPropertiesTests
         Inherits ExpressionCompilerTestBase
 
@@ -28,16 +30,18 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            For Each expr In {"Me", "Nothing", "1", "F", "p", "l"}
-                Assert.Equal(DkmEvaluationResultCategory.Data, GetResultProperties(context, expr).Category)
-            Next
+                    For Each expr In {"Me", "Nothing", "1", "F", "p", "l"}
+                        Assert.Equal(DkmEvaluationResultCategory.Data, GetResultProperties(context, expr).Category)
+                    Next
 
-            Assert.Equal(DkmEvaluationResultCategory.Method, GetResultProperties(context, "M()").Category)
-            Assert.Equal(DkmEvaluationResultCategory.Property, GetResultProperties(context, "Me.P").Category)
+                    Assert.Equal(DkmEvaluationResultCategory.Method, GetResultProperties(context, "M()").Category)
+                    Assert.Equal(DkmEvaluationResultCategory.Property, GetResultProperties(context, "Me.P").Category)
+                End Sub)
         End Sub
 
         <Fact>
@@ -61,17 +65,19 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            For Each expr In {"Me", "Nothing", "1", "P", "F", "M()", "p", "l"}
-                Assert.Equal(DkmEvaluationResultStorageType.None, GetResultProperties(context, expr).StorageType)
-            Next
+                    For Each expr In {"Me", "Nothing", "1", "P", "F", "M()", "p", "l"}
+                        Assert.Equal(DkmEvaluationResultStorageType.None, GetResultProperties(context, expr).StorageType)
+                    Next
 
-            For Each expr In {"SP", "SF", "SM()"}
-                Assert.Equal(DkmEvaluationResultStorageType.Static, GetResultProperties(context, expr).StorageType)
-            Next
+                    For Each expr In {"SP", "SF", "SM()"}
+                        Assert.Equal(DkmEvaluationResultStorageType.Static, GetResultProperties(context, expr).StorageType)
+                    Next
+                End Sub)
         End Sub
 
         <Fact>
@@ -103,16 +109,9 @@ End Class
 
 } // end of class C
 "
-            Dim exeBytes As ImmutableArray(Of Byte) = Nothing
-            Dim pdbBytes As ImmutableArray(Of Byte) = Nothing
-            EmitILToArray(ilSource, appendDefaultHeader:=True, includePdb:=True, assemblyBytes:=exeBytes, pdbBytes:=pdbBytes)
-
-            Dim runtime = CreateRuntimeInstance(
-                assemblyName:=GetUniqueName(),
-                references:=ImmutableArray.Create(MscorlibRef),
-                exeBytes:=exeBytes.ToArray(),
-                symReader:=New SymReader(pdbBytes.ToArray()))
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim ilModule = ExpressionCompilerTestHelpers.GetModuleInstanceForIL(ilSource)
+            Dim runtime = CreateRuntimeInstance(ilModule, {MscorlibRef})
+            Dim context = CreateMethodContext(runtime, "C.Test")
 
             Assert.Equal(DkmEvaluationResultAccessType.Private, GetResultProperties(context, "[Private]").AccessType)
             Assert.Equal(DkmEvaluationResultAccessType.Protected, GetResultProperties(context, "[Protected]").AccessType)
@@ -138,12 +137,14 @@ Friend Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            ' Used the declared accessibility, rather than the effective accessibility.
-            Assert.Equal(DkmEvaluationResultAccessType.Public, GetResultProperties(context, "F").AccessType)
+                    ' Used the declared accessibility, rather than the effective accessibility.
+                    Assert.Equal(DkmEvaluationResultAccessType.Public, GetResultProperties(context, "F").AccessType)
+                End Sub)
         End Sub
 
         <Fact>
@@ -166,17 +167,19 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            ' NOTE: VB doesn't have virtual events
+                    ' NOTE: VB doesn't have virtual events
 
-            Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, "P").ModifierFlags)
-            Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "VP").ModifierFlags)
+                    Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, "P").ModifierFlags)
+                    Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "VP").ModifierFlags)
 
-            Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, "M()").ModifierFlags)
-            Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "VM()").ModifierFlags)
+                    Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, "M()").ModifierFlags)
+                    Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "VM()").ModifierFlags)
+                End Sub)
         End Sub
 
         <Fact>
@@ -196,12 +199,14 @@ MustInherit Class Derived : Inherits Base
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="Derived.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="Derived.Test")
 
-            Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "[MustOverride]").ModifierFlags)
-            Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "[Overrides]").ModifierFlags)
+                    Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "[MustOverride]").ModifierFlags)
+                    Assert.Equal(DkmEvaluationResultTypeModifierFlags.Virtual, GetResultProperties(context, "[Overrides]").ModifierFlags)
+                End Sub)
         End Sub
 
         <Fact>
@@ -220,17 +225,19 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            For Each expr In {"Nothing", "1", "1 + 1", "CF", "cl"}
-                Assert.Equal(DkmEvaluationResultTypeModifierFlags.Constant, GetResultProperties(context, expr).ModifierFlags)
-            Next
+                    For Each expr In {"Nothing", "1", "1 + 1", "CF", "cl"}
+                        Assert.Equal(DkmEvaluationResultTypeModifierFlags.Constant, GetResultProperties(context, expr).ModifierFlags)
+                    Next
 
-            For Each expr In {"Me", "F", "SRF", "p", "l"}
-                Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, expr).ModifierFlags)
-            Next
+                    For Each expr In {"Me", "F", "SRF", "p", "l"}
+                        Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, expr).ModifierFlags)
+                    Next
+                End Sub)
         End Sub
 
         <Fact>
@@ -258,15 +265,8 @@ End Class
 
 } // end of class C
 "
-            Dim exeBytes As ImmutableArray(Of Byte) = Nothing
-            Dim pdbBytes As ImmutableArray(Of Byte) = Nothing
-            EmitILToArray(ilSource, appendDefaultHeader:=True, includePdb:=True, assemblyBytes:=exeBytes, pdbBytes:=pdbBytes)
-
-            Dim runtime = CreateRuntimeInstance(
-                assemblyName:=GetUniqueName(),
-                references:=ImmutableArray.Create(MscorlibRef),
-                exeBytes:=exeBytes.ToArray(),
-                symReader:=New SymReader(pdbBytes.ToArray()))
+            Dim ilModule = ExpressionCompilerTestHelpers.GetModuleInstanceForIL(ilSource)
+            Dim runtime = CreateRuntimeInstance(ilModule, {MscorlibRef})
             Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
             Assert.Equal(DkmEvaluationResultTypeModifierFlags.None, GetResultProperties(context, "F").ModifierFlags)
@@ -283,32 +283,34 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            Dim resultProperties As ResultProperties = Nothing
-            Dim errorMessage As String = Nothing
-            Dim missingAssemblyIdentities As ImmutableArray(Of AssemblyIdentity) = Nothing
-            Dim testData As New CompilationTestData()
-            context.CompileAssignment(
-                "P",
-                "1",
-                NoAliases,
-                DebuggerDiagnosticFormatter.Instance,
-                resultProperties,
-                errorMessage,
-                missingAssemblyIdentities,
-                EnsureEnglishUICulture.PreferredOrNull,
-                testData)
-            Assert.Null(errorMessage)
-            Assert.Empty(missingAssemblyIdentities)
+                    Dim resultProperties As ResultProperties = Nothing
+                    Dim errorMessage As String = Nothing
+                    Dim missingAssemblyIdentities As ImmutableArray(Of AssemblyIdentity) = Nothing
+                    Dim testData As New CompilationTestData()
+                    context.CompileAssignment(
+                        "P",
+                        "1",
+                        NoAliases,
+                        DebuggerDiagnosticFormatter.Instance,
+                        resultProperties,
+                        errorMessage,
+                        missingAssemblyIdentities,
+                        EnsureEnglishUICulture.PreferredOrNull,
+                        testData)
+                    Assert.Null(errorMessage)
+                    Assert.Empty(missingAssemblyIdentities)
 
-            Assert.Equal(DkmClrCompilationResultFlags.PotentialSideEffect Or DkmClrCompilationResultFlags.ReadOnlyResult, resultProperties.Flags)
-            Assert.Equal(Nothing, resultProperties.Category) ' Not Data
-            Assert.Equal(Nothing, resultProperties.AccessType) ' Not Public
-            Assert.Equal(Nothing, resultProperties.StorageType)
-            Assert.Equal(Nothing, resultProperties.ModifierFlags) ' Not Virtual
+                    Assert.Equal(DkmClrCompilationResultFlags.PotentialSideEffect Or DkmClrCompilationResultFlags.ReadOnlyResult, resultProperties.Flags)
+                    Assert.Equal(Nothing, resultProperties.Category) ' Not Data
+                    Assert.Equal(Nothing, resultProperties.AccessType) ' Not Public
+                    Assert.Equal(Nothing, resultProperties.StorageType)
+                    Assert.Equal(Nothing, resultProperties.ModifierFlags) ' Not Virtual
+                End Sub)
         End Sub
 
         <Fact>
@@ -319,32 +321,34 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            Dim resultProperties As ResultProperties = Nothing
-            Dim errorMessage As String = Nothing
-            Dim missingAssemblyIdentities As ImmutableArray(Of AssemblyIdentity) = Nothing
-            Dim testData As New CompilationTestData()
-            context.CompileExpression(
-                "z = 1", ' VB only supports implicit declarations
-                DkmEvaluationFlags.None,
-                NoAliases,
-                DebuggerDiagnosticFormatter.Instance,
-                resultProperties,
-                errorMessage,
-                missingAssemblyIdentities,
-                EnsureEnglishUICulture.PreferredOrNull,
-                testData)
-            Assert.Null(errorMessage)
-            Assert.Empty(missingAssemblyIdentities)
+                    Dim resultProperties As ResultProperties = Nothing
+                    Dim errorMessage As String = Nothing
+                    Dim missingAssemblyIdentities As ImmutableArray(Of AssemblyIdentity) = Nothing
+                    Dim testData As New CompilationTestData()
+                    context.CompileExpression(
+                        "z = 1", ' VB only supports implicit declarations
+                        DkmEvaluationFlags.None,
+                        NoAliases,
+                        DebuggerDiagnosticFormatter.Instance,
+                        resultProperties,
+                        errorMessage,
+                        missingAssemblyIdentities,
+                        EnsureEnglishUICulture.PreferredOrNull,
+                        testData)
+                    Assert.Null(errorMessage)
+                    Assert.Empty(missingAssemblyIdentities)
 
-            Assert.Equal(DkmClrCompilationResultFlags.PotentialSideEffect Or DkmClrCompilationResultFlags.ReadOnlyResult, resultProperties.Flags)
-            Assert.Equal(Nothing, resultProperties.Category) ' Not Data
-            Assert.Equal(Nothing, resultProperties.AccessType)
-            Assert.Equal(Nothing, resultProperties.StorageType)
-            Assert.Equal(Nothing, resultProperties.ModifierFlags)
+                    Assert.Equal(DkmClrCompilationResultFlags.PotentialSideEffect Or DkmClrCompilationResultFlags.ReadOnlyResult, resultProperties.Flags)
+                    Assert.Equal(Nothing, resultProperties.Category) ' Not Data
+                    Assert.Equal(Nothing, resultProperties.AccessType)
+                    Assert.Equal(Nothing, resultProperties.StorageType)
+                    Assert.Equal(Nothing, resultProperties.ModifierFlags)
+                End Sub)
         End Sub
 
         <Fact>
@@ -355,15 +359,16 @@ Class C
     End Sub
 End Class
 "
-            Dim comp = CreateCompilationWithMscorlib({source}, options:=TestOptions.DebugDll)
-            Dim runtime = CreateRuntimeInstance(comp)
-            Dim context = CreateMethodContext(runtime, methodName:="C.Test")
+            Dim comp = CreateCompilationWithMscorlib40({source}, options:=TestOptions.DebugDll)
+            WithRuntimeInstance(comp,
+                Sub(runtime)
+                    Dim context = CreateMethodContext(runtime, methodName:="C.Test")
 
-            VerifyErrorResultProperties(context, "AddressOf Test")
-            VerifyErrorResultProperties(context, "Missing")
-            VerifyErrorResultProperties(context, "C")
+                    VerifyErrorResultProperties(context, "AddressOf Test")
+                    VerifyErrorResultProperties(context, "Missing")
+                    VerifyErrorResultProperties(context, "C")
+                End Sub)
         End Sub
-
 
         Private Shared Function GetResultProperties(context As EvaluationContextBase, expr As String) As ResultProperties
             Dim resultProperties As ResultProperties = Nothing
