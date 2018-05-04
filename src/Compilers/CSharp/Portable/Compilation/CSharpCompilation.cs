@@ -74,6 +74,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
+        internal Action<BoundStatementList> OnBoundExpressionGenerated
+        { get; set; }
+
         /// <summary>
         /// Manages anonymous types declared in this compilation. Unifies types that are structurally equivalent.
         /// </summary>

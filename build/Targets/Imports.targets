@@ -39,12 +39,12 @@
   <ItemGroup>
     <PackageReference Include="XliffTasks" Version="$(XliffTasksVersion)" PrivateAssets="All" Condition="'$(NonShipping)' != 'true'" />
   </ItemGroup>
-
+<!--
   <Choose>
     <When Condition="'$(SignAssembly)' == 'true'">
       <Choose>
-        <!-- Shipping binaries are always public signed.  In the case of an official build $(OfficialBuild) the
-             binaries will be real signed as a post processing step. -->
+        <!__ Shipping binaries are always public signed.  In the case of an official build $(OfficialBuild) the
+             binaries will be real signed as a post processing step. __>
         <When Condition="'$(NonShipping)' != 'true'">
           <PropertyGroup>
             <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\Strong Name Keys\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
@@ -54,7 +54,7 @@
           </PropertyGroup>
         </When>
 
-        <!-- Non-shipping binaries are simply signed with the Roslyn internal key. -->
+        <!__ Non-shipping binaries are simply signed with the Roslyn internal key. __>
         <Otherwise>
           <PropertyGroup>
             <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\Strong Name Keys\RoslynInternalKey.Private.snk</AssemblyOriginatorKeyFile>
@@ -62,15 +62,15 @@
             <PublicKey>$(RoslynInternalKey)</PublicKey>
             <PublicKeyToken>fc793a00266884fb</PublicKeyToken>
           </PropertyGroup>
-          <!-- Real-signing cross-platform currently has a blocking bug:
-               https://github.com/dotnet/roslyn/issues/23521 -->
+          <!__ Real-signing cross-platform currently has a blocking bug:
+               https://github.com/dotnet/roslyn/issues/23521 __>
           <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
               <PublicSign>true</PublicSign>
           </PropertyGroup>
         </Otherwise>
       </Choose>
     </When>
-  </Choose>
+  </Choose>-->
 
   <ItemGroup Condition="'$(ProjectLanguage)' == 'CSharp' AND '$(TargetNetFX20)' == 'true'">
     <_ExplicitReference Include="$(FrameworkPathOverride)\mscorlib.dll" />

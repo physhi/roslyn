@@ -1184,6 +1184,9 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                         var boundBody = BoundStatementList.Synthesized(syntax, boundStatements);
 
+                        if (this._compilation.OnBoundExpressionGenerated != null)
+                        { _compilation.OnBoundExpressionGenerated(boundBody); }
+
                         var emittedBody = GenerateMethodBody(
                             _moduleBeingBuiltOpt,
                             methodSymbol,
