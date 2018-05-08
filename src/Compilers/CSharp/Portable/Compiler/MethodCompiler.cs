@@ -1000,6 +1000,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                     DiagnosticsPass.IssueDiagnostics(_compilation, body, diagsForCurrentMethod, methodSymbol);
                 }
 
+                if (this._compilation.OnBoundExpressionGenerated != null)
+                { _compilation.OnBoundExpressionGenerated(body); }
+
                 BoundBlock flowAnalyzedBody = null;
                 if (body != null)
                 {
@@ -1184,8 +1187,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                         var boundBody = BoundStatementList.Synthesized(syntax, boundStatements);
 
-                        if (this._compilation.OnBoundExpressionGenerated != null)
-                        { _compilation.OnBoundExpressionGenerated(boundBody); }
+                        // if (this._compilation.OnBoundExpressionGenerated != null)
+                        // { _compilation.OnBoundExpressionGenerated(boundBody); }
 
                         var emittedBody = GenerateMethodBody(
                             _moduleBeingBuiltOpt,
