@@ -1000,14 +1000,14 @@ namespace Microsoft.CodeAnalysis.CSharp
                     DiagnosticsPass.IssueDiagnostics(_compilation, body, diagsForCurrentMethod, methodSymbol);
                 }
 
-                if (this._compilation.OnBoundExpressionGenerated != null)
-                { _compilation.OnBoundExpressionGenerated(body); }
-
                 BoundBlock flowAnalyzedBody = null;
                 if (body != null)
                 {
                     flowAnalyzedBody = FlowAnalysisPass.Rewrite(methodSymbol, body, diagsForCurrentMethod, hasTrailingExpression: hasTrailingExpression, originalBodyNested: originalBodyNested);
                 }
+
+                // if (this._compilation.OnBoundExpressionGenerated != null)
+                // { _compilation.OnBoundExpressionGenerated(methodSymbol, body); }
 
                 bool hasErrors = _hasDeclarationErrors || diagsForCurrentMethod.HasAnyErrors() || processedInitializers.HasErrors;
 
@@ -1100,6 +1100,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                     {
                         loweredBodyOpt = null;
                     }
+
+                    if (this._compilation.OnBoundExpressionGenerated != null)
+                    { _compilation.OnBoundExpressionGenerated(methodSymbol, body); }
 
                     hasErrors = hasErrors || (hasBody && loweredBodyOpt.HasErrors) || diagsForCurrentMethod.HasAnyErrors();
                     SetGlobalErrorIfTrue(hasErrors);

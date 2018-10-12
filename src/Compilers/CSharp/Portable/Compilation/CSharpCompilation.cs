@@ -74,7 +74,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal Action<BoundStatementList> OnBoundExpressionGenerated
+        internal Action<MethodSymbol, BoundStatementList> OnBoundExpressionGenerated
         { get; set; }
 
         /// <summary>
