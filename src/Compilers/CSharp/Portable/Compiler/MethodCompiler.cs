@@ -1110,8 +1110,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                         loweredBodyOpt = null;
                     }
 
-                    if (this._compilation.OnBoundExpressionGenerated != null)
-                    { _compilation.OnBoundExpressionGenerated(methodSymbol, body); }
+                    // if (this._compilation.OnBoundExpressionGenerated != null)
+                    // { _compilation.OnBoundExpressionGenerated(methodSymbol, body); }
 
                     hasErrors = hasErrors || (hasBody && loweredBodyOpt.HasErrors) || diagsForCurrentMethod.HasAnyErrors();
                     SetGlobalErrorIfTrue(hasErrors);
@@ -1199,8 +1199,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                         var boundBody = BoundStatementList.Synthesized(syntax, boundStatements);
 
-                        // if (this._compilation.OnBoundExpressionGenerated != null)
-                        // { _compilation.OnBoundExpressionGenerated(boundBody); }
+                        if (this._compilation.OnBoundExpressionGenerated != null)
+                        { _compilation.OnBoundExpressionGenerated(methodSymbol, boundBody); }
 
                         var emittedBody = GenerateMethodBody(
                             _moduleBeingBuiltOpt,
