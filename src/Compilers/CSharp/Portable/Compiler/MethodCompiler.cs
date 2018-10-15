@@ -1200,7 +1200,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         var boundBody = BoundStatementList.Synthesized(syntax, boundStatements);
 
                         if (this._compilation.OnBoundExpressionGenerated != null)
-                        { _compilation.OnBoundExpressionGenerated(methodSymbol, boundBody); }
+                        { _compilation.OnBoundExpressionGenerated(methodSymbol, body, analyzedInitializers); }
 
                         var emittedBody = GenerateMethodBody(
                             _moduleBeingBuiltOpt,
