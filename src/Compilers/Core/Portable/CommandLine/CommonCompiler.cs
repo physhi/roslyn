@@ -523,6 +523,8 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
+        protected virtual void OnBeforeCompilation(Compilation compilation) { }
+
         private int RunCore(TextWriter consoleOutput, ErrorLogger errorLogger, CancellationToken cancellationToken)
         {
             Debug.Assert(!Arguments.IsScriptRunner);
@@ -690,6 +692,8 @@ namespace Microsoft.CodeAnalysis
 
             try
             {
+                this.OnBeforeCompilation(compilation);
+
                 // NOTE: Unlike the PDB path, the XML doc path is not embedded in the assembly, so we don't need to pass it to emit.
                 var emitOptions = Arguments.EmitOptions.
                     WithOutputNameOverride(outputName).

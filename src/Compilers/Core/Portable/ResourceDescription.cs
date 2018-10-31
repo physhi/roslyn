@@ -90,7 +90,7 @@ namespace Microsoft.CodeAnalysis
 
             this.ResourceName = resourceName;
             this.DataProvider = dataProvider;
-            this.FileName = isEmbedded ? null : fileName;
+            this.FileName = fileName; // isEmbedded ? null : fileName;
             this.IsPublic = isPublic;
             _hashes = new ResourceHashProvider(this);
         }
