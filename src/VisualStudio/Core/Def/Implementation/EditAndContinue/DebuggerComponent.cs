@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using Microsoft.VisualStudio.Debugger;
 
 namespace Microsoft.VisualStudio.LanguageServices.EditAndContinue
@@ -12,7 +13,7 @@ namespace Microsoft.VisualStudio.LanguageServices.EditAndContinue
         /// </summary>
         private static readonly Guid ManagedEditAndContinueServiceId = new Guid("A96BBE03-0408-41E3-8613-6086FD494B43");
 
-        public static ThreadInitializer ManagedEditAndContinueService() 
+        public static ThreadInitializer ManagedEditAndContinueService()
             => new ThreadInitializer(ManagedEditAndContinueServiceId);
 
         public struct ThreadInitializer : IDisposable
@@ -22,7 +23,15 @@ namespace Microsoft.VisualStudio.LanguageServices.EditAndContinue
 
             public ThreadInitializer(Guid id)
             {
-                DkmComponentManager.InitializeThread(id, out _alreadyInitialized);
+                if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
+                {
+                    _alreadyInitialized = true;
+                }
+                else
+                {
+                    DkmComponentManager.InitializeThread(id, out _alreadyInitialized);
+                }
+
                 _id = id;
             }
 

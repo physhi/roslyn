@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.CSharp.Utilities;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Microsoft.CodeAnalysis.Text;
@@ -184,6 +183,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             {
                 // include lambda itself.
                 firstTokenOfNode = node.Parent.GetFirstToken(includeZeroWidth: true);
+            }
+            else if (node.IsKind(SyntaxKindEx.PropertyPatternClause))
+            {
+                // include the pattern recursive pattern syntax and/or subpattern
+                firstTokenOfNode = firstTokenOfNode.GetPreviousToken();
             }
 
             // suppress wrapping on whole construct that owns braces and also brace pair itself if 

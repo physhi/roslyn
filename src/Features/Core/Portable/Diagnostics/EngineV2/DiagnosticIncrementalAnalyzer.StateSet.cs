@@ -108,7 +108,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 HashSet<DocumentId> set = null;
                 foreach (var state in GetActiveFileStates(projectId))
                 {
-                    set = set ?? new HashSet<DocumentId>();
+                    set ??= new HashSet<DocumentId>();
                     set.Add(state.DocumentId);
                 }
 
@@ -117,7 +117,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                     return set ?? SpecializedCollections.EmptyEnumerable<DocumentId>();
                 }
 
-                set = set ?? new HashSet<DocumentId>();
+                set ??= new HashSet<DocumentId>();
                 set.UnionWith(projectState.GetDocumentsWithDiagnostics());
 
                 return set;
@@ -265,7 +265,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 }
 
                 // running this multiple time is fine
-                _compilationEndAnalyzer = _analyzer.IsCompilationEndAnalyzer(project, compilation) ? 1 : 0;
+                var result = _analyzer.IsCompilationEndAnalyzer(project, compilation);
+                if (!result.HasValue)
+                {
+                    // try again next time.
+                    return;
+                }
+
+                _compilationEndAnalyzer = result.Value ? 1 : 0;
             }
 
             public bool IsCompilationEndAnalyzer(Project project, Compilation compilation)

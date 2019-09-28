@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.InvertLogical
     /// Code refactoring to help convert code like `!a || !b` to `!(a &amp;&amp; b)`
     /// </summary>
     internal abstract class AbstractInvertLogicalCodeRefactoringProvider<
-        TSyntaxKind, 
+        TSyntaxKind,
         TExpressionSyntax,
         TBinaryExpressionSyntax>
         : CodeRefactoringProvider
@@ -35,10 +35,7 @@ namespace Microsoft.CodeAnalysis.InvertLogical
 
         public override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
         {
-            var document = context.Document;
-            var span = context.Span;
-            var cancellationToken = context.CancellationToken;
-
+            var (document, span, cancellationToken) = context;
             var position = span.Start;
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var token = root.FindToken(position);
@@ -73,7 +70,7 @@ namespace Microsoft.CodeAnalysis.InvertLogical
             // We invert in two steps.  To invert `a op b` we are effectively generating two negations:
             // `!(!(a op b)`.  The inner `!` will distribute on the inside to make `!a op' !b` leaving
             // us with `!(!a op' !b)`.
-            
+
             // Because we need to do two negations, we actually perform the inner one, marking the
             // result with an annotation, then we do the outer one (making sure we don't descend in
             // and undo the work we just did).  Because our negation helper needs semantics, we generate

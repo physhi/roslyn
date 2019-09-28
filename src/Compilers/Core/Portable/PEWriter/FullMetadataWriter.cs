@@ -270,7 +270,7 @@ namespace Microsoft.Cci
         }
 
         protected override int GreatestMethodDefIndex => _methodDefs.NextRowId;
-        
+
         protected override bool TryGetTypeReferenceHandle(ITypeReference reference, out TypeReferenceHandle handle)
         {
             int index;
@@ -325,9 +325,6 @@ namespace Microsoft.Cci
                 : base(metadataWriter)
             {
             }
-
-            protected override bool ProcessReferencesInCurrentModule
-                => false;
         }
 
         protected override void PopulateEncLogTableRows(ImmutableArray<int> rowCounts)
@@ -372,11 +369,6 @@ namespace Microsoft.Cci
                     declaringType: GetTypeDefinitionHandle(lastParent),
                     propertyList: GetPropertyDefIndex(propertyDef));
             }
-        }
-
-        protected override IEnumerable<INamespaceTypeDefinition> GetTopLevelTypes(CommonPEModuleBuilder module)
-        {
-            return module.GetTopLevelTypes(this.Context);
         }
 
         protected override void CreateIndicesForNonTypeMembers(ITypeDefinition typeDef)

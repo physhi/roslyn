@@ -955,8 +955,8 @@ End Class"
                 _objectType = New NamespaceTypeDefinitionNoBase(objectType)
             End Sub
 
-            Friend Overrides Iterator Function GetTopLevelTypesCore(context As EmitContext) As IEnumerable(Of INamespaceTypeDefinition)
-                For Each t In MyBase.GetTopLevelTypesCore(context)
+            Public Overrides Iterator Function GetTopLevelSourceTypeDefinitions(context As EmitContext) As IEnumerable(Of INamespaceTypeDefinition)
+                For Each t In MyBase.GetTopLevelSourceTypeDefinitions(context)
                     Yield If(t Is _objectType.UnderlyingType, _objectType, t)
                 Next
             End Function
@@ -997,16 +997,6 @@ End Class"
                     Return DirectCast(_builder, IAssemblyReference).AssemblyVersionPattern
                 End Get
             End Property
-
-            Protected Overrides ReadOnly Property InjectedSymbolsAreFrozen As Boolean
-                Get
-                    Return True
-                End Get
-            End Property
-
-            Protected Overrides Function GetInjectedTypes(diagnostics As DiagnosticBag) As ImmutableArray(Of NamedTypeSymbol)
-                Return ImmutableArray(Of NamedTypeSymbol).Empty
-            End Function
         End Class
 
     End Class

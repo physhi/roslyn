@@ -23,6 +23,8 @@ namespace Microsoft.CodeAnalysis.RemoveUnusedMembers
         public override ImmutableArray<string> FixableDiagnosticIds
             => ImmutableArray.Create(IDEDiagnosticIds.RemoveUnusedMembersDiagnosticId);
 
+        internal sealed override CodeFixCategory CodeFixCategory => CodeFixCategory.CodeQuality;
+
         /// <summary>
         /// This method adjusts the <paramref name="declarators"/> to remove based on whether or not all variable declarators
         /// within a field declaration should be removed,
@@ -52,7 +54,7 @@ namespace Microsoft.CodeAnalysis.RemoveUnusedMembers
 
             // Compute declarators to remove, and also track common field declarators.
             foreach (var diagnostic in diagnostics)
-            {   
+            {
                 // Get symbol to be removed.
                 var diagnosticNode = diagnostic.Location.FindNode(getInnermostNodeForTie: true, cancellationToken);
                 var symbol = semanticModel.GetDeclaredSymbol(diagnosticNode, cancellationToken);
@@ -93,9 +95,9 @@ namespace Microsoft.CodeAnalysis.RemoveUnusedMembers
         /// the removes the <paramref name="childDeclarators"/> from <paramref name="declarators"/>, and
         /// adds the <paramref name="parentDeclaration"/> to the <paramref name="declarators"/>.
         /// </summary>
-        protected void AdjustAndAddAppropriateDeclaratorsToRemove(SyntaxNode parentDeclaration, IEnumerable<SyntaxNode> childDeclarators, HashSet<SyntaxNode> declarators)
+        protected static void AdjustAndAddAppropriateDeclaratorsToRemove(SyntaxNode parentDeclaration, IEnumerable<SyntaxNode> childDeclarators, HashSet<SyntaxNode> declarators)
         {
-            if(declarators.Contains(parentDeclaration))
+            if (declarators.Contains(parentDeclaration))
             {
                 Debug.Assert(childDeclarators.All(c => !declarators.Contains(c)));
                 return;
@@ -121,8 +123,8 @@ namespace Microsoft.CodeAnalysis.RemoveUnusedMembers
 
         private class MyCodeAction : CodeAction.DocumentChangeAction
         {
-            public MyCodeAction(Func<CancellationToken, Task<Document>> createChangedDocument) :
-                base(FeaturesResources.Remove_unused_member, createChangedDocument)
+            public MyCodeAction(Func<CancellationToken, Task<Document>> createChangedDocument)
+                : base(FeaturesResources.Remove_unused_member, createChangedDocument)
             {
             }
         }

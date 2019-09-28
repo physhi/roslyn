@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
@@ -524,5 +525,195 @@ class Test
 }");
         }
 
+        [Fact]
+        [WorkItem(31685, "https://github.com/dotnet/roslyn/issues/31685")]
+        public void ImplicitSpanConversionInLambdaInGenericMethod_01()
+        {
+            var comp = CreateCompilationWithMscorlibAndSpan(@"
+using System;
+
+class Test
+{
+    public static void Main()
+    {
+    }
+
+    static void M1<T>(T[] a)
+    {
+        // case 1: lambda
+        Action<T[]> f = a2 =>
+        {
+            ReadOnlySpan<T> span;
+            span = a2;
+            T datum = span[0];
+        };
+    }
+
+    // case 2: iterator method
+    System.Collections.Generic.IEnumerator<T> M2<T>(T[] a)
+    {
+        ReadOnlySpan<T> span;
+        span = a;
+        T datum = span[0];
+        yield break;
+    }
+}
+", WithNonNullTypesTrue(TestOptions.ReleaseExe));
+            var cv = CompileAndVerify(comp, expectedOutput: "", verify: Verification.Passes);
+            cv.VerifyIL("Test.<>c__1<T>.<M1>b__1_0(T[])", @"
+{
+  // Code size       17 (0x11)
+  .maxstack  2
+  .locals init (System.ReadOnlySpan<T> V_0) //span
+  IL_0000:  ldarg.1
+  IL_0001:  call       ""System.ReadOnlySpan<T> System.ReadOnlySpan<T>.op_Implicit(T[])""
+  IL_0006:  stloc.0
+  IL_0007:  ldloca.s   V_0
+  IL_0009:  ldc.i4.0
+  IL_000a:  call       ""ref readonly T System.ReadOnlySpan<T>.this[int].get""
+  IL_000f:  pop
+  IL_0010:  ret
+}");
+            cv.VerifyIL("Test.<M2>d__2<T>.System.Collections.IEnumerator.MoveNext()", @"{
+  // Code size       42 (0x2a)
+  .maxstack  2
+  .locals init (int V_0,
+                System.ReadOnlySpan<T> V_1) //span
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      ""int Test.<M2>d__2<T>.<>1__state""
+  IL_0006:  stloc.0
+  IL_0007:  ldloc.0
+  IL_0008:  brfalse.s  IL_000c
+  IL_000a:  ldc.i4.0
+  IL_000b:  ret
+  IL_000c:  ldarg.0
+  IL_000d:  ldc.i4.m1
+  IL_000e:  stfld      ""int Test.<M2>d__2<T>.<>1__state""
+  IL_0013:  ldarg.0
+  IL_0014:  ldfld      ""T[] Test.<M2>d__2<T>.a""
+  IL_0019:  call       ""System.ReadOnlySpan<T> System.ReadOnlySpan<T>.op_Implicit(T[])""
+  IL_001e:  stloc.1
+  IL_001f:  ldloca.s   V_1
+  IL_0021:  ldc.i4.0
+  IL_0022:  call       ""ref readonly T System.ReadOnlySpan<T>.this[int].get""
+  IL_0027:  pop
+  IL_0028:  ldc.i4.0
+  IL_0029:  ret
+}");
+        }
+
+        [Fact]
+        [WorkItem(31685, "https://github.com/dotnet/roslyn/issues/31685")]
+        public void ImplicitSpanConversionInLambdaInGenericMethod_02()
+        {
+            var comp = CreateCompilationWithMscorlibAndSpan(@"
+using System;
+
+public class X
+{
+    public static Func<int, TSrc> Outer<TSrc>(TSrc[] a)
+    {
+        return (int x) => {
+            ReadOnlySpan<TSrc> s = a;
+            return s[x];
+        };
+    }
+
+    public static void Main()
+    {
+        int[] i = new int[] { 0, 1, 100 };
+        var d = Outer<int>(i);
+        System.Console.WriteLine(d(2));
+    }
+}
+", WithNonNullTypesTrue(TestOptions.ReleaseExe));
+            var cv = CompileAndVerify(comp, expectedOutput: "100", verify: Verification.Passes);
+            cv.VerifyIL("X.<>c__DisplayClass0_0<TSrc>.<Outer>b__0(int)", @"{
+  // Code size       26 (0x1a)
+  .maxstack  2
+  .locals init (System.ReadOnlySpan<TSrc> V_0) //s
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      ""TSrc[] X.<>c__DisplayClass0_0<TSrc>.a""
+  IL_0006:  call       ""System.ReadOnlySpan<TSrc> System.ReadOnlySpan<TSrc>.op_Implicit(TSrc[])""
+  IL_000b:  stloc.0
+  IL_000c:  ldloca.s   V_0
+  IL_000e:  ldarg.1
+  IL_000f:  call       ""ref readonly TSrc System.ReadOnlySpan<TSrc>.this[int].get""
+  IL_0014:  ldobj      ""TSrc""
+  IL_0019:  ret
+}");
+        }
+
+        [Fact]
+        [WorkItem(24621, "https://github.com/dotnet/roslyn/issues/24621")]
+        public void StaticFieldIsUsedForSpanCreatedFromArrayWithInitializer_Verifiable()
+        {
+            var csharp = @"
+using System;
+
+public class Test
+{
+    public static ReadOnlySpan<byte> StaticData => new byte[] { 10, 20 };
+
+    public static void Main()
+    {
+        foreach (var item in StaticData)
+        {
+            Console.Write(item + "";"");
+        }
+    }
+}";
+            var compilationOptions = TestOptions.ReleaseExe;
+            var parseOptions = CSharpParseOptions.Default.WithPEVerifyCompatFeature();
+            var compilation = CreateCompilationWithMscorlibAndSpan(csharp, compilationOptions, parseOptions);
+            var verifier = CompileAndVerify(compilation, expectedOutput: "10;20;", verify: Verification.Skipped);
+            verifier.VerifyIL("Test.StaticData.get", @"{
+  // Code size       22 (0x16)
+  .maxstack  4
+  IL_0000:  ldc.i4.2
+  IL_0001:  newarr     ""byte""
+  IL_0006:  dup
+  IL_0007:  ldc.i4.0
+  IL_0008:  ldc.i4.s   10
+  IL_000a:  stelem.i1
+  IL_000b:  dup
+  IL_000c:  ldc.i4.1
+  IL_000d:  ldc.i4.s   20
+  IL_000f:  stelem.i1
+  IL_0010:  call       ""System.ReadOnlySpan<byte> System.ReadOnlySpan<byte>.op_Implicit(byte[])""
+  IL_0015:  ret
+}");
+        }
+
+        [Fact]
+        [WorkItem(24621, "https://github.com/dotnet/roslyn/issues/24621")]
+        public void StaticFieldIsUsedForSpanCreatedFromArrayWithInitializer()
+        {
+            var csharp = @"
+using System;
+
+public class Test
+{
+    public static ReadOnlySpan<byte> StaticData => new byte[] { 10, 20 };
+
+    public static void Main()
+    {
+        foreach (var item in StaticData)
+        {
+            Console.Write(item + "";"");
+        }
+    }
+}";
+            var compilation = CreateCompilationWithMscorlibAndSpan(csharp, TestOptions.ReleaseExe);
+            var verifier = CompileAndVerify(compilation, expectedOutput: "10;20;", verify: Verification.Skipped);
+            verifier.VerifyIL("Test.StaticData.get", @"{
+  // Code size       12 (0xc)
+  .maxstack  2
+  IL_0000:  ldsflda    ""short <PrivateImplementationDetails>.51348660BBFF19B8EA7F67E2D4B3787FB4842AD7""
+  IL_0005:  ldc.i4.2
+  IL_0006:  newobj     ""System.ReadOnlySpan<byte>..ctor(void*, int)""
+  IL_000b:  ret
+}");
+        }
     }
 }

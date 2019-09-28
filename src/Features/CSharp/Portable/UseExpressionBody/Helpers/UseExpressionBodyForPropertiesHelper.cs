@@ -4,10 +4,8 @@ using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.CSharp.CodeStyle;
-using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Options;
 
 namespace Microsoft.CodeAnalysis.CSharp.UseExpressionBody
 {
@@ -53,19 +51,17 @@ namespace Microsoft.CodeAnalysis.CSharp.UseExpressionBody
             throw new InvalidOperationException();
         }
 
-        protected override PropertyDeclarationSyntax WithGenerateBody(
-            SemanticModel semanticModel, PropertyDeclarationSyntax declaration,
-            OptionSet options, ParseOptions parseOptions)
+        protected override PropertyDeclarationSyntax WithGenerateBody(SemanticModel semanticModel, PropertyDeclarationSyntax declaration)
         {
-            return WithAccessorList(semanticModel, declaration, options, parseOptions);
+            return WithAccessorList(semanticModel, declaration);
         }
 
         protected override bool CreateReturnStatementForExpression(SemanticModel semanticModel, PropertyDeclarationSyntax declaration) => true;
 
         protected override bool TryConvertToExpressionBody(
-            PropertyDeclarationSyntax declaration, ParseOptions options, 
-            ExpressionBodyPreference conversionPreference, 
-            out ArrowExpressionClauseSyntax arrowExpression, 
+            PropertyDeclarationSyntax declaration, ParseOptions options,
+            ExpressionBodyPreference conversionPreference,
+            out ArrowExpressionClauseSyntax arrowExpression,
             out SyntaxToken semicolonToken)
         {
             return this.TryConvertToExpressionBodyForBaseProperty(

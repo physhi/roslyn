@@ -279,6 +279,148 @@ class Program
             await TestMissingInRegularAndScriptAsync(code);
         }
 
+        [Fact]
+        public async Task NotOnConstVar()
+        {
+            // This error case is handled by a separate code fix (UseExplicitTypeForConst).
+            await TestMissingInRegularAndScriptAsync(
+@"class C
+{
+    void M()
+    {
+        const [||]var v = 0;
+    }
+}");
+        }
+
+        [Fact]
+        public async Task TestWithTopLevelNullability()
+        {
+            var code = @"
+#nullable enable
+
+class C
+{
+    private static string? s_data;
+
+    static void Main()
+    {
+        var[||] v = s_data;
+    }
+}";
+
+            var expected = @"
+#nullable enable
+
+class C
+{
+    private static string? s_data;
+
+    static void Main()
+    {
+        string? v = s_data;
+    }
+}";
+
+            await TestInRegularAndScriptWhenDiagnosticNotAppliedAsync(code, expected);
+        }
+
+        [Fact]
+        public async Task TestWithTopLevelAndNestedArrayNullability1()
+        {
+            var code = @"
+#nullable enable
+
+class C
+{
+    private static string?[]?[,]? s_data;
+
+    static void Main()
+    {
+        var[||] v = s_data;
+    }
+}";
+
+            var expected = @"
+#nullable enable
+
+class C
+{
+    private static string?[]?[,]? s_data;
+
+    static void Main()
+    {
+        string?[]?[,]? v = s_data;
+    }
+}";
+
+            await TestInRegularAndScriptWhenDiagnosticNotAppliedAsync(code, expected);
+        }
+
+        [Fact]
+        public async Task TestWithTopLevelAndNestedArrayNullability2()
+        {
+            var code = @"
+#nullable enable
+
+class C
+{
+    private static string?[][,]? s_data;
+
+    static void Main()
+    {
+        var[||] v = s_data;
+    }
+}";
+
+            var expected = @"
+#nullable enable
+
+class C
+{
+    private static string?[][,]? s_data;
+
+    static void Main()
+    {
+        string?[][,]? v = s_data;
+    }
+}";
+
+            await TestInRegularAndScriptWhenDiagnosticNotAppliedAsync(code, expected);
+        }
+
+        [Fact]
+        public async Task TestWithTopLevelAndNestedArrayNullability3()
+        {
+            var code = @"
+#nullable enable
+
+class C
+{
+    private static string?[]?[,][,,]? s_data;
+
+    static void Main()
+    {
+        var[||] v = s_data;
+    }
+}";
+
+            var expected = @"
+#nullable enable
+
+class C
+{
+    private static string?[]?[,][,,]? s_data;
+
+    static void Main()
+    {
+        string?[]?[,][,,]? v = s_data;
+    }
+}";
+
+            await TestInRegularAndScriptWhenDiagnosticNotAppliedAsync(code, expected);
+        }
+
         private async Task TestInRegularAndScriptWhenDiagnosticNotAppliedAsync(string initialMarkup, string expectedMarkup)
         {
             // Enabled because the diagnostic is disabled

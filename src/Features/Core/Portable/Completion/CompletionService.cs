@@ -92,6 +92,25 @@ namespace Microsoft.CodeAnalysis.Completion
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Gets the completions available at the caret position, with additional info indicates 
+        /// whether expander items are available.
+        /// </summary>
+        /// <remarks>
+        /// expandItemsAvailable is true when expanded items are returned or can be provided upon request.
+        /// </remarks>
+        internal virtual async Task<(CompletionList completionList, bool expandItemsAvailable)> GetCompletionsInternalAsync(
+             Document document,
+             int caretPosition,
+             CompletionTrigger trigger = default,
+             ImmutableHashSet<string> roles = null,
+             OptionSet options = null,
+             CancellationToken cancellationToken = default)
+        {
+            var completionList = await GetCompletionsAsync(document, caretPosition, trigger, roles, options, cancellationToken).ConfigureAwait(false);
+            return (completionList, false);
+        }
+
+        /// <summary>
         /// Gets the description of the item.
         /// </summary>
         /// <param name="document">This will be the  original document that
@@ -125,6 +144,21 @@ namespace Microsoft.CodeAnalysis.Completion
         }
 
         /// <summary>
+        /// Preferred overload of <see cref="GetChangeAsync(Document, CompletionItem, char?,
+        /// CancellationToken)"/>.
+        ///
+        /// This overload is passed the value of <see cref="CompletionContext.CompletionListSpan"/>
+        /// which should be used to determine what span should be updated in the original <paramref
+        /// name="document"/> passed in.
+        /// </summary>
+        internal virtual Task<CompletionChange> GetChangeAsync(
+            Document document, CompletionItem item, TextSpan completionListSpan,
+            char? commitCharacter = null, CancellationToken cancellationToken = default)
+        {
+            return GetChangeAsync(document, item, commitCharacter, cancellationToken);
+        }
+
+        /// <summary>
         /// Given a list of completion items that match the current code typed by the user,
         /// returns the item that is considered the best match, and whether or not that
         /// item should be selected or not.
@@ -138,7 +172,14 @@ namespace Microsoft.CodeAnalysis.Completion
             string filterText)
         {
             var helper = CompletionHelper.GetHelper(document);
+            return FilterItems(helper, items, filterText);
+        }
 
+        internal static ImmutableArray<CompletionItem> FilterItems(
+            CompletionHelper completionHelper,
+            ImmutableArray<CompletionItem> items,
+            string filterText)
+        {
             var bestItems = ArrayBuilder<CompletionItem>.GetInstance();
             foreach (var item in items)
             {
@@ -149,7 +190,7 @@ namespace Microsoft.CodeAnalysis.Completion
                 }
                 else
                 {
-                    var comparison = helper.CompareItems(item, bestItems.First(), filterText, CultureInfo.CurrentCulture);
+                    var comparison = completionHelper.CompareItems(item, bestItems.First(), filterText, CultureInfo.CurrentCulture);
                     if (comparison < 0)
                     {
                         // This item is strictly better than the best items we've found so far.
@@ -169,33 +210,6 @@ namespace Microsoft.CodeAnalysis.Completion
             }
 
             return bestItems.ToImmutableAndFree();
-        }
-
-        internal async Task<CompletionList> GetCompletionsAndSetItemDocumentAsync(
-            Document documentOpt, int caretPosition, CompletionTrigger trigger = default,
-            ImmutableHashSet<string> roles = null, OptionSet options = null, CancellationToken cancellationToken = default)
-        {
-            if (documentOpt == null)
-            {
-                return null;
-            }
-
-            var completions = await this.GetCompletionsAsync(
-                documentOpt, caretPosition, trigger, roles, options, cancellationToken).ConfigureAwait(false);
-            if (completions != null)
-            {
-                foreach (var item in completions.Items)
-                {
-                    item.Document = documentOpt;
-                }
-
-                if (completions.SuggestionModeItem != null)
-                {
-                    completions.SuggestionModeItem.Document = documentOpt;
-                }
-            }
-
-            return completions;
         }
     }
 }

@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.MemoryMappedFiles;
@@ -17,7 +16,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -40,9 +38,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CommandLine.UnitTests
             Path.GetDirectoryName(typeof(CommandLineTests).GetTypeInfo().Assembly.Location),
             Path.Combine("dependency", "csc.exe"));
 
-        private static readonly string s_compilerVersion = typeof(CommandLineTests).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-        private static readonly string s_compilerCommitHash = typeof(CommandLineTests).Assembly.GetCustomAttribute<CommitHashAttribute>()?.Hash;
-        private static readonly string s_compilerShortCommitHash = CommonCompiler.ExtractShortCommitHash(s_compilerCommitHash);
+        private static readonly string s_compilerVersion = CommonCompiler.GetProductVersion(typeof(CommandLineTests));
 
         private class TestCommandLineParser : CSharpCommandLineParser
         {
@@ -95,6 +91,32 @@ namespace Microsoft.CodeAnalysis.CSharp.CommandLine.UnitTests
             return CSharpCommandLineParser.Default.Parse(args, baseDirectory, sdkDirectory, additionalReferenceDirectories);
         }
 
+        [ConditionalFact(typeof(WindowsDesktopOnly))]
+        [WorkItem(34101, "https://github.com/dotnet/roslyn/issues/34101")]
+        public void SuppressedWarnAsErrorsStillEmit()
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("temp.cs").WriteAllText(@"
+#pragma warning disable 1591
+
+public class P {
+    public static void Main() {}
+}");
+            const string docName = "doc.xml";
+
+            var cmd = CreateCSharpCompiler(null, dir.Path, new[] { "/nologo", "/errorlog:errorlog", $"/doc:{docName}", "/warnaserror", src.Path });
+
+            var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+            var exitCode = cmd.Run(outWriter);
+            Assert.Equal(0, exitCode);
+            Assert.Equal("", outWriter.ToString());
+
+            string exePath = Path.Combine(dir.Path, "temp.exe");
+            Assert.True(File.Exists(exePath));
+            var result = ProcessUtilities.Run(exePath, arguments: "");
+            Assert.Equal(0, result.ExitCode);
+        }
+
         [ConditionalFact(typeof(WindowsDesktopOnly), Reason = ConditionalSkipReason.TestExecutionNeedsWindowsTypes)]
         public void XmlMemoryMapped()
         {
@@ -119,6 +141,157 @@ namespace Microsoft.CodeAnalysis.CSharp.CommandLine.UnitTests
             }
         }
 
+        [Fact]
+        public void SimpleAnalyzerConfig()
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("test.cs").WriteAllText(@"
+class C
+{
+    int _f;
+}");
+            var analyzerConfig = dir.CreateFile(".editorconfig").WriteAllText(@"
+[*.cs]
+dotnet_diagnostic.cs0169.severity = none");
+            var cmd = CreateCSharpCompiler(null, dir.Path, new[] {
+                "/nologo",
+                "/t:library",
+                "/preferreduilang:en",
+                "/analyzerconfig:" + analyzerConfig.Path,
+                src.Path });
+
+            Assert.Equal(analyzerConfig.Path, Assert.Single(cmd.Arguments.AnalyzerConfigPaths));
+
+            var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+            var exitCode = cmd.Run(outWriter);
+            Assert.Equal(0, exitCode);
+            Assert.Equal("", outWriter.ToString());
+
+            Assert.Null(cmd.AnalyzerOptions);
+        }
+
+        [Fact]
+        public void AnalyzerConfigWithOptions()
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("test.cs").WriteAllText(@"
+class C
+{
+    int _f;
+}");
+            var additionalFile = dir.CreateFile("file.txt");
+            var analyzerConfig = dir.CreateFile(".editorconfig").WriteAllText(@"
+[*.cs]
+dotnet_diagnostic.cs0169.severity = none
+dotnet_diagnostic.Warning01.severity = none
+my_option = my_val
+
+[*.txt]
+dotnet_diagnostic.cs0169.severity = none
+my_option2 = my_val2");
+            var cmd = CreateCSharpCompiler(null, dir.Path, new[] {
+                "/nologo",
+                "/t:library",
+                "/analyzerconfig:" + analyzerConfig.Path,
+                "/analyzer:" + Assembly.GetExecutingAssembly().Location,
+                "/nowarn:8032",
+                "/additionalfile:" + additionalFile.Path,
+                src.Path });
+
+            Assert.Equal(analyzerConfig.Path, Assert.Single(cmd.Arguments.AnalyzerConfigPaths));
+
+            var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+            var exitCode = cmd.Run(outWriter);
+            Assert.Equal("", outWriter.ToString());
+            Assert.Equal(0, exitCode);
+
+            var comp = cmd.Compilation;
+            var tree = comp.SyntaxTrees.Single();
+            AssertEx.SetEqual(new[] {
+                KeyValuePairUtil.Create("cs0169", ReportDiagnostic.Suppress),
+                KeyValuePairUtil.Create("warning01", ReportDiagnostic.Suppress)
+            }, tree.DiagnosticOptions);
+
+            var provider = cmd.AnalyzerOptions.AnalyzerConfigOptionsProvider;
+            var options = provider.GetOptions(tree);
+            Assert.NotNull(options);
+            Assert.True(options.TryGetValue("my_option", out string val));
+            Assert.Equal("my_val", val);
+            Assert.False(options.TryGetValue("my_option2", out _));
+            Assert.False(options.TryGetValue("dotnet_diagnostic.cs0169.severity", out _));
+
+            options = provider.GetOptions(cmd.AnalyzerOptions.AdditionalFiles.Single());
+            Assert.NotNull(options);
+            Assert.True(options.TryGetValue("my_option2", out val));
+            Assert.Equal("my_val2", val);
+            Assert.False(options.TryGetValue("my_option", out _));
+            Assert.False(options.TryGetValue("dotnet_diagnostic.cs0169.severity", out _));
+        }
+
+        [Fact]
+        public void AnalyzerConfigBadSeverity()
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("test.cs").WriteAllText(@"
+class C
+{
+    int _f;
+}");
+            var analyzerConfig = dir.CreateFile(".editorconfig").WriteAllText(@"
+[*.cs]
+dotnet_diagnostic.cs0169.severity = garbage");
+            var cmd = CreateCSharpCompiler(null, dir.Path, new[] {
+                "/nologo",
+                "/t:library",
+                "/preferreduilang:en",
+                "/analyzerconfig:" + analyzerConfig.Path,
+                src.Path });
+
+            Assert.Equal(analyzerConfig.Path, Assert.Single(cmd.Arguments.AnalyzerConfigPaths));
+
+            var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+            var exitCode = cmd.Run(outWriter);
+            Assert.Equal(0, exitCode);
+            Assert.Equal(
+$@"warning InvalidSeverityInAnalyzerConfig: The diagnostic 'cs0169' was given an invalid severity 'garbage' in the analyzer config file at '{analyzerConfig.Path}'.
+test.cs(4,9): warning CS0169: The field 'C._f' is never used
+", outWriter.ToString());
+
+            Assert.Null(cmd.AnalyzerOptions);
+        }
+
+        [Fact]
+        public void AnalyzerConfigsInSameDir()
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("test.cs").WriteAllText(@"
+class C
+{
+    int _f;
+}");
+            var configText = @"
+[*.cs]
+dotnet_diagnostic.cs0169.severity = suppress";
+
+            var analyzerConfig1 = dir.CreateFile("analyzerconfig1").WriteAllText(configText);
+            var analyzerConfig2 = dir.CreateFile("analyzerconfig2").WriteAllText(configText);
+
+            var cmd = CreateCSharpCompiler(null, dir.Path, new[] {
+                "/nologo",
+                "/t:library",
+                "/preferreduilang:en",
+                "/analyzerconfig:" + analyzerConfig1.Path,
+                "/analyzerconfig:" + analyzerConfig2.Path,
+                src.Path
+            });
+
+            var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+            var exitCode = cmd.Run(outWriter);
+            Assert.Equal(1, exitCode);
+            Assert.Equal(
+                $"error CS8700: Multiple analyzer config files cannot be in the same directory ('{dir.Path}').",
+                outWriter.ToString().TrimEnd());
+        }
 
         // This test should only run when the machine's default encoding is shift-JIS
         [ConditionalFact(typeof(WindowsDesktopOnly), typeof(HasShiftJisDefaultEncoding), Reason = "https://github.com/dotnet/roslyn/issues/30321")]
@@ -248,6 +421,35 @@ d.cs
         {
             var parser = CSharpCommandLineParser.Default.Parse(new string[0], null, SdkDirectory);
             AssertEx.Equal(ImmutableArray.Create<string>(), parser.KeyFileSearchPaths);
+        }
+
+        [Fact, WorkItem(29252, "https://github.com/dotnet/roslyn/issues/29252")]
+        public void NoSdkPath()
+        {
+            var parentDir = Temp.CreateDirectory();
+            var parser = CSharpCommandLineParser.Default.Parse(new[] { "file.cs", $"-out:{parentDir.Path}", "/noSdkPath" }, parentDir.Path, null);
+            AssertEx.Equal(ImmutableArray<string>.Empty, parser.ReferencePaths);
+        }
+
+        [Fact, WorkItem(29252, "https://github.com/dotnet/roslyn/issues/29252")]
+        public void NoSdkPathReferenceSystemDll()
+        {
+            string source = @"
+class C
+{
+}
+";
+            var dir = Temp.CreateDirectory();
+
+            var file = dir.CreateFile("a.cs");
+            file.WriteAllText(source);
+
+            var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+            var csc = CreateCSharpCompiler(null, dir.Path, new[] { "/nologo", "/preferreduilang:en", "/nosdkpath", "/r:System.dll", "a.cs" });
+            var exitCode = csc.Run(outWriter);
+
+            Assert.Equal(1, exitCode);
+            Assert.Equal("error CS0006: Metadata file 'System.dll' could not be found", outWriter.ToString().Trim());
         }
 
         [ConditionalFact(typeof(WindowsOnly))]
@@ -1019,72 +1221,72 @@ d.cs
         [Fact]
         public void Target_SimpleTestsNoSource()
         {
-            var parsedArgs = DefaultParse(new[] { "/target:exe"}, WorkingDirectory);
+            var parsedArgs = DefaultParse(new[] { "/target:exe" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.ConsoleApplication, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/t:module"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/t:module" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.NetModule, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/target:library"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/target:library" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.DynamicallyLinkedLibrary, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/TARGET:winexe"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/TARGET:winexe" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.WindowsApplication, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/target:appcontainerexe"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/target:appcontainerexe" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.WindowsRuntimeApplication, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/target:winmdobj"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/target:winmdobj" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.WindowsRuntimeMetadata, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/target:winexe", "/T:exe", "/target:module"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/target:winexe", "/T:exe", "/target:module" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
             Assert.Equal(OutputKind.NetModule, parsedArgs.CompilationOptions.OutputKind);
 
-            parsedArgs = DefaultParse(new[] { "/t"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/t" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // error CS2007: Unrecognized option: '/t'
                 Diagnostic(ErrorCode.ERR_BadSwitch).WithArguments("/t").WithLocation(1, 1),
                 // warning CS2008: No source files specified.
                 Diagnostic(ErrorCode.WRN_NoSources).WithLocation(1, 1),
                 // error CS1562: Outputs without source must have the /out option specified
-                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1) );
+                Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
 
-            parsedArgs = DefaultParse(new[] { "/target:"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/target:" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // error CS2019: Invalid target type for /target: must specify 'exe', 'winexe', 'library', or 'module'
                 Diagnostic(ErrorCode.FTL_InvalidTarget).WithLocation(1, 1),
@@ -1093,7 +1295,7 @@ d.cs
                 // error CS1562: Outputs without source must have the /out option specified
                 Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
 
-            parsedArgs = DefaultParse(new[] { "/target:xyz"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/target:xyz" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // error CS2019: Invalid target type for /target: must specify 'exe', 'winexe', 'library', or 'module'
                 Diagnostic(ErrorCode.FTL_InvalidTarget).WithLocation(1, 1),
@@ -1102,7 +1304,7 @@ d.cs
                 // error CS1562: Outputs without source must have the /out option specified
                 Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
 
-            parsedArgs = DefaultParse(new[] { "/T+"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/T+" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // error CS2007: Unrecognized option: '/T+'
                 Diagnostic(ErrorCode.ERR_BadSwitch).WithArguments("/T+").WithLocation(1, 1),
@@ -1111,7 +1313,7 @@ d.cs
                 // error CS1562: Outputs without source must have the /out option specified
                 Diagnostic(ErrorCode.ERR_OutputNeedsName).WithLocation(1, 1));
 
-            parsedArgs = DefaultParse(new[] { "/TARGET-:"}, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/TARGET-:" }, WorkingDirectory);
             parsedArgs.Errors.Verify(
                 // error CS2007: Unrecognized option: '/TARGET-:'
                 Diagnostic(ErrorCode.ERR_BadSwitch).WithArguments("/TARGET-:").WithLocation(1, 1),
@@ -1161,6 +1363,12 @@ d.cs
             parsedArgs.Errors.Verify(
                 // error CS2007: Unrecognized option: '/langversion:?'
                 Diagnostic(ErrorCode.ERR_BadSwitch).WithArguments("/langversion:?").WithLocation(1, 1)
+                );
+
+            parsedArgs = CSharpCommandLineParser.Script.Parse(new[] { "//langversion:?" }, WorkingDirectory, sdkDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2001: Source file '//langversion:?' could not be found.
+                Diagnostic(ErrorCode.ERR_FileNotFound).WithArguments("//langversion:?").WithLocation(1, 1)
                 );
 
             parsedArgs = CSharpCommandLineParser.Script.Parse(new[] { "/version", "c.csx" }, WorkingDirectory, sdkDirectory);
@@ -1370,7 +1578,7 @@ d.cs
             // - update the "UpgradeProject" codefixer
             // - update the IDE drop-down for selecting Language Version (in project-systems repo)
             // - update all the tests that call this canary
-            AssertEx.SetEqual(new[] { "default", "1", "2", "3", "4", "5", "6", "7.0", "7.1", "7.2", "7.3", "8.0", "latest" },
+            AssertEx.SetEqual(new[] { "default", "1", "2", "3", "4", "5", "6", "7.0", "7.1", "7.2", "7.3", "8.0", "latest", "latestmajor", "preview" },
                 Enum.GetValues(typeof(LanguageVersion)).Cast<LanguageVersion>().Select(v => v.ToDisplayString()));
             // For minor versions and new major versions, the format should be "x.y", such as "7.1"
         }
@@ -1380,7 +1588,12 @@ d.cs
         {
             var versions = Enum.GetValues(typeof(LanguageVersion))
                 .Cast<LanguageVersion>()
-                .Except(new[] { LanguageVersion.Default, LanguageVersion.Latest })
+                .Except(new[] {
+                    LanguageVersion.Default,
+                    LanguageVersion.Latest,
+                    LanguageVersion.LatestMajor,
+                    LanguageVersion.Preview
+                })
                 .Select(v => v.GetErrorCode());
 
             var errorCodes = new[]
@@ -1416,14 +1629,15 @@ d.cs
             InlineData(LanguageVersion.CSharp7_2, LanguageVersion.CSharp7_2),
             InlineData(LanguageVersion.CSharp7_3, LanguageVersion.CSharp7_3),
             InlineData(LanguageVersion.CSharp8, LanguageVersion.CSharp8),
-            InlineData(LanguageVersion.CSharp7, LanguageVersion.Default),
-            InlineData(LanguageVersion.CSharp7_3, LanguageVersion.Latest)]
+            InlineData(LanguageVersion.CSharp8, LanguageVersion.LatestMajor),
+            InlineData(LanguageVersion.CSharp8, LanguageVersion.Latest),
+            InlineData(LanguageVersion.CSharp8, LanguageVersion.Default),
+            InlineData(LanguageVersion.Preview, LanguageVersion.Preview),
+            ]
         public void LanguageVersion_MapSpecifiedToEffectiveVersion(LanguageVersion expectedMappedVersion, LanguageVersion input)
         {
             Assert.Equal(expectedMappedVersion, input.MapSpecifiedToEffectiveVersion());
             Assert.True(expectedMappedVersion.IsValid());
-
-            // https://github.com/dotnet/roslyn/issues/29819 Once we are ready to remove the beta tag from C# 8.0, we should update Default/Latest accordingly
 
             // The canary check is a reminder that this test needs to be updated when a language version is added
             LanguageVersionAdded_Canary();
@@ -1454,9 +1668,13 @@ d.cs
             InlineData("7.3", true, LanguageVersion.CSharp7_3),
             InlineData("8", true, LanguageVersion.CSharp8),
             InlineData("8.0", true, LanguageVersion.CSharp8),
+            InlineData("08", false, LanguageVersion.Default),
             InlineData("07.1", false, LanguageVersion.Default),
             InlineData("default", true, LanguageVersion.Default),
             InlineData("latest", true, LanguageVersion.Latest),
+            InlineData("latestmajor", true, LanguageVersion.LatestMajor),
+            InlineData("preview", true, LanguageVersion.Preview),
+            InlineData("latestpreview", false, LanguageVersion.Default),
             InlineData(null, true, LanguageVersion.Default),
             InlineData("bad", false, LanguageVersion.Default)]
         public void LanguageVersion_TryParseDisplayString(string input, bool success, LanguageVersion expected)
@@ -1491,9 +1709,12 @@ d.cs
                 .Select(v => v.ToDisplayString());
 
             var actual = outWriter.ToString();
-            var acceptableSurroundingChar = new[] { '\r', '\n', '(' , ')', ' '};
+            var acceptableSurroundingChar = new[] { '\r', '\n', '(', ')', ' ' };
             foreach (var version in expected)
             {
+                if (version == "latest")
+                    continue;
+
                 var foundIndex = actual.IndexOf(version);
                 Assert.True(foundIndex > 0, $"Missing version '{version}'");
                 Assert.True(Array.IndexOf(acceptableSurroundingChar, actual[foundIndex - 1]) >= 0);
@@ -1571,30 +1792,35 @@ d.cs
             parsedArgs.Errors.Verify();
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.False(parsedArgs.EmitPdb);
+            Assert.False(parsedArgs.EmitPdbFile);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, platformPdbKind);
 
             parsedArgs = DefaultParse(new[] { "/debug-", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.False(parsedArgs.EmitPdb);
+            Assert.False(parsedArgs.EmitPdbFile);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, platformPdbKind);
 
             parsedArgs = DefaultParse(new[] { "/debug", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.True(parsedArgs.EmitPdb);
+            Assert.True(parsedArgs.EmitPdbFile);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, platformPdbKind);
 
             parsedArgs = DefaultParse(new[] { "/debug+", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.True(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.True(parsedArgs.EmitPdb);
+            Assert.True(parsedArgs.EmitPdbFile);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, platformPdbKind);
 
             parsedArgs = DefaultParse(new[] { "/debug+", "/debug-", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.False(parsedArgs.EmitPdb);
+            Assert.False(parsedArgs.EmitPdbFile);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, platformPdbKind);
 
             parsedArgs = DefaultParse(new[] { "/debug:full", "a.cs" }, WorkingDirectory);
@@ -1608,6 +1834,7 @@ d.cs
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.True(parsedArgs.EmitPdb);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, platformPdbKind);
+            Assert.Equal(Path.Combine(WorkingDirectory, "a.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
 
             parsedArgs = DefaultParse(new[] { "/debug:pdbonly", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
@@ -1620,12 +1847,14 @@ d.cs
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.True(parsedArgs.EmitPdb);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, DebugInformationFormat.PortablePdb);
+            Assert.Equal(Path.Combine(WorkingDirectory, "a.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
 
             parsedArgs = DefaultParse(new[] { "/debug:embedded", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.False(parsedArgs.CompilationOptions.DebugPlusMode);
             Assert.True(parsedArgs.EmitPdb);
             Assert.Equal(parsedArgs.EmitOptions.DebugInformationFormat, DebugInformationFormat.Embedded);
+            Assert.Equal(Path.Combine(WorkingDirectory, "a.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
 
             parsedArgs = DefaultParse(new[] { "/debug:PDBONLY", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
@@ -1693,14 +1922,23 @@ d.cs
         {
             var parsedArgs = DefaultParse(new[] { "/pdb:something", "a.cs" }, WorkingDirectory);
             Assert.Equal(Path.Combine(WorkingDirectory, "something.pdb"), parsedArgs.PdbPath);
+            Assert.Equal(Path.Combine(WorkingDirectory, "something.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
+            Assert.False(parsedArgs.EmitPdbFile);
 
-            // No pdb
-            parsedArgs = DefaultParse(new[] { @"/debug", "a.cs" }, WorkingDirectory);
+            parsedArgs = DefaultParse(new[] { "/pdb:something", "/debug:embedded", "a.cs" }, WorkingDirectory);
+            Assert.Equal(Path.Combine(WorkingDirectory, "something.pdb"), parsedArgs.PdbPath);
+            Assert.Equal(Path.Combine(WorkingDirectory, "something.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
+            Assert.False(parsedArgs.EmitPdbFile);
+
+            parsedArgs = DefaultParse(new[] { "/debug", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.Null(parsedArgs.PdbPath);
+            Assert.True(parsedArgs.EmitPdbFile);
+            Assert.Equal(Path.Combine(WorkingDirectory, "a.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
 
             parsedArgs = DefaultParse(new[] { "/pdb", "/debug", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify(Diagnostic(ErrorCode.ERR_NoFileSpec).WithArguments("/pdb"));
+            Assert.Equal(Path.Combine(WorkingDirectory, "a.pdb"), parsedArgs.GetPdbFilePath("a.dll"));
 
             parsedArgs = DefaultParse(new[] { "/pdb:", "/debug", "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify(Diagnostic(ErrorCode.ERR_NoFileSpec).WithArguments("/pdb:"));
@@ -1914,7 +2152,7 @@ d.cs
         [Fact]
         public void Embed()
         {
-            var parsedArgs = DefaultParse(new[] { "a.cs "}, WorkingDirectory);
+            var parsedArgs = DefaultParse(new[] { "a.cs " }, WorkingDirectory);
             parsedArgs.Errors.Verify();
             Assert.Empty(parsedArgs.EmbeddedFiles);
 
@@ -1937,8 +2175,20 @@ d.cs
                 new[] { "a.cs", "b.cs" }.Select(f => Path.Combine(WorkingDirectory, f)),
                 parsedArgs.EmbeddedFiles.Select(f => f.Path));
 
+            parsedArgs = DefaultParse(new[] { "/embed:a.cs,b.cs", "/debug:portable", "a.cs", "b.cs", "c.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            AssertEx.Equal(
+                new[] { "a.cs", "b.cs" }.Select(f => Path.Combine(WorkingDirectory, f)),
+                parsedArgs.EmbeddedFiles.Select(f => f.Path));
+
+            parsedArgs = DefaultParse(new[] { @"/embed:""a,b.cs""", "/debug:portable", "a,b.cs", "c.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            AssertEx.Equal(
+                new[] { "a,b.cs" }.Select(f => Path.Combine(WorkingDirectory, f)),
+                parsedArgs.EmbeddedFiles.Select(f => f.Path));
+
             parsedArgs = DefaultParse(new[] { "/embed:a.txt", "/embed", "/debug:portable", "a.cs", "b.cs", "c.cs" }, WorkingDirectory);
-            parsedArgs.Errors.Verify();;
+            parsedArgs.Errors.Verify(); ;
             AssertEx.Equal(
                 new[] { "a.txt", "a.cs", "b.cs", "c.cs" }.Select(f => Path.Combine(WorkingDirectory, f)),
                 parsedArgs.EmbeddedFiles.Select(f => f.Path));
@@ -1966,14 +2216,14 @@ d.cs
         }
 
         [Theory]
-        [InlineData("/debug:portable", "/embed", new[] {"embed.cs", "embed2.cs", "embed.xyz" })]
-        [InlineData("/debug:portable", "/embed:embed.cs", new[] {"embed.cs", "embed.xyz" })]
-        [InlineData("/debug:portable", "/embed:embed2.cs", new[] {"embed2.cs" })]
-        [InlineData("/debug:portable", "/embed:embed.xyz", new[] {"embed.xyz" })]
+        [InlineData("/debug:portable", "/embed", new[] { "embed.cs", "embed2.cs", "embed.xyz" })]
+        [InlineData("/debug:portable", "/embed:embed.cs", new[] { "embed.cs", "embed.xyz" })]
+        [InlineData("/debug:portable", "/embed:embed2.cs", new[] { "embed2.cs" })]
+        [InlineData("/debug:portable", "/embed:embed.xyz", new[] { "embed.xyz" })]
         [InlineData("/debug:embedded", "/embed", new[] { "embed.cs", "embed2.cs", "embed.xyz" })]
         [InlineData("/debug:embedded", "/embed:embed.cs", new[] { "embed.cs", "embed.xyz" })]
         [InlineData("/debug:embedded", "/embed:embed2.cs", new[] { "embed2.cs" })]
-        [InlineData("/debug:embedded", "/embed:embed.xyz", new[] {"embed.xyz" })]
+        [InlineData("/debug:embedded", "/embed:embed.xyz", new[] { "embed.xyz" })]
         public void Embed_EndToEnd_Portable(string debugSwitch, string embedSwitch, string[] expectedEmbedded)
         {
             // embed.cs: large enough to compress, has #line directives
@@ -2864,6 +3114,120 @@ class C
             Assert.Equal(expected: ReportDiagnostic.Suppress, actual: arguments.CompilationOptions.SpecificDiagnosticOptions["Test001"]);
         }
 
+        [Fact]
+        [WorkItem(35748, "https://github.com/dotnet/roslyn/issues/35748")]
+        public void NoWarn_Nullable()
+        {
+            var dir = Temp.CreateDirectory();
+
+            var arguments = DefaultParse(
+                new[]
+                {
+                    "/nologo",
+                    "/t:library",
+                    "/nowarn:nullable",
+                    "a.cs"
+                },
+                dir.Path);
+
+            var errors = arguments.Errors;
+            Assert.Empty(errors);
+
+            Assert.Equal(expected: ReportDiagnostic.Default, actual: arguments.CompilationOptions.GeneralDiagnosticOption);
+            Assert.Equal(expected: ErrorFacts.NullableWarnings.Count, actual: arguments.CompilationOptions.SpecificDiagnosticOptions.Count);
+
+            foreach (string warning in ErrorFacts.NullableWarnings)
+            {
+                Assert.Equal(expected: ReportDiagnostic.Suppress, actual: arguments.CompilationOptions.SpecificDiagnosticOptions[warning]);
+            }
+        }
+
+        [Fact]
+        [WorkItem(35748, "https://github.com/dotnet/roslyn/issues/35748")]
+        public void NoWarn_Nullable_Capitalization()
+        {
+            var dir = Temp.CreateDirectory();
+
+            var arguments = DefaultParse(
+                new[]
+                {
+                    "/nologo",
+                    "/t:library",
+                    "/nowarn:NullABLE",
+                    "a.cs"
+                },
+                dir.Path);
+
+            var errors = arguments.Errors;
+            Assert.Empty(errors);
+
+            Assert.Equal(expected: ReportDiagnostic.Default, actual: arguments.CompilationOptions.GeneralDiagnosticOption);
+            Assert.Equal(expected: ErrorFacts.NullableWarnings.Count, actual: arguments.CompilationOptions.SpecificDiagnosticOptions.Count);
+
+            foreach (string warning in ErrorFacts.NullableWarnings)
+            {
+                Assert.Equal(expected: ReportDiagnostic.Suppress, actual: arguments.CompilationOptions.SpecificDiagnosticOptions[warning]);
+            }
+        }
+
+        [Fact]
+        [WorkItem(35748, "https://github.com/dotnet/roslyn/issues/35748")]
+        public void NoWarn_Nullable_MultipleArguments()
+        {
+            var dir = Temp.CreateDirectory();
+
+            var arguments = DefaultParse(
+                new[]
+                {
+                    "/nologo",
+                    "/t:library",
+                    "/nowarn:nullable,Test001",
+                    "a.cs"
+                },
+                dir.Path);
+
+            var errors = arguments.Errors;
+            Assert.Empty(errors);
+
+            Assert.Equal(expected: ReportDiagnostic.Default, actual: arguments.CompilationOptions.GeneralDiagnosticOption);
+            Assert.Equal(expected: ErrorFacts.NullableWarnings.Count + 1, actual: arguments.CompilationOptions.SpecificDiagnosticOptions.Count);
+
+            foreach (string warning in ErrorFacts.NullableWarnings)
+            {
+                Assert.Equal(expected: ReportDiagnostic.Suppress, actual: arguments.CompilationOptions.SpecificDiagnosticOptions[warning]);
+            }
+
+            Assert.Equal(expected: ReportDiagnostic.Suppress, actual: arguments.CompilationOptions.SpecificDiagnosticOptions["Test001"]);
+        }
+
+        [Fact]
+        [WorkItem(35748, "https://github.com/dotnet/roslyn/issues/35748")]
+        public void WarnAsError_Nullable()
+        {
+            var dir = Temp.CreateDirectory();
+
+            var arguments = DefaultParse(
+                new[]
+                {
+                    "/nologo",
+                    "/t:library",
+                    "/warnaserror:nullable",
+                    "a.cs"
+                },
+                dir.Path);
+
+            var errors = arguments.Errors;
+            Assert.Empty(errors);
+
+            Assert.Equal(expected: ReportDiagnostic.Default, actual: arguments.CompilationOptions.GeneralDiagnosticOption);
+            Assert.Equal(expected: ErrorFacts.NullableWarnings.Count, actual: arguments.CompilationOptions.SpecificDiagnosticOptions.Count);
+
+            foreach (string warning in ErrorFacts.NullableWarnings)
+            {
+                Assert.Equal(expected: ReportDiagnostic.Error, actual: arguments.CompilationOptions.SpecificDiagnosticOptions[warning]);
+            }
+        }
+
         [WorkItem(912906, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/912906")]
         [Fact]
         public void Analyzers_CommandLineOverridesRuleset2()
@@ -3079,6 +3443,7 @@ C:\*.cs(100,7): error CS0103: The name 'Goo' does not exist in the current conte
             Assert.Equal("MyBinary.dll", parsedArgs.OutputFileName);
             Assert.Equal("MyBinary.dll", parsedArgs.CompilationOptions.ModuleName);
             Assert.Equal(@"C:\MyFolder", parsedArgs.OutputDirectory);
+            Assert.Equal(@"C:\MyFolder\MyBinary.dll", parsedArgs.GetOutputFilePath(parsedArgs.OutputFileName));
 
             // Should handle quotes
             parsedArgs = DefaultParse(new[] { @"/out:""C:\My Folder\MyBinary.dll""", "a.cs" }, baseDirectory);
@@ -3095,6 +3460,7 @@ C:\*.cs(100,7): error CS0103: The name 'Goo' does not exist in the current conte
             Assert.Equal("MyBinary.dll", parsedArgs.OutputFileName);
             Assert.Equal("MyBinary.dll", parsedArgs.CompilationOptions.ModuleName);
             Assert.Equal(baseDirectory, parsedArgs.OutputDirectory);
+            Assert.Equal(Path.Combine(baseDirectory, "MyBinary.dll"), parsedArgs.GetOutputFilePath(parsedArgs.OutputFileName));
 
             // Should expand partially qualified paths
             parsedArgs = DefaultParse(new[] { @"/out:..\MyBinary.dll", "a.cs" }, baseDirectory);
@@ -4093,6 +4459,479 @@ C:\*.cs(100,7): error CS0103: The name 'Goo' does not exist in the current conte
         }
 
         [Fact]
+        public void Nullable()
+        {
+            var parsedArgs = DefaultParse(new[] { "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Enabled' for C# 7.0. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Enable", "7.0", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:yes", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'yes' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("yes").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:enable", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Enable' for C# 7.0. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Enable", "7.0", "8.0").WithLocation(1, 1));
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:disable", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1));
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:yes", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'yes' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("yes").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:eNable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:disablE", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Safeonly", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'Safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("Safeonly").WithLocation(1, 1)
+                );
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable-", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable+", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:YES", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'YES' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("YES").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:disable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:enable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:safeonly", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable-", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable+", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:YES", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'YES' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("YES").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:disable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:enable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:safeonly", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable-", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable+", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable:", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1),
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable:YES", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1),
+                // error CS8636: Invalid option 'YES' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("YES").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable:disable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable:enable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", @"/nullable:safeonly", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1),
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:yeS", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'yeS' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("yeS").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Enable' for C# 7.3. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Enable", "7.3", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Enabled' for C# 7.3. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Enable", "7.3", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:enable", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Enabled' for C# 7.3. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Enable", "7.3", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:disable", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonly", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { "a.cs", "/langversion:8" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { "a.cs", "/langversion:7.3" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:""safeonly""", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonly' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonly").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:\""enable\""", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option '"enable"' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("\"enable\"").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:\\disable\\", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option '\\disable\\' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("\\\\disable\\\\").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:\\""enable\\""", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option '\enable\' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("\\enable\\").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:safeonlywarnings", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonlywarnings' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonlywarnings").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:SafeonlyWarnings", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'SafeonlyWarnings' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("SafeonlyWarnings").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:safeonlyWarnings", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'safeonlyWarnings' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("safeonlyWarnings").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:warnings", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Warnings' for C# 7.0. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Warnings", "7.0", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:Warnings", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:Warnings", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable-", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable+", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable:", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable:YES", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'YES' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("YES").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable:disable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable:enable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", @"/nullable:Warnings", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Warnings", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Annotations' for C# 7.3. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Warnings", "7.3", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Warnings, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:annotations", "/langversion:7.0", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Annotations' for C# 7.0. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Annotations", "7.0", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable-", @"/nullable:Annotations", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable+", @"/nullable:Annotations", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable-", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable+", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable:", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<text>' for 'nullable' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<text>", "nullable").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable:YES", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8636: Invalid option 'YES' for /nullable; must be 'disable', 'enable', 'warnings' or 'annotations'
+                Diagnostic(ErrorCode.ERR_BadNullableContextOption).WithArguments("YES").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable:disable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Disable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable:enable", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Enable, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", @"/nullable:Annotations", "/langversion:8", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+
+            parsedArgs = DefaultParse(new[] { @"/nullable:Annotations", "/langversion:7.3", "a.cs" }, WorkingDirectory);
+            parsedArgs.Errors.Verify(
+                // error CS8630: Invalid 'nullable' value: 'Annotations' for C# 7.3. Please use language version '8.0' or greater.
+                Diagnostic(ErrorCode.ERR_NullableOptionNotAvailable).WithArguments("nullable", "Annotations", "7.3", "8.0").WithLocation(1, 1)
+                );
+            Assert.Equal(NullableContextOptions.Annotations, parsedArgs.CompilationOptions.NullableContextOptions);
+        }
+
+        [Fact]
         public void Usings()
         {
             CSharpCommandLineArguments parsedArgs;
@@ -4596,7 +5435,8 @@ C:\*.cs(100,7): error CS0103: The name 'Goo' does not exist in the current conte
 
             parsedArgs = DefaultParse(new[] { "a.cs" }, WorkingDirectory);
             parsedArgs.Errors.Verify();
-            Assert.Equal(SourceHashAlgorithm.Sha1, parsedArgs.ChecksumAlgorithm);
+
+            Assert.Equal(SourceHashAlgorithm.Sha256, parsedArgs.ChecksumAlgorithm);
             Assert.Equal(HashAlgorithmName.SHA256, parsedArgs.EmitOptions.PdbChecksumAlgorithm);
 
             //  error
@@ -4958,7 +5798,7 @@ public class CS1698_a {}
             CleanupAllGeneratedFiles(cs1698.Path);
         }
 
-        [Fact]
+        [ConditionalFact(typeof(ClrOnly), Reason = "https://github.com/dotnet/roslyn/issues/30926")]
         public void BinaryFileErrorTest()
         {
             var binaryPath = Temp.CreateFile().WriteAllBytes(TestResources.NetFX.v4_0_30319.mscorlib).Path;
@@ -5588,27 +6428,25 @@ class C
             int exitCode = csc.Run(outWriter);
             Assert.Equal(0, exitCode);
 
-            var patched = Regex.Replace(outWriter.ToString().Trim(), "version \\d+\\.\\d+\\.\\d+(\\.\\d+)?", "version A.B.C.D");
+            var patched = Regex.Replace(outWriter.ToString().Trim(), "version \\d+\\.\\d+\\.\\d+(-[\\w\\d]+)*", "version A.B.C-d");
             patched = ReplaceCommitHash(patched);
             Assert.Equal(@"
-Microsoft (R) Visual C# Compiler version A.B.C.D (HASH)
+Microsoft (R) Visual C# Compiler version A.B.C-d (HASH)
 Copyright (C) Microsoft Corporation. All rights reserved.".Trim(),
                 patched);
-            // Privately queued builds have 3-part version numbers instead of 4.  Since we're throwing away the version number,
-            // making the last part optional will fix this.
 
             CleanupAllGeneratedFiles(file.Path);
         }
 
         [Theory,
-            InlineData("Microsoft (R) Visual C# Compiler version A.B.C.D (<developer build>)",
-                "Microsoft (R) Visual C# Compiler version A.B.C.D (HASH)"),
-            InlineData("Microsoft (R) Visual C# Compiler version A.B.C.D (ABCDEF01)",
-                "Microsoft (R) Visual C# Compiler version A.B.C.D (HASH)"),
-            InlineData("Microsoft (R) Visual C# Compiler version A.B.C.D (abcdef90)",
-                "Microsoft (R) Visual C# Compiler version A.B.C.D (HASH)"),
-            InlineData("Microsoft (R) Visual C# Compiler version A.B.C.D (12345678)",
-                "Microsoft (R) Visual C# Compiler version A.B.C.D (HASH)")]
+            InlineData("Microsoft (R) Visual C# Compiler version A.B.C-d (<developer build>)",
+                "Microsoft (R) Visual C# Compiler version A.B.C-d (HASH)"),
+            InlineData("Microsoft (R) Visual C# Compiler version A.B.C-d (ABCDEF01)",
+                "Microsoft (R) Visual C# Compiler version A.B.C-d (HASH)"),
+            InlineData("Microsoft (R) Visual C# Compiler version A.B.C-d (abcdef90)",
+                "Microsoft (R) Visual C# Compiler version A.B.C-d (HASH)"),
+            InlineData("Microsoft (R) Visual C# Compiler version A.B.C-d (12345678)",
+                "Microsoft (R) Visual C# Compiler version A.B.C-d (HASH)")]
         public void TestReplaceCommitHash(string orig, string expected)
         {
             Assert.Equal(expected, ReplaceCommitHash(orig));
@@ -5913,7 +6751,7 @@ public class C
             Assert.Equal(1, peHeaders.PEHeader.MinorSubsystemVersion);
         }
 
-        [ConditionalFact(typeof(WindowsDesktopOnly), Reason = "https://github.com/dotnet/roslyn/issues/30152")]
+        [Fact]
         public void CreateCompilationWithKeyFile()
         {
             string source = @"
@@ -7003,7 +7841,7 @@ public class C
         {
             var sdkDirectory = SdkDirectory;
             MockCSharpCompiler csc = new MockCSharpCompiler(
-                GetDefaultResponseFilePath(), 
+                GetDefaultResponseFilePath(),
                 RuntimeUtilities.CreateBuildPaths(WorkingDirectory, sdkDirectory),
                 new string[0]);
             AssertEx.Equal(csc.Arguments.MetadataReferences.Select(r => r.Reference), new string[]
@@ -7079,7 +7917,7 @@ static void Main() {
             var outWriter = new StringWriter(CultureInfo.InvariantCulture);
             int exitCode = CreateCSharpCompiler(null, baseDir, new[] { "/nologo", "/preferreduilang:en", source.ToString() }).Run(outWriter);
             Assert.Equal(0, exitCode);
-            Assert.Equal(Path.GetFileName(source) + "(7,17): warning CS1634: Expected disable or restore", outWriter.ToString().Trim());
+            Assert.Equal(Path.GetFileName(source) + "(7,17): warning CS1634: Expected 'disable' or 'restore'", outWriter.ToString().Trim());
 
             outWriter = new StringWriter(CultureInfo.InvariantCulture);
             exitCode = CreateCSharpCompiler(null, baseDir, new[] { "/nologo", "/nowarn:1634", source.ToString() }).Run(outWriter);
@@ -7151,7 +7989,10 @@ public class Test
             var outWriter = new StringWriter(CultureInfo.InvariantCulture);
             int exitCode = CreateCSharpCompiler(null, baseDir, new[] { "/nologo", "/preferreduilang:en", "/warn:3", "/warnaserror", source.ToString() }).Run(outWriter);
             Assert.Equal(1, exitCode);
-            Assert.Equal(fileName + "(12,20): error CS1522: Empty switch block", outWriter.ToString().Trim());
+            Assert.Equal(
+$@"{fileName}(12,20): error CS1522: Empty switch block
+{fileName}(15,9): error CS0162: Unreachable code detected
+{fileName}(5,17): error CS0169: The field 'Test.x' is never used", outWriter.ToString().Trim());
 
             CleanupAllGeneratedFiles(source);
         }
@@ -7185,7 +8026,7 @@ public class Test
         public void TestWin32ResWithBadResFile_CS1583ERR_BadWin32Res_02()
         {
             string source = Temp.CreateFile(prefix: "", extension: ".cs").WriteAllText(@"class Test { static void Main() {} }").Path;
-            string badres = Temp.CreateFile().WriteAllBytes(new byte [] { 0, 0}).Path;
+            string badres = Temp.CreateFile().WriteAllBytes(new byte[] { 0, 0 }).Path;
 
             var baseDir = Path.GetDirectoryName(source);
             var fileName = Path.GetFileName(source);
@@ -7402,7 +8243,7 @@ class Program3
 
             var output = ProcessUtilities.RunAndGetOutput(s_CSharpCompilerExecutable, $"/target:library /debug:portable {libSrc.Path}", startFolder: dir.ToString());
             AssertEx.AssertEqualToleratingWhitespaceDifferences($@"
-Microsoft (R) Visual C# Compiler version {s_compilerVersion} ({s_compilerShortCommitHash })
+Microsoft (R) Visual C# Compiler version {s_compilerVersion}
 Copyright (C) Microsoft Corporation. All rights reserved.", output);
 
             // reading original content from the memory map:
@@ -8341,6 +9182,17 @@ using System.Diagnostics; // Unused.
             Assert.Equal(Path.Combine(WorkingDirectory, "web.config"), args.AdditionalFiles[0].Path);
             Assert.Equal(Path.Combine(WorkingDirectory, "app.manifest"), args.AdditionalFiles[1].Path);
 
+            args = DefaultParse(new[] { "/additionalfile:web.config,app.manifest", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(2, args.AdditionalFiles.Length);
+            Assert.Equal(Path.Combine(WorkingDirectory, "web.config"), args.AdditionalFiles[0].Path);
+            Assert.Equal(Path.Combine(WorkingDirectory, "app.manifest"), args.AdditionalFiles[1].Path);
+
+            args = DefaultParse(new[] { @"/additionalfile:""web.config,app.manifest""", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(1, args.AdditionalFiles.Length);
+            Assert.Equal(Path.Combine(WorkingDirectory, "web.config,app.manifest"), args.AdditionalFiles[0].Path);
+
             args = DefaultParse(new[] { "/additionalfile:web.config:app.manifest", "a.cs" }, WorkingDirectory);
             args.Errors.Verify();
             Assert.Equal(1, args.AdditionalFiles.Length);
@@ -8353,6 +9205,99 @@ using System.Diagnostics; // Unused.
             args = DefaultParse(new[] { "/additionalfile:", "a.cs" }, WorkingDirectory);
             args.Errors.Verify(Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<file list>", "additionalfile"));
             Assert.Equal(0, args.AdditionalFiles.Length);
+        }
+
+        [Fact]
+        public void ParseEditorConfig()
+        {
+            var args = DefaultParse(new[] { "/analyzerconfig:.editorconfig", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(Path.Combine(WorkingDirectory, ".editorconfig"), args.AnalyzerConfigPaths.Single());
+
+            args = DefaultParse(new[] { "/analyzerconfig:.editorconfig", "a.cs", "/analyzerconfig:subdir\\.editorconfig" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(2, args.AnalyzerConfigPaths.Length);
+            Assert.Equal(Path.Combine(WorkingDirectory, ".editorconfig"), args.AnalyzerConfigPaths[0]);
+            Assert.Equal(Path.Combine(WorkingDirectory, "subdir\\.editorconfig"), args.AnalyzerConfigPaths[1]);
+
+            args = DefaultParse(new[] { "/analyzerconfig:.editorconfig", "a.cs", "/analyzerconfig:.editorconfig" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(2, args.AnalyzerConfigPaths.Length);
+            Assert.Equal(Path.Combine(WorkingDirectory, ".editorconfig"), args.AnalyzerConfigPaths[0]);
+            Assert.Equal(Path.Combine(WorkingDirectory, ".editorconfig"), args.AnalyzerConfigPaths[1]);
+
+            args = DefaultParse(new[] { "/analyzerconfig:..\\.editorconfig", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(Path.Combine(WorkingDirectory, "..\\.editorconfig"), args.AnalyzerConfigPaths.Single());
+
+            args = DefaultParse(new[] { "/analyzerconfig:.editorconfig;subdir\\.editorconfig", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify();
+            Assert.Equal(2, args.AnalyzerConfigPaths.Length);
+            Assert.Equal(Path.Combine(WorkingDirectory, ".editorconfig"), args.AnalyzerConfigPaths[0]);
+            Assert.Equal(Path.Combine(WorkingDirectory, "subdir\\.editorconfig"), args.AnalyzerConfigPaths[1]);
+
+            args = DefaultParse(new[] { "/analyzerconfig", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<file list>' for 'analyzerconfig' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<file list>", "analyzerconfig").WithLocation(1, 1));
+            Assert.Equal(0, args.AnalyzerConfigPaths.Length);
+
+            args = DefaultParse(new[] { "/analyzerconfig:", "a.cs" }, WorkingDirectory);
+            args.Errors.Verify(
+                // error CS2006: Command-line syntax error: Missing '<file list>' for 'analyzerconfig' option
+                Diagnostic(ErrorCode.ERR_SwitchNeedsString).WithArguments("<file list>", "analyzerconfig").WithLocation(1, 1));
+            Assert.Equal(0, args.AnalyzerConfigPaths.Length);
+        }
+
+        [Fact]
+        public void NullablePublicOnly()
+        {
+            string source =
+@"namespace System.Runtime.CompilerServices
+{
+    public sealed class NullableAttribute : Attribute { } // missing constructor
+}
+public class Program
+{
+    private object? F = null;
+}";
+            string errorMessage = "error CS0656: Missing compiler required member 'System.Runtime.CompilerServices.NullableAttribute..ctor'";
+
+            string filePath = Temp.CreateFile().WriteAllText(source).Path;
+            int exitCode;
+            string output;
+
+            // No /feature
+            (exitCode, output) = compileAndRun(featureOpt: null);
+            Assert.Equal(1, exitCode);
+            Assert.Contains(errorMessage, output, StringComparison.Ordinal);
+
+            // /features:nullablePublicOnly
+            (exitCode, output) = compileAndRun("/features:nullablePublicOnly");
+            Assert.Equal(0, exitCode);
+            Assert.DoesNotContain(errorMessage, output, StringComparison.Ordinal);
+
+            // /features:nullablePublicOnly=true
+            (exitCode, output) = compileAndRun("/features:nullablePublicOnly=true");
+            Assert.Equal(0, exitCode);
+            Assert.DoesNotContain(errorMessage, output, StringComparison.Ordinal);
+
+            // /features:nullablePublicOnly=false (the value is ignored)
+            (exitCode, output) = compileAndRun("/features:nullablePublicOnly=false");
+            Assert.Equal(0, exitCode);
+            Assert.DoesNotContain(errorMessage, output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(filePath);
+
+            (int, string) compileAndRun(string featureOpt)
+            {
+                var args = new[] { "/target:library", "/preferreduilang:en", "/langversion:8", "/nullable+", filePath };
+                if (featureOpt != null) args = args.Concat(featureOpt).ToArray();
+                var compiler = CreateCSharpCompiler(null, WorkingDirectory, args);
+                var outWriter = new StringWriter(CultureInfo.InvariantCulture);
+                int exitCode = compiler.Run(outWriter);
+                return (exitCode, outWriter.ToString());
+            };
         }
 
         private static int OccurrenceCount(string source, string word)
@@ -8372,7 +9317,8 @@ using System.Diagnostics; // Unused.
                                            string[] additionalFlags = null,
                                            int expectedInfoCount = 0,
                                            int expectedWarningCount = 0,
-                                           int expectedErrorCount = 0)
+                                           int expectedErrorCount = 0,
+                                           params DiagnosticAnalyzer[] analyzers)
         {
             var args = new[] {
                                 "/nologo", "/preferreduilang:en", "/t:library",
@@ -8387,7 +9333,7 @@ using System.Diagnostics; // Unused.
                 args = args.Append(additionalFlags);
             }
 
-            var csc = CreateCSharpCompiler(null, sourceDir.Path, args);
+            var csc = CreateCSharpCompiler(null, sourceDir.Path, args, analyzers: analyzers.ToImmutableArrayOrEmpty());
             var outWriter = new StringWriter(CultureInfo.InvariantCulture);
             var exitCode = csc.Run(outWriter);
             var output = outWriter.ToString();
@@ -9508,7 +10454,6 @@ class Runner
         public void Version()
         {
             var folderName = Temp.CreateDirectory().ToString();
-            var expected = $"{FileVersionInfo.GetVersionInfo(typeof(CSharpCompiler).Assembly.Location).FileVersion} ({s_compilerShortCommitHash})";
             var argss = new[]
             {
                 "/version",
@@ -9520,7 +10465,7 @@ class Runner
             foreach (var args in argss)
             {
                 var output = ProcessUtilities.RunAndGetOutput(s_CSharpCompilerExecutable, args, startFolder: folderName);
-                Assert.Equal(expected, output.Trim());
+                Assert.Equal(s_compilerVersion, output.Trim());
             }
         }
 
@@ -9770,6 +10715,24 @@ class C
                 result.Output.Trim());
         }
 
+#if NET472
+        [ConditionalFact(typeof(WindowsDesktopOnly), typeof(IsEnglishLocal), Reason = "https://github.com/dotnet/roslyn/issues/30321")]
+        public void LoadingAnalyzerNetStandard13()
+        {
+            var analyzerFileName = "AnalyzerNS13.dll";
+            var srcFileName = "src.cs";
+
+            var analyzerDir = Temp.CreateDirectory();
+            var analyzerFile = analyzerDir.CreateFile(analyzerFileName).WriteAllBytes(DesktopTestHelpers.CreateCSharpAnalyzerNetStandard13(Path.GetFileNameWithoutExtension(analyzerFileName)));
+            var srcFile = analyzerDir.CreateFile(srcFileName).WriteAllText("public class C { }");
+
+            var result = ProcessUtilities.Run(s_CSharpCompilerExecutable, arguments: $"/nologo /t:library /analyzer:{analyzerFileName} {srcFileName}", workingDirectory: analyzerDir.Path);
+            AssertEx.AssertEqualToleratingWhitespaceDifferences(
+                $"warning AD0001: Analyzer 'TestAnalyzer' threw an exception of type 'System.NotImplementedException' with message '28'.", result.Output);
+
+            Assert.Equal(0, result.ExitCode);
+        }
+#endif
         [WorkItem(406649, "https://devdiv.visualstudio.com/DevDiv/_workitems?id=484417")]
         [ConditionalFact(typeof(WindowsDesktopOnly), typeof(IsEnglishLocal), Reason = "https://github.com/dotnet/roslyn/issues/30321")]
         public void MicrosoftDiaSymReaderNativeAltLoadPath()
@@ -9852,11 +10815,7 @@ class C
             var buildPaths = new BuildPaths(clientDir: "", workingDir: workingDir.Path, sdkDir: null, tempDir: tempDir.Path);
             var csc = new MockCSharpCompiler(null, buildPaths, args: new[] { "/features:UseLegacyStrongNameProvider", "/nostdlib", "a.cs" });
             var comp = csc.CreateCompilation(new StringWriter(), new TouchedFileLogger(), errorLogger: null);
-            var desktopProvider = Assert.IsType<DesktopStrongNameProvider>(comp.Options.StrongNameProvider);
-            using (var inputStream = Assert.IsType<DesktopStrongNameProvider.TempFileStream>(desktopProvider.CreateInputStream()))
-            {
-                Assert.Equal(tempDir.Path, Path.GetDirectoryName(inputStream.Path));
-            }
+            Assert.True(!comp.SignUsingBuilder);
         }
 
         public class QuotedArgumentTests : CommandLineTestBase
@@ -10006,6 +10965,473 @@ class C
             var exitCode = compiler.Run(outWriter);
             Assert.Equal(1, exitCode);
             Assert.Contains("error CS2021: File name 'test\\?.pdb' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long", outWriter.ToString(), StringComparison.Ordinal);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/38454")]
+        public void TestSuppression_CompilerParserWarningAsError()
+        {
+            string source = @"
+class C
+{
+    long M(int i)
+    {
+        // warning CS0078 : The 'l' suffix is easily confused with the digit '1' -- use 'L' for clarity
+        return 0l;
+    }
+}
+";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that parser warning CS0078 is reported.
+            var output = VerifyOutput(srcDirectory, srcFile, expectedWarningCount: 1, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("warning CS0078", output, StringComparison.Ordinal);
+
+            // Verify that parser warning CS0078 is reported as error for /warnaserror.
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1,
+                additionalFlags: new[] { "/warnAsError" }, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("error CS0078", output, StringComparison.Ordinal);
+
+            // Verify that parser warning CS0078 is suppressed with diagnostic suppressor even with /warnaserror
+            // and info diagnostic is logged with programmatic suppression information.
+            var suppressor = new DiagnosticSuppressorForId("CS0078");
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0, expectedErrorCount: 0,
+                additionalFlags: new[] { "/warnAsError" },
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: suppressor);
+            Assert.DoesNotContain($"error CS0078", output, StringComparison.Ordinal);
+            Assert.DoesNotContain($"warning CS0078", output, StringComparison.Ordinal);
+
+            // Diagnostic '{0}: {1}' was programmatically suppressed by a DiagnosticSuppressor with suppresion ID '{2}' and justification '{3}'
+            var suppressionMessage = string.Format(CodeAnalysisResources.SuppressionDiagnosticDescriptorMessage,
+                suppressor.SuppressionDescriptor.SuppressedDiagnosticId,
+                new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.WRN_LowercaseEllSuffix, "l"), Location.None).GetMessage(CultureInfo.InvariantCulture),
+                suppressor.SuppressionDescriptor.Id,
+                suppressor.SuppressionDescriptor.Justification);
+            Assert.Contains("info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/38454")]
+        public void TestSuppression_CompilerSyntaxWarning()
+        {
+            // warning CS1522: Empty switch block
+            // NOTE: Empty switch block warning is reported by the C# language parser
+            string source = @"
+class C
+{
+    void M(int i)
+    {
+        switch (i)
+        {
+        }
+    }
+}";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that compiler warning CS1522 is reported.
+            var output = VerifyOutput(srcDirectory, srcFile, expectedWarningCount: 1, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("warning CS1522", output, StringComparison.Ordinal);
+
+            // Verify that compiler warning CS1522 is suppressed with diagnostic suppressor
+            // and info diagnostic is logged with programmatic suppression information.
+            var suppressor = new DiagnosticSuppressorForId("CS1522");
+
+            // Diagnostic '{0}: {1}' was programmatically suppressed by a DiagnosticSuppressor with suppresion ID '{2}' and justification '{3}'
+            var suppressionMessage = string.Format(CodeAnalysisResources.SuppressionDiagnosticDescriptorMessage,
+                suppressor.SuppressionDescriptor.SuppressedDiagnosticId,
+                new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.WRN_EmptySwitch), Location.None).GetMessage(CultureInfo.InvariantCulture),
+                suppressor.SuppressionDescriptor.Id,
+                suppressor.SuppressionDescriptor.Justification);
+
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0, includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: suppressor);
+            Assert.DoesNotContain($"warning CS1522", output, StringComparison.Ordinal);
+            Assert.Contains($"info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            // Verify that compiler warning CS1522 is reported as error for /warnaserror.
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1,
+                additionalFlags: new[] { "/warnAsError" }, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("error CS1522", output, StringComparison.Ordinal);
+
+            // Verify that compiler warning CS1522 is suppressed with diagnostic suppressor even with /warnaserror
+            // and info diagnostic is logged with programmatic suppression information.
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0, expectedErrorCount: 0,
+                additionalFlags: new[] { "/warnAsError" },
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: suppressor);
+            Assert.DoesNotContain($"error CS1522", output, StringComparison.Ordinal);
+            Assert.DoesNotContain($"warning CS1522", output, StringComparison.Ordinal);
+            Assert.Contains("info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/38454")]
+        public void TestSuppression_CompilerSemanticWarning()
+        {
+            string source = @"
+class C
+{
+    // warning CS0169: The field 'C.f' is never used
+    private readonly int f;
+}";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that compiler warning CS0169 is reported.
+            var output = VerifyOutput(srcDirectory, srcFile, expectedWarningCount: 1, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("warning CS0169", output, StringComparison.Ordinal);
+
+            // Verify that compiler warning CS0169 is suppressed with diagnostic suppressor
+            // and info diagnostic is logged with programmatic suppression information.
+            var suppressor = new DiagnosticSuppressorForId("CS0169");
+
+            // Diagnostic '{0}: {1}' was programmatically suppressed by a DiagnosticSuppressor with suppresion ID '{2}' and justification '{3}'
+            var suppressionMessage = string.Format(CodeAnalysisResources.SuppressionDiagnosticDescriptorMessage,
+                suppressor.SuppressionDescriptor.SuppressedDiagnosticId,
+                new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.WRN_UnreferencedField, "C.f"), Location.None).GetMessage(CultureInfo.InvariantCulture),
+                suppressor.SuppressionDescriptor.Id,
+                suppressor.SuppressionDescriptor.Justification);
+
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0, includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: suppressor);
+            Assert.DoesNotContain($"warning CS0169", output, StringComparison.Ordinal);
+            Assert.Contains("info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            // Verify that compiler warning CS0169 is reported as error for /warnaserror.
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1,
+                additionalFlags: new[] { "/warnAsError" }, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("error CS0169", output, StringComparison.Ordinal);
+
+            // Verify that compiler warning CS0169 is suppressed with diagnostic suppressor even with /warnaserror
+            // and info diagnostic is logged with programmatic suppression information.
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0, expectedErrorCount: 0,
+                additionalFlags: new[] { "/warnAsError" },
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: suppressor);
+            Assert.DoesNotContain($"error CS0169", output, StringComparison.Ordinal);
+            Assert.DoesNotContain($"warning CS0169", output, StringComparison.Ordinal);
+            Assert.Contains("info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact]
+        public void TestNoSuppression_CompilerSyntaxError()
+        {
+            // error CS1001: Identifier expected
+            string source = @"
+class { }";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that compiler syntax error CS1001 is reported.
+            var output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("error CS1001", output, StringComparison.Ordinal);
+
+            // Verify that compiler syntax error CS1001 cannot be suppressed with diagnostic suppressor.
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1, includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: new DiagnosticSuppressorForId("CS1001"));
+            Assert.Contains("error CS1001", output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact]
+        public void TestNoSuppression_CompilerSemanticError()
+        {
+            // error CS0246: The type or namespace name 'UndefinedType' could not be found (are you missing a using directive or an assembly reference?)
+            string source = @"
+class C
+{
+    void M(UndefinedType x) { }
+}";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that compiler error CS0246 is reported.
+            var output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1, includeCurrentAssemblyAsAnalyzerReference: false);
+            Assert.Contains("error CS0246", output, StringComparison.Ordinal);
+
+            // Verify that compiler error CS0246 cannot be suppressed with diagnostic suppressor.
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1, includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: new DiagnosticSuppressorForId("CS0246"));
+            Assert.Contains("error CS0246", output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/38454")]
+        public void TestSuppression_AnalyzerWarning()
+        {
+            string source = @"
+class C { }";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that analyzer warning is reported.
+            var analyzer = new CompilationAnalyzerWithSeverity(DiagnosticSeverity.Warning, configurable: true);
+            var output = VerifyOutput(srcDirectory, srcFile, expectedWarningCount: 1,
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzer);
+            Assert.Contains($"warning {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+
+            // Verify that analyzer warning is suppressed with diagnostic suppressor
+            // and info diagnostic is logged with programmatic suppression information.
+            var suppressor = new DiagnosticSuppressorForId(analyzer.Descriptor.Id);
+
+            // Diagnostic '{0}: {1}' was programmatically suppressed by a DiagnosticSuppressor with suppresion ID '{2}' and justification '{3}'
+            var suppressionMessage = string.Format(CodeAnalysisResources.SuppressionDiagnosticDescriptorMessage,
+                suppressor.SuppressionDescriptor.SuppressedDiagnosticId,
+                analyzer.Descriptor.MessageFormat,
+                suppressor.SuppressionDescriptor.Id,
+                suppressor.SuppressionDescriptor.Justification);
+
+            var analyzerAndSuppressor = new DiagnosticAnalyzer[] { analyzer, suppressor };
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0,
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzerAndSuppressor);
+            Assert.DoesNotContain($"warning {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+            Assert.Contains("info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            // Verify that analyzer warning is reported as error for /warnaserror.
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1,
+                additionalFlags: new[] { "/warnAsError" },
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzer);
+            Assert.Contains($"error {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+
+            // Verify that analyzer warning is suppressed with diagnostic suppressor even with /warnaserror
+            // and info diagnostic is logged with programmatic suppression information.
+            output = VerifyOutput(srcDirectory, srcFile, expectedInfoCount: 1, expectedWarningCount: 0,
+                additionalFlags: new[] { "/warnAsError" },
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzerAndSuppressor);
+            Assert.DoesNotContain($"warning {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+            Assert.Contains("info SP0001", output, StringComparison.Ordinal);
+            Assert.Contains(suppressionMessage, output, StringComparison.Ordinal);
+
+            // Verify that "NotConfigurable" analyzer warning cannot be suppressed with diagnostic suppressor.
+            analyzer = new CompilationAnalyzerWithSeverity(DiagnosticSeverity.Warning, configurable: false);
+            suppressor = new DiagnosticSuppressorForId(analyzer.Descriptor.Id);
+            analyzerAndSuppressor = new DiagnosticAnalyzer[] { analyzer, suppressor };
+            output = VerifyOutput(srcDirectory, srcFile, expectedWarningCount: 1,
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzerAndSuppressor);
+            Assert.Contains($"warning {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [WorkItem(20242, "https://github.com/dotnet/roslyn/issues/20242")]
+        [Fact]
+        public void TestNoSuppression_AnalyzerError()
+        {
+            string source = @"
+class C { }";
+            var srcDirectory = Temp.CreateDirectory();
+            var srcFile = srcDirectory.CreateFile("a.cs");
+            srcFile.WriteAllText(source);
+
+            // Verify that analyzer error is reported.
+            var analyzer = new CompilationAnalyzerWithSeverity(DiagnosticSeverity.Error, configurable: true);
+            var output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1,
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzer);
+            Assert.Contains($"error {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+
+            // Verify that analyzer error cannot be suppressed with diagnostic suppressor.
+            var suppressor = new DiagnosticSuppressorForId(analyzer.Descriptor.Id);
+            var analyzerAndSuppressor = new DiagnosticAnalyzer[] { analyzer, suppressor };
+            output = VerifyOutput(srcDirectory, srcFile, expectedErrorCount: 1,
+                includeCurrentAssemblyAsAnalyzerReference: false,
+                analyzers: analyzerAndSuppressor);
+            Assert.Contains($"error {analyzer.Descriptor.Id}", output, StringComparison.Ordinal);
+
+            CleanupAllGeneratedFiles(srcFile.Path);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        [WorkItem(37779, "https://github.com/dotnet/roslyn/issues/37779")]
+        public void CompilerWarnAsErrorDoesNotEmit(bool warnAsError)
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("temp.cs").WriteAllText(@"
+class C
+{
+    int _f;     // CS0169: unused field
+}");
+
+            var docName = "temp.xml";
+            var pdbName = "temp.pdb";
+            var additionalArgs = new[] { $"/doc:{docName}", $"/pdb:{pdbName}", "/debug" };
+            if (warnAsError)
+            {
+                additionalArgs = additionalArgs.Append("/warnaserror").AsArray();
+            }
+
+            var expectedErrorCount = warnAsError ? 1 : 0;
+            var expectedWarningCount = !warnAsError ? 1 : 0;
+            var output = VerifyOutput(dir, src, includeCurrentAssemblyAsAnalyzerReference: false,
+                                      additionalArgs,
+                                      expectedErrorCount: expectedErrorCount,
+                                      expectedWarningCount: expectedWarningCount);
+
+            var expectedOutput = warnAsError ? "error CS0169" : "warning CS0169";
+            Assert.Contains(expectedOutput, output);
+
+            string binaryPath = Path.Combine(dir.Path, "temp.dll");
+            Assert.True(File.Exists(binaryPath) == !warnAsError);
+
+            string pdbPath = Path.Combine(dir.Path, pdbName);
+            Assert.True(File.Exists(pdbPath) == !warnAsError);
+
+            string xmlDocFilePath = Path.Combine(dir.Path, docName);
+            Assert.True(File.Exists(xmlDocFilePath) == !warnAsError);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        [WorkItem(37779, "https://github.com/dotnet/roslyn/issues/37779")]
+        public void AnalyzerConfigSeverityEscalationToErrorDoesNotEmit(bool analyzerConfigSetToError)
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("temp.cs").WriteAllText(@"
+class C
+{
+    int _f;     // CS0169: unused field
+}");
+
+            var docName = "temp.xml";
+            var pdbName = "temp.pdb";
+            var additionalArgs = new[] { $"/doc:{docName}", $"/pdb:{pdbName}", "/debug" };
+
+            if (analyzerConfigSetToError)
+            {
+                var analyzerConfig = dir.CreateFile(".editorconfig").WriteAllText(@"
+[*.cs]
+dotnet_diagnostic.cs0169.severity = error");
+
+                additionalArgs = additionalArgs.Append("/analyzerconfig:" + analyzerConfig.Path).ToArray();
+            }
+
+            var expectedErrorCount = analyzerConfigSetToError ? 1 : 0;
+            var expectedWarningCount = !analyzerConfigSetToError ? 1 : 0;
+            var output = VerifyOutput(dir, src, includeCurrentAssemblyAsAnalyzerReference: false,
+                                      additionalArgs,
+                                      expectedErrorCount: expectedErrorCount,
+                                      expectedWarningCount: expectedWarningCount);
+
+            var expectedOutput = analyzerConfigSetToError ? "error CS0169" : "warning CS0169";
+            Assert.Contains(expectedOutput, output);
+
+            string binaryPath = Path.Combine(dir.Path, "temp.dll");
+            Assert.True(File.Exists(binaryPath) == !analyzerConfigSetToError);
+
+            string pdbPath = Path.Combine(dir.Path, pdbName);
+            Assert.True(File.Exists(pdbPath) == !analyzerConfigSetToError);
+
+            string xmlDocFilePath = Path.Combine(dir.Path, docName);
+            Assert.True(File.Exists(xmlDocFilePath) == !analyzerConfigSetToError);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        [WorkItem(37779, "https://github.com/dotnet/roslyn/issues/37779")]
+        public void RulesetSeverityEscalationToErrorDoesNotEmit(bool rulesetSetToError)
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("temp.cs").WriteAllText(@"
+class C
+{
+    int _f;     // CS0169: unused field
+}");
+
+            var docName = "temp.xml";
+            var pdbName = "temp.pdb";
+            var additionalArgs = new[] { $"/doc:{docName}", $"/pdb:{pdbName}", "/debug" };
+
+            if (rulesetSetToError)
+            {
+                string source = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<RuleSet Name=""Ruleset1"" Description=""Test""  ToolsVersion=""12.0"">
+  <Rules AnalyzerId=""Microsoft.CodeAnalysis"" RuleNamespace=""Microsoft.CodeAnalysis"">
+    <Rule Id=""CS0169"" Action=""Error"" />
+  </Rules>
+</RuleSet>
+";
+                var rulesetFile = CreateRuleSetFile(source);
+                additionalArgs = additionalArgs.Append("/ruleset:" + rulesetFile.Path).ToArray();
+            }
+
+            var expectedErrorCount = rulesetSetToError ? 1 : 0;
+            var expectedWarningCount = !rulesetSetToError ? 1 : 0;
+            var output = VerifyOutput(dir, src, includeCurrentAssemblyAsAnalyzerReference: false,
+                                      additionalArgs,
+                                      expectedErrorCount: expectedErrorCount,
+                                      expectedWarningCount: expectedWarningCount);
+
+            var expectedOutput = rulesetSetToError ? "error CS0169" : "warning CS0169";
+            Assert.Contains(expectedOutput, output);
+
+            string binaryPath = Path.Combine(dir.Path, "temp.dll");
+            Assert.True(File.Exists(binaryPath) == !rulesetSetToError);
+
+            string pdbPath = Path.Combine(dir.Path, pdbName);
+            Assert.True(File.Exists(pdbPath) == !rulesetSetToError);
+
+            string xmlDocFilePath = Path.Combine(dir.Path, docName);
+            Assert.True(File.Exists(xmlDocFilePath) == !rulesetSetToError);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        [WorkItem(37779, "https://github.com/dotnet/roslyn/issues/37779")]
+        public void AnalyzerWarnAsErrorDoesNotEmit(bool warnAsError)
+        {
+            var dir = Temp.CreateDirectory();
+            var src = dir.CreateFile("temp.cs").WriteAllText("class C { }");
+
+            var additionalArgs = warnAsError ? new[] { "/warnaserror" } : null;
+            var expectedErrorCount = warnAsError ? 1 : 0;
+            var expectedWarningCount = !warnAsError ? 1 : 0;
+            var output = VerifyOutput(dir, src, includeCurrentAssemblyAsAnalyzerReference: false,
+                                      additionalArgs,
+                                      expectedErrorCount: expectedErrorCount,
+                                      expectedWarningCount: expectedWarningCount,
+                                      analyzers: new[] { new WarningDiagnosticAnalyzer() });
+
+            var expectedDiagnosticSeverity = warnAsError ? "error" : "warning";
+            Assert.Contains($"{expectedDiagnosticSeverity} {WarningDiagnosticAnalyzer.Warning01.Id}", output);
+
+            string binaryPath = Path.Combine(dir.Path, "temp.dll");
+            Assert.True(File.Exists(binaryPath) == !warnAsError);
         }
     }
 

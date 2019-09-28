@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using Roslyn.Utilities;
 
@@ -19,7 +18,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UseCompoundAssignment
                 (SyntaxKind.ExclusiveOrExpression, SyntaxKind.ExclusiveOrAssignmentExpression),
                 (SyntaxKind.BitwiseOrExpression, SyntaxKind.OrAssignmentExpression),
                 (SyntaxKind.LeftShiftExpression, SyntaxKind.LeftShiftAssignmentExpression),
-                (SyntaxKind.RightShiftExpression, SyntaxKind.RightShiftAssignmentExpression)).SelectAsArray(
+                (SyntaxKind.RightShiftExpression, SyntaxKind.RightShiftAssignmentExpression),
+                (SyntaxKind.CoalesceExpression, SyntaxKind.CoalesceAssignmentExpression)).SelectAsArray(
                     tuple => (tuple.Item1, tuple.Item2, FindOperatorToken(tuple.Item2)));
 
         private static SyntaxKind FindOperatorToken(SyntaxKind assignmentExpressionKind)

@@ -20,6 +20,11 @@ namespace Microsoft.CodeAnalysis.SemanticModelWorkspaceService
     [ExportWorkspaceServiceFactory(typeof(ISemanticModelService), ServiceLayer.Default), Shared]
     internal class SemanticModelWorkspaceServiceFactory : IWorkspaceServiceFactory
     {
+        [ImportingConstructor]
+        public SemanticModelWorkspaceServiceFactory()
+        {
+        }
+
         public IWorkspaceService CreateService(HostWorkspaceServices workspaceServices)
         {
             return new SemanticModelService();
@@ -35,12 +40,14 @@ namespace Microsoft.CodeAnalysis.SemanticModelWorkspaceService
 
             private readonly ReaderWriterLockSlim _gate = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
+#nullable enable
+
             public async Task<SemanticModel> GetSemanticModelForNodeAsync(Document document, SyntaxNode node, CancellationToken cancellationToken = default)
             {
                 var syntaxFactsService = document.GetLanguageService<ISyntaxFactsService>();
                 var semanticFactsService = document.GetLanguageService<ISemanticFactsService>();
 
-                if (syntaxFactsService == null || semanticFactsService == null || node == null)
+                if (syntaxFactsService == null || semanticFactsService == null)
                 {
                     // it only works if we can track member
                     return await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
@@ -154,6 +161,8 @@ namespace Microsoft.CodeAnalysis.SemanticModelWorkspaceService
             {
                 return document.Project.Solution.BranchId == document.Project.Solution.Workspace.PrimaryBranchId;
             }
+
+#nullable restore
 
             private Task AddVersionCacheAsync(Project project, VersionStamp version, CancellationToken cancellationToken)
             {
@@ -315,6 +324,10 @@ namespace Microsoft.CodeAnalysis.SemanticModelWorkspaceService
                     case WorkspaceChangeKind.AdditionalDocumentRemoved:
                     case WorkspaceChangeKind.AdditionalDocumentChanged:
                     case WorkspaceChangeKind.AdditionalDocumentReloaded:
+                    case WorkspaceChangeKind.AnalyzerConfigDocumentAdded:
+                    case WorkspaceChangeKind.AnalyzerConfigDocumentRemoved:
+                    case WorkspaceChangeKind.AnalyzerConfigDocumentChanged:
+                    case WorkspaceChangeKind.AnalyzerConfigDocumentReloaded:
                         break;
                     default:
                         Contract.Fail("Unknown event");
@@ -474,7 +487,7 @@ namespace Microsoft.CodeAnalysis.SemanticModelWorkspaceService
                         if (documentId == null)
                         {
                             Debug.Assert(newProject.Solution.Workspace.Kind == WorkspaceKind.Interactive || newProject.Solution.Workspace.Kind == WorkspaceKind.MiscellaneousFiles);
-                            continue;                                
+                            continue;
                         }
 
                         map = map.SetItem(documentId, newTree);

@@ -32,6 +32,8 @@ namespace Microsoft.CodeAnalysis.AddAnonymousTypeMemberName
         protected abstract TAnonymousObjectMemberDeclaratorSyntax WithName(TAnonymousObjectMemberDeclaratorSyntax declarator, SyntaxToken name);
         protected abstract IEnumerable<string> GetAnonymousObjectMemberNames(TAnonymousObjectInitializer initializer);
 
+        internal sealed override CodeFixCategory CodeFixCategory => CodeFixCategory.CodeStyle;
+
         public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var document = context.Document;
@@ -91,13 +93,13 @@ namespace Microsoft.CodeAnalysis.AddAnonymousTypeMemberName
             foreach (var diagnostic in diagnostics)
             {
                 await FixOneAsync(
-                    document, semanticModel, diagnostic, 
+                    document, semanticModel, diagnostic,
                     editor, annotation, cancellationToken).ConfigureAwait(false);
             }
         }
 
         private async Task FixOneAsync(
-            Document document, SemanticModel semanticModel, Diagnostic diagnostic, 
+            Document document, SemanticModel semanticModel, Diagnostic diagnostic,
             SyntaxEditor editor, SyntaxAnnotation annotation, CancellationToken cancellationToken)
         {
             var declarator = await GetMemberDeclaratorAsync(document, diagnostic, cancellationToken).ConfigureAwait(false);
@@ -136,7 +138,7 @@ namespace Microsoft.CodeAnalysis.AddAnonymousTypeMemberName
 
         private class MyCodeAction : CodeAction.DocumentChangeAction
         {
-            public MyCodeAction(Func<CancellationToken, Task<Document>> createChangedDocument) 
+            public MyCodeAction(Func<CancellationToken, Task<Document>> createChangedDocument)
                 : base(FeaturesResources.Add_member_name, createChangedDocument)
             {
             }

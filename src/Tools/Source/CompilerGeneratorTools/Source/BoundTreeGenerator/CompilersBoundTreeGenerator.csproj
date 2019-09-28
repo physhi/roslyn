@@ -10,11 +10,8 @@
     <AssemblyName>BoundTreeGenerator</AssemblyName>
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <RuntimeIdentifiers>$(RoslynPortableRuntimeIdentifiers)</RuntimeIdentifiers>
     <IsShipping>false</IsShipping>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" />
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>

@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
 using Microsoft.CodeAnalysis.Editor.Host;
+using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Notification;
 using Microsoft.CodeAnalysis.SymbolMapping;
-using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Utilities;
@@ -23,33 +24,33 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CallHierarchy
     [Order(After = PredefinedCommandHandlerNames.DocumentationComments)]
     internal class CallHierarchyCommandHandler : VSCommanding.ICommandHandler<ViewCallHierarchyCommandArgs>
     {
+        private readonly IThreadingContext _threadingContext;
         private readonly ICallHierarchyPresenter _presenter;
         private readonly CallHierarchyProvider _provider;
 
         public string DisplayName => EditorFeaturesResources.Call_Hierarchy;
 
         [ImportingConstructor]
-        public CallHierarchyCommandHandler([ImportMany] IEnumerable<ICallHierarchyPresenter> presenters, CallHierarchyProvider provider)
+        public CallHierarchyCommandHandler(
+            IThreadingContext threadingContext,
+            [ImportMany] IEnumerable<ICallHierarchyPresenter> presenters,
+            CallHierarchyProvider provider)
         {
+            _threadingContext = threadingContext;
             _presenter = presenters.FirstOrDefault();
             _provider = provider;
         }
 
         public bool ExecuteCommand(ViewCallHierarchyCommandArgs args, CommandExecutionContext context)
         {
-            AddRootNode(args, context);
-            return true;
-        }
-
-        private void AddRootNode(ViewCallHierarchyCommandArgs args, CommandExecutionContext context)
-        {
             using (var waitScope = context.OperationContext.AddScope(allowCancellation: true, EditorFeaturesResources.Computing_Call_Hierarchy_Information))
             {
                 var cancellationToken = context.OperationContext.UserCancellationToken;
-                var document = args.SubjectBuffer.CurrentSnapshot.GetOpenDocumentInCurrentContextWithChanges();
+                var document = args.SubjectBuffer.CurrentSnapshot.GetFullyLoadedOpenDocumentInCurrentContextWithChanges(
+                    context.OperationContext, _threadingContext);
                 if (document == null)
                 {
-                    return;
+                    return true;
                 }
 
                 var workspace = document.Project.Solution.Workspace;
@@ -84,6 +85,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.CallHierarchy
                     notificationService.SendNotification(EditorFeaturesResources.Cursor_must_be_on_a_member_name, severity: NotificationSeverity.Information);
                 }
             }
+
+            return true;
         }
 
         public VSCommanding.CommandState GetCommandState(ViewCallHierarchyCommandArgs args)

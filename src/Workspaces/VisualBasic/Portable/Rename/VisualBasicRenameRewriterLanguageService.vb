@@ -198,6 +198,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
 
                 Me._speculativeModel = GetSemanticModelForNode(speculativeNewNode, Me._semanticModel)
                 Debug.Assert(_speculativeModel IsNot Nothing, "expanding a syntax node which cannot be speculated?")
+
+                ' There are cases when we change the type of node to make speculation work (e.g.,
+                ' for AsNewClauseSyntax), so getting the newNode from the _speculativeModel 
+                ' ensures the final node replacing the original node is found.
+                probableRenameNode = Me._speculativeModel.SyntaxTree.GetRoot(_cancellationToken).GetAnnotatedNodes(Of SyntaxNode)(annotation).First()
+                speculativeNewNode = Me._speculativeModel.SyntaxTree.GetRoot(_cancellationToken).GetAnnotatedNodes(Of SyntaxNode)(annotationForSpeculativeNode).First()
+
                 Dim renamedNode = MyBase.Visit(probableRenameNode)
 
                 If Not ReferenceEquals(renamedNode, probableRenameNode) Then
@@ -373,7 +380,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
                     If TypeOf token.Parent Is SimpleNameSyntax AndAlso token.Kind <> SyntaxKind.GlobalKeyword AndAlso token.Parent.Parent.IsKind(SyntaxKind.QualifiedName, SyntaxKind.QualifiedCrefOperatorReference) Then
                         Dim symbol = Me._speculativeModel.GetSymbolInfo(token.Parent, Me._cancellationToken).Symbol
                         If symbol IsNot Nothing AndAlso Me._renamedSymbol.Kind <> SymbolKind.Local AndAlso Me._renamedSymbol.Kind <> SymbolKind.RangeVariable AndAlso
-                            (symbol Is Me._renamedSymbol OrElse SymbolKey.GetComparer(ignoreCase:=True, ignoreAssemblyKeys:=False).Equals(symbol.GetSymbolKey(), Me._renamedSymbol.GetSymbolKey())) Then
+                            (Equals(symbol, Me._renamedSymbol) OrElse SymbolKey.GetComparer(ignoreCase:=True, ignoreAssemblyKeys:=False).Equals(symbol.GetSymbolKey(), Me._renamedSymbol.GetSymbolKey())) Then
                             Return True
                         End If
                     End If
@@ -731,6 +738,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Rename
                         .Select(Function(loc) reverseMappedLocations(loc)))
 
             ElseIf renamedSymbol.Kind = SymbolKind.Property Then
+                conflicts.AddRange(
+                    DeclarationConflictHelpers.GetMembersWithConflictingSignatures(DirectCast(renamedSymbol, IPropertySymbol), trimOptionalParameters:=True) _
+                        .Select(Function(loc) reverseMappedLocations(loc)))
                 ConflictResolver.AddConflictingParametersOfProperties(
                     referencedSymbols.Select(Function(s) s.Symbol).Concat(renameSymbol).Where(Function(sym) sym.Kind = SymbolKind.Property),
                     renamedSymbol.Name,

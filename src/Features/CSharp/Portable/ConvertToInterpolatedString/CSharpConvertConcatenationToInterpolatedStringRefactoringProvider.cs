@@ -12,6 +12,11 @@ namespace Microsoft.CodeAnalysis.CSharp.ConvertToInterpolatedString
     {
         private const string InterpolatedVerbatimText = "$@\"";
 
+        [ImportingConstructor]
+        public CSharpConvertConcatenationToInterpolatedStringRefactoringProvider()
+        {
+        }
+
         protected override SyntaxToken CreateInterpolatedStringStartToken(bool isVerbatim)
         {
             return isVerbatim
@@ -22,7 +27,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ConvertToInterpolatedString
         protected override SyntaxToken CreateInterpolatedStringEndToken()
             => SyntaxFactory.Token(SyntaxKind.InterpolatedStringEndToken);
 
-        protected override string GetTextWithoutQuotes(string text, bool isVerbatim)
+        protected override string GetTextWithoutQuotes(string text, bool isVerbatim, bool isCharacterLiteral)
             => isVerbatim
                 ? text.Substring("@'".Length, text.Length - "@''".Length)
                 : text.Substring("'".Length, text.Length - "''".Length);

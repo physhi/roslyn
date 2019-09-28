@@ -59,7 +59,8 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                         SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
                         SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
                         SymbolDisplayMiscellaneousOptions.UseErrorTypeSymbolName |
-                        SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+                        SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
+                        SymbolDisplayMiscellaneousOptions.AllowDefaultLiteral);
 
             private static readonly SymbolDisplayFormat s_descriptionStyle =
                 new SymbolDisplayFormat(
@@ -93,8 +94,8 @@ namespace Microsoft.CodeAnalysis.LanguageServices
             {
                 _displayService = displayService;
                 _anonymousTypeDisplayService = anonymousTypeDisplayService;
-                this.Workspace = workspace;
-                this.CancellationToken = cancellationToken;
+                Workspace = workspace;
+                CancellationToken = cancellationToken;
                 _semanticModel = semanticModel;
                 _position = position;
             }
@@ -107,6 +108,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 
             protected abstract SymbolDisplayFormat MinimallyQualifiedFormat { get; }
             protected abstract SymbolDisplayFormat MinimallyQualifiedFormatWithConstants { get; }
+            protected abstract SymbolDisplayFormat MinimallyQualifiedFormatWithConstantsAndModifiers { get; }
 
             protected void AddPrefixTextForAwaitKeyword()
             {
@@ -166,7 +168,8 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                 if (exceptionTypes.Any())
                 {
                     var parts = new List<SymbolDisplayPart>();
-                    parts.Add(new SymbolDisplayPart(kind: SymbolDisplayPartKind.Text, symbol: null, text: $"\r\n{WorkspacesResources.Exceptions_colon}"));
+                    parts.AddLineBreak();
+                    parts.AddText(WorkspacesResources.Exceptions_colon);
                     foreach (var exceptionString in exceptionTypes)
                     {
                         parts.AddRange(LineBreak());
@@ -192,14 +195,15 @@ namespace Microsoft.CodeAnalysis.LanguageServices
             protected void AddCaptures(SyntaxNode syntax)
             {
                 var semanticModel = GetSemanticModel(syntax.SyntaxTree);
-                if(semanticModel.IsSpeculativeSemanticModel)
+                if (semanticModel.IsSpeculativeSemanticModel)
                 {
                     // The region analysis APIs used below are not meaningful/applicable in the context of speculation (because they are designed
                     // to ask questions about an expression if it were in a certain *scope* of code, not if it were inserted at a certain *position*).
                     //
                     // But in the context of symbol completion, we do prepare a description for the symbol while speculating. Only the "main description"
                     // section of that description will be displayed. We still add a "captures" section, just in case.
-                    AddToGroup(SymbolDescriptionGroups.Captures, new SymbolDisplayPart(kind: SymbolDisplayPartKind.Text, symbol: null, text: $"\r\n{WorkspacesResources.Variables_captured_colon} ?"));
+                    AddToGroup(SymbolDescriptionGroups.Captures, LineBreak());
+                    AddToGroup(SymbolDescriptionGroups.Captures, PlainText($"{WorkspacesResources.Variables_captured_colon} ?"));
                     return;
                 }
 
@@ -208,8 +212,9 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                 if (!captures.IsEmpty)
                 {
                     var parts = new List<SymbolDisplayPart>();
-                    parts.Add(new SymbolDisplayPart(kind: SymbolDisplayPartKind.Text, symbol: null, text: $"\r\n{WorkspacesResources.Variables_captured_colon}"));
-                    bool first = true;
+                    parts.AddLineBreak();
+                    parts.AddText(WorkspacesResources.Variables_captured_colon);
+                    var first = true;
                     foreach (var captured in captures)
                     {
                         if (!first)
@@ -237,7 +242,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 
                 await AddPartsAsync(symbolGroup).ConfigureAwait(false);
 
-                return this.BuildDescription(groups);
+                return BuildDescription(groups);
             }
 
             public async Task<IDictionary<SymbolDescriptionGroups, ImmutableArray<TaggedText>>> BuildDescriptionSectionsAsync(ImmutableArray<ISymbol> symbolGroup)
@@ -246,7 +251,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 
                 await AddPartsAsync(symbolGroup).ConfigureAwait(false);
 
-                return this.BuildDescriptionSections();
+                return BuildDescriptionSections();
             }
 
             private async Task AddDescriptionPartAsync(ISymbol symbol)
@@ -380,10 +385,10 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                     AddAwaitablePrefix();
                 }
 
-                var token = await _semanticModel.SyntaxTree.GetTouchingTokenAsync(_position, this.CancellationToken).ConfigureAwait(false);
+                var token = await _semanticModel.SyntaxTree.GetTouchingTokenAsync(_position, CancellationToken).ConfigureAwait(false);
                 if (token != default)
                 {
-                    var syntaxFactsService = this.Workspace.Services.GetLanguageServices(token.Language).GetService<ISyntaxFactsService>();
+                    var syntaxFactsService = Workspace.Services.GetLanguageServices(token.Language).GetService<ISyntaxFactsService>();
                     if (syntaxFactsService.IsAwaitKeyword(token))
                     {
                         AddPrefixTextForAwaitKeyword();
@@ -421,7 +426,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                 var typeArguments = symbol.GetAllTypeArguments().ToList();
                 var typeParameters = symbol.GetAllTypeParameters().ToList();
 
-                for (int i = 0; i < typeArguments.Count; i++)
+                for (var i = 0; i < typeArguments.Count; i++)
                 {
                     var typeArgument = typeArguments[i];
                     var typeParameter = typeParameters[i];
@@ -488,7 +493,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                     }
                 }
 
-                return ToMinimalDisplayParts(symbol, MinimallyQualifiedFormatWithConstants);
+                return ToMinimalDisplayParts(symbol, MinimallyQualifiedFormatWithConstantsAndModifiers);
             }
 
             private async Task AddDescriptionForLocalAsync(ILocalSymbol symbol)
@@ -647,7 +652,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
                 var parts = new List<SymbolDisplayPart>();
 
                 var count = typeParameters.Count;
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     parts.AddRange(TypeParameterName(typeParameters[i].Name));
                     parts.AddRange(Space());
@@ -701,7 +706,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 
             protected IEnumerable<SymbolDisplayPart> LineBreak(int count = 1)
             {
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     yield return new SymbolDisplayPart(SymbolDisplayPartKind.LineBreak, null, "\r\n");
                 }
@@ -724,7 +729,7 @@ namespace Microsoft.CodeAnalysis.LanguageServices
 
             protected ImmutableArray<SymbolDisplayPart> ToMinimalDisplayParts(ISymbol symbol, SymbolDisplayFormat format = null)
             {
-                format = format ?? MinimallyQualifiedFormat;
+                format ??= MinimallyQualifiedFormat;
                 return _displayService.ToMinimalDisplayParts(_semanticModel, _position, symbol, format);
             }
 

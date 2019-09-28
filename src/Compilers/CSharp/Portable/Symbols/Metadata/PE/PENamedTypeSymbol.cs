@@ -11,10 +11,9 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.DocumentationComments;
+using Microsoft.CodeAnalysis.CSharp.Emit;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
-using Microsoft.CodeAnalysis.CSharp.Emit;
-using Microsoft.CodeAnalysis.Collections;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 {
@@ -63,16 +62,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         /// </summary>
         private TypeKind _lazyKind;
 
+        private NullableContextKind _lazyNullableContextValue;
+
         private NamedTypeSymbol _lazyBaseType = ErrorTypeSymbol.UnknownResultType;
         private ImmutableArray<NamedTypeSymbol> _lazyInterfaces = default(ImmutableArray<NamedTypeSymbol>);
-        private NamedTypeSymbol _lazyDeclaredBaseTypeWithoutNullability = ErrorTypeSymbol.UnknownResultType;
-        private NamedTypeSymbol _lazyDeclaredBaseTypeWithNullability = ErrorTypeSymbol.UnknownResultType;
+        private NamedTypeSymbol _lazyDeclaredBaseType = ErrorTypeSymbol.UnknownResultType;
         private ImmutableArray<NamedTypeSymbol> _lazyDeclaredInterfaces = default(ImmutableArray<NamedTypeSymbol>);
 
         private Tuple<CultureInfo, string> _lazyDocComment;
 
         private DiagnosticInfo _lazyUseSiteDiagnostic = CSDiagnosticInfo.EmptyErrorInfo; // Indicates unknown state. 
-
 
         // There is a bunch of type properties relevant only for enums or types with custom attributes.
         // It is fairly easy to check whether a type s is not "uncommon". So we store uncommon properties in 
@@ -410,7 +409,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
-        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<Symbol> basesBeingResolved = null)
+        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<TypeSymbol> basesBeingResolved = null)
         {
             if (_lazyInterfaces.IsDefault)
             {
@@ -425,38 +424,38 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             return InterfacesNoUseSiteDiagnostics();
         }
 
-        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<Symbol> basesBeingResolved)
+        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<TypeSymbol> basesBeingResolved)
         {
-            return GetDeclaredBaseType(ignoreNullability: false);
+            return GetDeclaredBaseType(skipTransformsIfNecessary: false);
         }
 
-        private NamedTypeSymbol GetDeclaredBaseType(bool ignoreNullability)
+        private NamedTypeSymbol GetDeclaredBaseType(bool skipTransformsIfNecessary)
         {
-            if (ReferenceEquals(_lazyDeclaredBaseTypeWithoutNullability, ErrorTypeSymbol.UnknownResultType))
+            if (ReferenceEquals(_lazyDeclaredBaseType, ErrorTypeSymbol.UnknownResultType))
             {
-                Interlocked.CompareExchange(ref _lazyDeclaredBaseTypeWithoutNullability, MakeDeclaredBaseType(), ErrorTypeSymbol.UnknownResultType);
-            }
-
-            if (ignoreNullability)
-            {
-                return _lazyDeclaredBaseTypeWithoutNullability;
-            }
-
-            if (ReferenceEquals(_lazyDeclaredBaseTypeWithNullability, ErrorTypeSymbol.UnknownResultType))
-            {
-                var declaredBase = _lazyDeclaredBaseTypeWithoutNullability;
-                if ((object)declaredBase != null)
+                var baseType = MakeDeclaredBaseType();
+                if (baseType is object)
                 {
-                    declaredBase = (NamedTypeSymbol)NullableTypeDecoder.TransformType(
-                        TypeSymbolWithAnnotations.Create(nonNullTypesContext: this, declaredBase), _handle, ContainingPEModule).TypeSymbol;
+                    if (skipTransformsIfNecessary)
+                    {
+                        // If the transforms are not necessary, return early without updating the
+                        // base type field. This avoids cycles decoding nullability in particular.
+                        return baseType;
+                    }
+
+                    var moduleSymbol = ContainingPEModule;
+                    TypeSymbol decodedType = DynamicTypeDecoder.TransformType(baseType, 0, _handle, moduleSymbol);
+                    decodedType = TupleTypeDecoder.DecodeTupleTypesIfApplicable(decodedType, _handle, moduleSymbol);
+                    baseType = (NamedTypeSymbol)NullableTypeDecoder.TransformType(TypeWithAnnotations.Create(decodedType), _handle, moduleSymbol, accessSymbol: this, nullableContext: this).Type;
                 }
-                Interlocked.CompareExchange(ref _lazyDeclaredBaseTypeWithNullability, declaredBase, ErrorTypeSymbol.UnknownResultType);
+
+                Interlocked.CompareExchange(ref _lazyDeclaredBaseType, baseType, ErrorTypeSymbol.UnknownResultType);
             }
 
-            return _lazyDeclaredBaseTypeWithNullability;
+            return _lazyDeclaredBaseType;
         }
 
-        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<Symbol> basesBeingResolved)
+        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<TypeSymbol> basesBeingResolved)
         {
             if (_lazyDeclaredInterfaces.IsDefault)
             {
@@ -474,14 +473,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 {
                     var moduleSymbol = ContainingPEModule;
                     EntityHandle token = moduleSymbol.Module.GetBaseTypeOfTypeOrThrow(_handle);
-
                     if (!token.IsNil)
                     {
-                        TypeSymbol decodedType = new MetadataDecoder(moduleSymbol, this).GetTypeOfToken(token);
-                        decodedType = DynamicTypeDecoder.TransformType(decodedType, 0, _handle, moduleSymbol);
-                        return (NamedTypeSymbol)TupleTypeDecoder.DecodeTupleTypesIfApplicable(decodedType,
-                                                                                              _handle,
-                                                                                              moduleSymbol);
+                        return (NamedTypeSymbol)new MetadataDecoder(moduleSymbol, this).GetTypeOfToken(token);
                     }
                 }
                 catch (BadImageFormatException mrEx)
@@ -511,7 +505,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                         TypeSymbol typeSymbol = tokenDecoder.GetTypeOfToken(interfaceHandle);
 
                         typeSymbol = TupleTypeDecoder.DecodeTupleTypesIfApplicable(typeSymbol, interfaceImpl, moduleSymbol);
-                        typeSymbol = NullableTypeDecoder.TransformType(TypeSymbolWithAnnotations.Create(nonNullTypesContext: this, typeSymbol), interfaceImpl, moduleSymbol).TypeSymbol;
+                        typeSymbol = NullableTypeDecoder.TransformType(TypeWithAnnotations.Create(typeSymbol), interfaceImpl, moduleSymbol, accessSymbol: this, nullableContext: this).Type;
 
                         var namedTypeSymbol = typeSymbol as NamedTypeSymbol ?? new UnsupportedMetadataTypeSymbol(); // interface list contains a bad type
                         symbols.Add(namedTypeSymbol);
@@ -629,13 +623,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                     MightContainExtensionMethods ? AttributeDescription.CaseSensitiveExtensionAttribute : default,
                     out _,
                     // Filter out [Obsolete], unless it was user defined
-                    (IsByRefLikeType && ObsoleteAttributeData is null) ? AttributeDescription.ObsoleteAttribute : default,
+                    (IsRefLikeType && ObsoleteAttributeData is null) ? AttributeDescription.ObsoleteAttribute : default,
                     out _,
                     // Filter out [IsReadOnly]
                     IsReadOnly ? AttributeDescription.IsReadOnlyAttribute : default,
                     out _,
                     // Filter out [IsByRefLike]
-                    IsByRefLikeType ? AttributeDescription.IsByRefLikeAttribute : default);
+                    IsRefLikeType ? AttributeDescription.IsByRefLikeAttribute : default);
 
                 ImmutableInterlocked.InterlockedInitialize(ref uncommon.lazyCustomAttributes, loadedCustomAttributes);
             }
@@ -646,6 +640,24 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         internal override IEnumerable<CSharpAttributeData> GetCustomAttributesToEmit(PEModuleBuilder moduleBuilder)
         {
             return GetAttributes();
+        }
+
+        internal override byte? GetNullableContextValue()
+        {
+            byte? value;
+            if (!_lazyNullableContextValue.TryGetByte(out value))
+            {
+                value = ContainingPEModule.Module.HasNullableContextAttribute(_handle, out byte arg) ?
+                    arg :
+                    _container.GetNullableContextValue();
+                _lazyNullableContextValue = value.ToNullableContextFlags();
+            }
+            return value;
+        }
+
+        internal override byte? GetLocalNullableContextValue()
+        {
+            throw ExceptionUtilities.Unreachable;
         }
 
         public override IEnumerable<string> MemberNames
@@ -1489,11 +1501,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
-        internal override ImmutableArray<TypeSymbolWithAnnotations> TypeArgumentsNoUseSiteDiagnostics
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
         {
             get
             {
-                return ImmutableArray<TypeSymbolWithAnnotations>.Empty;
+                return ImmutableArray<TypeWithAnnotations>.Empty;
             }
         }
 
@@ -1617,7 +1629,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                     }
                     else
                     {
-                        TypeSymbol @base = GetDeclaredBaseType(ignoreNullability: true);
+                        TypeSymbol @base = GetDeclaredBaseType(skipTransformsIfNecessary: true);
 
                         result = TypeKind.Class;
 
@@ -1986,15 +1998,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
-        public override bool? NonNullTypes
-        {
-            get
-            {
-                bool nonNullTypes;
-                return this.ContainingPEModule.Module.HasNonNullTypesAttribute(_handle, out nonNullTypes) ? nonNullTypes : base.NonNullTypes;
-            }
-        }
-
         internal override bool IsComImport
         {
             get
@@ -2050,7 +2053,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             get { return (_flags & TypeAttributes.Serializable) != 0; }
         }
 
-        internal override bool IsByRefLikeType
+        public override bool IsRefLikeType
         {
             get
             {
@@ -2078,7 +2081,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
-        internal override bool IsReadOnly
+        public override bool IsReadOnly
         {
             get
             {
@@ -2171,7 +2174,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                     return null;
                 }
 
-                bool ignoreByRefLikeMarker = this.IsByRefLikeType;
+                bool ignoreByRefLikeMarker = this.IsRefLikeType;
                 ObsoleteAttributeHelpers.InitializeObsoleteDataFromMetadata(ref uncommon.lazyObsoleteAttributeData, _handle, ContainingPEModule, ignoreByRefLikeMarker);
                 return uncommon.lazyObsoleteAttributeData;
             }
@@ -2358,7 +2361,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 }
             }
 
-            internal override ImmutableArray<TypeSymbolWithAnnotations> TypeArgumentsNoUseSiteDiagnostics
+            internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
             {
                 get
                 {
@@ -2441,8 +2444,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 // containing symbol for the temporary type is the namespace directly.
                 var nestedType = Create(this.ContainingPEModule, (PENamespaceSymbol)this.ContainingNamespace, _handle, null);
                 var nestedTypeParameters = nestedType.TypeParameters;
-                var containingTypeMap = new TypeMap(nonNullTypesContext: container, containingTypeParameters, IndexedTypeParameterSymbol.Take(n), allowAlpha: false);
-                var nestedTypeMap = new TypeMap(nonNullTypesContext: nestedType, nestedTypeParameters, IndexedTypeParameterSymbol.Take(nestedTypeParameters.Length), allowAlpha: false);
+                var containingTypeMap = new TypeMap(containingTypeParameters, IndexedTypeParameterSymbol.Take(n), allowAlpha: false);
+                var nestedTypeMap = new TypeMap(nestedTypeParameters, IndexedTypeParameterSymbol.Take(nestedTypeParameters.Length), allowAlpha: false);
 
                 for (int i = 0; i < n; i++)
                 {

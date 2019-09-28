@@ -2,9 +2,8 @@
 
 using System;
 using System.Diagnostics;
-using System.Threading;
-using Roslyn.Utilities;
 using System.Linq;
+using System.Threading;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue
 {
@@ -18,7 +17,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
     /// </remarks>
     internal sealed class TraceLog
     {
-        internal struct Arg
+        internal readonly struct Arg
         {
             public readonly string String;
             public readonly int Int32;
@@ -39,9 +38,24 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
             public static implicit operator Arg(string value) => new Arg(value);
             public static implicit operator Arg(int value) => new Arg(value);
+            public static implicit operator Arg(ProjectId value) => new Arg(value.Id.GetHashCode());
+            public static implicit operator Arg(ProjectAnalysisSummary value) => new Arg(ToString(value));
+
+            private static string ToString(ProjectAnalysisSummary summary)
+            {
+                switch (summary)
+                {
+                    case ProjectAnalysisSummary.CompilationErrors: return nameof(ProjectAnalysisSummary.CompilationErrors);
+                    case ProjectAnalysisSummary.NoChanges: return nameof(ProjectAnalysisSummary.NoChanges);
+                    case ProjectAnalysisSummary.RudeEdits: return nameof(ProjectAnalysisSummary.RudeEdits);
+                    case ProjectAnalysisSummary.ValidChanges: return nameof(ProjectAnalysisSummary.ValidChanges);
+                    case ProjectAnalysisSummary.ValidInsignificantChanges: return nameof(ProjectAnalysisSummary.ValidInsignificantChanges);
+                    default: return null;
+                }
+            }
         }
 
-        internal struct Entry
+        internal readonly struct Entry
         {
             public readonly string MessageFormat;
             public readonly Arg[] ArgsOpt;
@@ -52,7 +66,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 ArgsOpt = argsOpt;
             }
 
-            public override string ToString() => 
+            public override string ToString() =>
                 string.Format(MessageFormat, ArgsOpt?.Select(a => (object)a).ToArray() ?? Array.Empty<object>());
         }
 
@@ -68,7 +82,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
         private void Append(Entry entry)
         {
-            int index = Interlocked.Increment(ref _currentLine);
+            var index = Interlocked.Increment(ref _currentLine);
             _log[(index - 1) % _log.Length] = entry;
         }
 
@@ -90,7 +104,19 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             Debug.WriteLine(entry.ToString(), _id);
         }
 
-        // test only
-        internal Entry[] GetEntries() => _log;
+        internal TestAccessor GetTestAccessor()
+            => new TestAccessor(this);
+
+        internal readonly struct TestAccessor
+        {
+            private readonly TraceLog _traceLog;
+
+            public TestAccessor(TraceLog traceLog)
+            {
+                _traceLog = traceLog;
+            }
+
+            internal Entry[] Entries => _traceLog._log;
+        }
     }
 }

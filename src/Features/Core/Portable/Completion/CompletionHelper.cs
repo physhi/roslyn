@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
-using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.PatternMatching;
 using Microsoft.CodeAnalysis.Tags;
 using Microsoft.CodeAnalysis.Text;
@@ -19,11 +18,6 @@ namespace Microsoft.CodeAnalysis.Completion
 
         private static readonly CultureInfo EnUSCultureInfo = new CultureInfo("en-US");
         private readonly bool _isCaseSensitive;
-
-        // Support for completion items with extra decorative characters in their DisplayText.
-        // This allows bolding and MRU to operate on the "real" display text (without text
-        // decorations). This should be a substring of the corresponding DisplayText.
-        private static string DisplayTextForMatching = nameof(DisplayTextForMatching);
 
         public CompletionHelper(bool isCaseSensitive)
         {
@@ -91,7 +85,7 @@ namespace Microsoft.CodeAnalysis.Completion
             string completionItemText, string pattern,
             CultureInfo culture, bool includeMatchSpans)
         {
-            var patternMatcher = this.GetPatternMatcher(pattern, culture, includeMatchSpans);
+            var patternMatcher = GetPatternMatcher(pattern, culture, includeMatchSpans);
             var match = patternMatcher.GetFirstMatch(completionItemText);
 
             if (match != null)
@@ -102,7 +96,7 @@ namespace Microsoft.CodeAnalysis.Completion
             // Start with the culture-specific comparison, and fall back to en-US.
             if (!culture.Equals(EnUSCultureInfo))
             {
-                patternMatcher = this.GetPatternMatcher(pattern, EnUSCultureInfo, includeMatchSpans);
+                patternMatcher = GetPatternMatcher(pattern, EnUSCultureInfo, includeMatchSpans);
                 match = patternMatcher.GetFirstMatch(completionItemText);
 
                 if (match != null)
@@ -194,7 +188,16 @@ namespace Microsoft.CodeAnalysis.Completion
 
         private int CompareMatches(PatternMatch match1, PatternMatch match2, CompletionItem item1, CompletionItem item2)
         {
-            // First see how the two items compare in a case insensitive fashion.  Matches that 
+            // Always prefer non-expanded item regardless of the pattern matching result.
+            // This currently means unimported types will be treated as "2nd tier" results,
+            // which forces users to be more explicit about selecting them.
+            var expandedDiff = CompareExpandedItem(item1, item2);
+            if (expandedDiff != 0)
+            {
+                return expandedDiff;
+            }
+
+            // Then see how the two items compare in a case insensitive fashion.  Matches that 
             // are strictly better (ignoring case) should prioritize the item.  i.e. if we have
             // a prefix match, that should always be better than a substring match.
             //
@@ -217,14 +220,14 @@ namespace Microsoft.CodeAnalysis.Completion
             // If one is a prefix of the other, prefer the prefix.  i.e. if we have 
             // "Table" and "table:=" and the user types 't' and we are in a case insensitive 
             // language, then we prefer the former.
-            if (item1.DisplayText.Length != item2.DisplayText.Length)
+            if (item1.GetEntireDisplayText().Length != item2.GetEntireDisplayText().Length)
             {
                 var comparison = _isCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                if (item2.DisplayText.StartsWith(item1.DisplayText, comparison))
+                if (item2.GetEntireDisplayText().StartsWith(item1.GetEntireDisplayText(), comparison))
                 {
                     return -1;
                 }
-                else if (item1.DisplayText.StartsWith(item2.DisplayText, comparison))
+                else if (item1.GetEntireDisplayText().StartsWith(item2.GetEntireDisplayText(), comparison))
                 {
                     return 1;
                 }
@@ -259,7 +262,18 @@ namespace Microsoft.CodeAnalysis.Completion
             return 0;
         }
 
-        internal static string GetDisplayTextForMatching(CompletionItem item)
-            => item.Properties.TryGetValue(DisplayTextForMatching, out var displayText) ? displayText : item.DisplayText;
+        private int CompareExpandedItem(CompletionItem item1, CompletionItem item2)
+        {
+            var isItem1Expanded = item1.Flags.IsExpanded();
+            var isItem2Expanded = item2.Flags.IsExpanded();
+
+            if (isItem1Expanded == isItem2Expanded)
+            {
+                return 0;
+            }
+
+            // Non-expanded item is better than expanded item
+            return isItem1Expanded ? 1 : -1;
+        }
     }
 }

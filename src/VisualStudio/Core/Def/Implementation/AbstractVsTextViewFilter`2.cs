@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Editor;
+using Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue;
 using Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
 using Microsoft.VisualStudio.Text;
@@ -19,7 +20,7 @@ using TextSpan = Microsoft.VisualStudio.TextManager.Interop.TextSpan;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation
 {
-    internal abstract class AbstractVsTextViewFilter<TPackage, TLanguageService> : AbstractVsTextViewFilter, IVsTextViewFilter, IVsReadOnlyViewNotification
+    internal abstract class AbstractVsTextViewFilter<TPackage, TLanguageService> : AbstractVsTextViewFilter, IVsTextViewFilter
         where TPackage : AbstractPackage<TPackage, TLanguageService>
         where TLanguageService : AbstractLanguageService<TPackage, TLanguageService>
     {
@@ -71,13 +72,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
 
             return GetDataTipTextImpl(subjectBuffer, pSpan, debugInfo, out pbstrText);
         }
-        
+
         protected int GetDataTipTextImpl(ITextBuffer subjectBuffer, TextSpan[] pSpan, AbstractLanguageService<TPackage, TLanguageService>.VsLanguageDebugInfo debugInfo, out string pbstrText)
         {
             pbstrText = null;
 
             var vsBuffer = EditorAdaptersFactory.GetBufferAdapter(subjectBuffer);
-            
+
             // TODO: broken in REPL
             if (vsBuffer == null)
             {
@@ -91,7 +92,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
         {
             try
             {
-                int result = VSConstants.S_OK;
+                var result = VSConstants.S_OK;
                 LanguageService.Package.ComponentModel.GetService<IWaitIndicator>().Wait(
                     "Intellisense",
                     allowCancel: true,
@@ -121,38 +122,5 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
 
         int IVsTextViewFilter.GetWordExtent(int iLine, int iIndex, uint dwFlags, TextSpan[] pSpan)
             => VSConstants.E_NOTIMPL;
-
-        #region Edit and Continue 
-
-        int IVsReadOnlyViewNotification.OnDisabledEditingCommand(ref Guid pguidCmdGuid, uint dwCmdId)
-        {
-            var container = GetSubjectBufferContainingCaret().AsTextContainer();
-            if (!CodeAnalysis.Workspace.TryGetWorkspace(container, out var workspace))
-            {
-                return VSConstants.S_OK;
-            }
-
-            var vsWorkspace = workspace as VisualStudioWorkspaceImpl;
-            if (vsWorkspace == null)
-            {
-                return VSConstants.S_OK;
-            }
-
-            foreach (var documentId in vsWorkspace.GetRelatedDocumentIds(container))
-            {
-                var hostProject = vsWorkspace.GetHostProject(documentId.ProjectId) as AbstractProject;
-                if (hostProject?.EditAndContinueImplOpt != null)
-                {
-                    if (hostProject.EditAndContinueImplOpt.OnEdit(documentId))
-                    {
-                        break;
-                    }
-                }
-            }
-
-            return VSConstants.S_OK;
-        }
-
-        #endregion
     }
 }

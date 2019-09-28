@@ -1,5 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Immutable;
 using System.Threading;
@@ -37,15 +39,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Classification.Classifiers
             // binding to classify the alias.
             if (usingDirective.Alias != null)
             {
-                var info = semanticModel.GetTypeInfo(usingDirective.Name, cancellationToken);
-                if (info.Type != null)
+                var token = usingDirective.Alias.Name;
+
+                var symbolInfo = semanticModel.GetSymbolInfo(usingDirective.Name, cancellationToken);
+                if (symbolInfo.Symbol is ITypeSymbol typeSymbol)
                 {
-                    var classification = GetClassificationForType(info.Type);
+                    var classification = GetClassificationForType(typeSymbol);
                     if (classification != null)
                     {
-                        var token = usingDirective.Alias.Name;
                         result.Add(new ClassifiedSpan(token.Span, classification));
                     }
+                }
+                else if (symbolInfo.Symbol?.Kind == SymbolKind.Namespace)
+                {
+                    result.Add(new ClassifiedSpan(token.Span, ClassificationTypeNames.NamespaceName));
                 }
             }
         }

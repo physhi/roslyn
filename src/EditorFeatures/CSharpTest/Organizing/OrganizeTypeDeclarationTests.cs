@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using Microsoft.CodeAnalysis.Editor.Commanding.Commands;
 using Microsoft.CodeAnalysis.Editor.Implementation.Interactive;
 using Microsoft.CodeAnalysis.Editor.Implementation.Organizing;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
 using Microsoft.CodeAnalysis.Test.Utilities;
@@ -1077,7 +1078,7 @@ interface I
         public void OrganizingCommandsDisabledInSubmission()
         {
             var exportProvider = ExportProviderCache
-                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithParts(typeof(InteractiveDocumentSupportsFeatureService)))
+                .GetOrCreateExportProviderFactory(TestExportProvider.EntireAssemblyCatalogWithCSharpAndVisualBasic.WithParts(typeof(InteractiveSupportsFeatureService.InteractiveTextBufferSupportsFeatureService)))
                 .CreateExportProvider();
 
             using (var workspace = TestWorkspace.Create(XElement.Parse(@"
@@ -1097,8 +1098,8 @@ interface I
 
                 var textView = workspace.Documents.Single().GetTextView();
 
-                var handler = new OrganizeDocumentCommandHandler();
-                
+                var handler = new OrganizeDocumentCommandHandler(exportProvider.GetExportedValue<IThreadingContext>());
+
                 var state = handler.GetCommandState(new SortAndRemoveUnnecessaryImportsCommandArgs(textView, textView.TextBuffer));
                 Assert.True(state.IsUnspecified);
 

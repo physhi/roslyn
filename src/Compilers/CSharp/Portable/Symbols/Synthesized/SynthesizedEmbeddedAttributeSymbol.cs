@@ -20,67 +20,32 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     /// 2) It derives from System.Attribute
     /// 3) It has Microsoft.CodeAnalysis.EmbeddedAttribute
     /// 4) It has System.Runtime.CompilerServices.CompilerGeneratedAttribute
-    /// 5) It has a parameter-less constructor
     /// </summary>
-    internal class SynthesizedEmbeddedAttributeSymbol : NamedTypeSymbol
+    internal abstract class SynthesizedEmbeddedAttributeSymbolBase : NamedTypeSymbol
     {
         private readonly string _name;
         private readonly NamedTypeSymbol _baseType;
         private readonly NamespaceSymbol _namespace;
-        private readonly ImmutableArray<MethodSymbol> _constructors;
         private readonly ModuleSymbol _module;
 
-        public SynthesizedEmbeddedAttributeSymbol(
-            AttributeDescription description,
-            CSharpCompilation compilation,
-            Func<CSharpCompilation, NamedTypeSymbol, DiagnosticBag, ImmutableArray<MethodSymbol>> getAdditionalConstructors,
-            DiagnosticBag diagnostics)
-        {
-            _name = description.Name;
-            _baseType = MakeBaseType(compilation, diagnostics);
-
-            var builder = ArrayBuilder<MethodSymbol>.GetInstance();
-            builder.Add(new SynthesizedEmbeddedAttributeConstructorSymbol(this, m => ImmutableArray<ParameterSymbol>.Empty));
-            if (getAdditionalConstructors != null)
-            {
-                builder.AddRange(getAdditionalConstructors(compilation, this, diagnostics));
-            }
-            _constructors = builder.ToImmutableAndFree();
-            Debug.Assert(_constructors.Length == description.Signatures.Length);
-
-            _module = compilation.SourceModule;
-
-            _namespace = _module.GlobalNamespace;
-            foreach (var part in description.Namespace.Split('.'))
-            {
-                _namespace = new MissingNamespaceSymbol(_namespace, part);
-            }
-        }
-
-        public SynthesizedEmbeddedAttributeSymbol(
-            AttributeDescription description,
+        public SynthesizedEmbeddedAttributeSymbolBase(
+            string name,
             NamespaceSymbol containingNamespace,
-            CSharpCompilation compilation,
-            Func<CSharpCompilation, NamedTypeSymbol, DiagnosticBag, ImmutableArray<MethodSymbol>> getConstructors,
-            DiagnosticBag diagnostics)
+            ModuleSymbol containingModule,
+            NamedTypeSymbol baseType)
         {
-            _name = description.Name;
-            _baseType = MakeBaseType(compilation, diagnostics);
-            _constructors = getConstructors(compilation, this, diagnostics);
+            Debug.Assert(name is object);
+            Debug.Assert(containingNamespace is object);
+            Debug.Assert(containingModule is object);
+            Debug.Assert(baseType is object);
+
+            _name = name;
             _namespace = containingNamespace;
-            _module = containingNamespace.ContainingModule;
+            _module = containingModule;
+            _baseType = baseType;
         }
 
-        private static NamedTypeSymbol MakeBaseType(CSharpCompilation compilation, DiagnosticBag diagnostics)
-        {
-            NamedTypeSymbol result = compilation.GetWellKnownType(WellKnownType.System_Attribute);
-
-            // Report errors in case base type was missing or bad
-            Binder.ReportUseSiteDiagnostics(result, diagnostics, Location.None);
-            return result;
-        }
-
-        public new ImmutableArray<MethodSymbol> Constructors => _constructors;
+        public abstract new ImmutableArray<MethodSymbol> Constructors { get; }
 
         public override int Arity => 0;
 
@@ -88,7 +53,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override bool IsImplicitlyDeclared => true;
 
-        internal override bool IsManagedType => false;
+        internal override ManagedKind ManagedKind => ManagedKind.Managed;
 
         public override NamedTypeSymbol ConstructedFrom => this;
 
@@ -96,7 +61,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override string Name => _name;
 
-        public override IEnumerable<string> MemberNames => _constructors.Select(m => m.Name);
+        public override IEnumerable<string> MemberNames => Constructors.Select(m => m.Name);
 
         public override Accessibility DeclaredAccessibility => Accessibility.Internal;
 
@@ -116,15 +81,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override bool IsStatic => false;
 
-        internal override bool IsByRefLikeType => false;
+        public override bool IsRefLikeType => false;
 
-        internal override bool IsReadOnly => false;
+        public override bool IsReadOnly => false;
 
         public override bool IsAbstract => false;
 
         public override bool IsSealed => true;
 
-        internal override ImmutableArray<TypeSymbolWithAnnotations> TypeArgumentsNoUseSiteDiagnostics => ImmutableArray<TypeSymbolWithAnnotations>.Empty;
+        internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics => ImmutableArray<TypeWithAnnotations>.Empty;
 
         internal override bool MangleName => false;
 
@@ -140,7 +105,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override bool IsSerializable => false;
 
-        internal override TypeLayout Layout => default(TypeLayout);
+        internal override TypeLayout Layout => default;
 
         internal override CharSet MarshallingCharSet => DefaultMarshallingCharSet;
 
@@ -152,9 +117,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override ObsoleteAttributeData ObsoleteAttributeData => null;
 
-        public override ImmutableArray<Symbol> GetMembers() => _constructors.CastArray<Symbol>();
+        public override ImmutableArray<Symbol> GetMembers() => Constructors.CastArray<Symbol>();
 
-        public override ImmutableArray<Symbol> GetMembers(string name) => name == WellKnownMemberNames.InstanceConstructorName ? _constructors.CastArray<Symbol>() : ImmutableArray<Symbol>.Empty;
+        public override ImmutableArray<Symbol> GetMembers(string name) => name == WellKnownMemberNames.InstanceConstructorName ? Constructors.CastArray<Symbol>() : ImmutableArray<Symbol>.Empty;
 
         public override ImmutableArray<NamedTypeSymbol> GetTypeMembers() => ImmutableArray<NamedTypeSymbol>.Empty;
 
@@ -166,9 +131,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override AttributeUsageInfo GetAttributeUsageInfo() => AttributeUsageInfo.Default;
 
-        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<Symbol> basesBeingResolved) => _baseType;
+        internal override NamedTypeSymbol GetDeclaredBaseType(ConsList<TypeSymbol> basesBeingResolved) => _baseType;
 
-        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<Symbol> basesBeingResolved) => ImmutableArray<NamedTypeSymbol>.Empty;
+        internal override ImmutableArray<NamedTypeSymbol> GetDeclaredInterfaces(ConsList<TypeSymbol> basesBeingResolved) => ImmutableArray<NamedTypeSymbol>.Empty;
 
         internal override ImmutableArray<Symbol> GetEarlyAttributeDecodingMembers() => GetMembers();
 
@@ -180,7 +145,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override IEnumerable<SecurityAttribute> GetSecurityInformation() => null;
 
-        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<Symbol> basesBeingResolved = null) => ImmutableArray<NamedTypeSymbol>.Empty;
+        internal override ImmutableArray<NamedTypeSymbol> InterfacesNoUseSiteDiagnostics(ConsList<TypeSymbol> basesBeingResolved = null) => ImmutableArray<NamedTypeSymbol>.Empty;
 
         internal override void AddSynthesizedAttributes(PEModuleBuilder moduleBuilder, ref ArrayBuilder<SynthesizedAttributeData> attributes)
         {
@@ -190,13 +155,38 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 ref attributes,
                 moduleBuilder.Compilation.TrySynthesizeAttribute(WellKnownMember.System_Runtime_CompilerServices_CompilerGeneratedAttribute__ctor));
 
-            if (!DeclaringCompilation.GetWellKnownType(WellKnownType.Microsoft_CodeAnalysis_EmbeddedAttribute).IsErrorType())
+            AddSynthesizedAttribute(
+                ref attributes,
+                moduleBuilder.SynthesizeEmbeddedAttribute());
+
+            var usageInfo = GetAttributeUsageInfo();
+            if (usageInfo != AttributeUsageInfo.Default)
             {
                 AddSynthesizedAttribute(
                     ref attributes,
-                    moduleBuilder.Compilation.TrySynthesizeAttribute(WellKnownMember.Microsoft_CodeAnalysis_EmbeddedAttribute__ctor));
+                    moduleBuilder.Compilation.SynthesizeAttributeUsageAttribute(usageInfo.ValidTargets, usageInfo.AllowMultiple, usageInfo.Inherited));
             }
         }
+    }
+
+    /// <summary>
+    /// Represents a compiler generated and embedded attribute type with a single default constructor
+    /// </summary>
+    internal sealed class SynthesizedEmbeddedAttributeSymbol : SynthesizedEmbeddedAttributeSymbolBase
+    {
+        private readonly ImmutableArray<MethodSymbol> _constructors;
+
+        public SynthesizedEmbeddedAttributeSymbol(
+            string name,
+            NamespaceSymbol containingNamespace,
+            ModuleSymbol containingModule,
+            NamedTypeSymbol baseType)
+            : base(name, containingNamespace, containingModule, baseType)
+        {
+            _constructors = ImmutableArray.Create<MethodSymbol>(new SynthesizedEmbeddedAttributeConstructorSymbol(this, m => ImmutableArray<ParameterSymbol>.Empty));
+        }
+
+        public override ImmutableArray<MethodSymbol> Constructors => _constructors;
     }
 
     internal sealed class SynthesizedEmbeddedAttributeConstructorSymbol : SynthesizedInstanceConstructor

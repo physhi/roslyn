@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis.CSharp.Emit;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
@@ -54,7 +53,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         public sealed override bool IsVolatile
             => (Modifiers & DeclarationModifiers.Volatile) != 0;
 
-        public sealed override bool IsFixed
+        public sealed override bool IsFixedSizeBuffer
             => (Modifiers & DeclarationModifiers.Fixed) != 0;
 
         /// <summary>
@@ -233,11 +232,38 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // NullableAttribute should not be set explicitly.
                 arguments.Diagnostics.Add(ErrorCode.ERR_ExplicitNullableAttribute, arguments.AttributeSyntaxOpt.Location);
             }
-            else if (attribute.IsTargetAttribute(this, AttributeDescription.NonNullTypesAttribute))
+            else if (attribute.IsTargetAttribute(this, AttributeDescription.AllowNullAttribute))
             {
-                bool value = attribute.GetConstructorArgument<bool>(0, SpecialType.System_Boolean);
-                arguments.GetOrCreateData<FieldWellKnownAttributeData>().NonNullTypes = value;
+                arguments.GetOrCreateData<FieldWellKnownAttributeData>().HasAllowNullAttribute = true;
             }
+            else if (attribute.IsTargetAttribute(this, AttributeDescription.DisallowNullAttribute))
+            {
+                arguments.GetOrCreateData<FieldWellKnownAttributeData>().HasDisallowNullAttribute = true;
+            }
+            else if (attribute.IsTargetAttribute(this, AttributeDescription.MaybeNullAttribute))
+            {
+                arguments.GetOrCreateData<FieldWellKnownAttributeData>().HasMaybeNullAttribute = true;
+            }
+            else if (attribute.IsTargetAttribute(this, AttributeDescription.NotNullAttribute))
+            {
+                arguments.GetOrCreateData<FieldWellKnownAttributeData>().HasNotNullAttribute = true;
+            }
+        }
+
+        public override FlowAnalysisAnnotations FlowAnalysisAnnotations
+            => DecodeFlowAnalysisAttributes(GetDecodedWellKnownAttributeData());
+
+        private static FlowAnalysisAnnotations DecodeFlowAnalysisAttributes(FieldWellKnownAttributeData attributeData)
+        {
+            var annotations = FlowAnalysisAnnotations.None;
+            if (attributeData != null)
+            {
+                if (attributeData.HasAllowNullAttribute) annotations |= FlowAnalysisAnnotations.AllowNull;
+                if (attributeData.HasDisallowNullAttribute) annotations |= FlowAnalysisAnnotations.DisallowNull;
+                if (attributeData.HasMaybeNullAttribute) annotations |= FlowAnalysisAnnotations.MaybeNull;
+                if (attributeData.HasNotNullAttribute) annotations |= FlowAnalysisAnnotations.NotNull;
+            }
+            return annotations;
         }
 
         /// <summary>
@@ -341,15 +367,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        public sealed override bool? NonNullTypes
-        {
-            get
-            {
-                var data = GetDecodedWellKnownAttributeData();
-                return data?.NonNullTypes ?? base.NonNullTypes;
-            }
-        }
-
         internal sealed override bool IsNotSerialized
         {
             get
@@ -381,23 +398,24 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             base.AddSynthesizedAttributes(moduleBuilder, ref attributes);
 
-            var type = this.Type;
+            var compilation = this.DeclaringCompilation;
+            var type = this.TypeWithAnnotations;
 
-            if (type.TypeSymbol.ContainsDynamic())
+            if (type.Type.ContainsDynamic())
             {
                 AddSynthesizedAttribute(ref attributes,
-                    DeclaringCompilation.SynthesizeDynamicAttribute(type.TypeSymbol, Type.CustomModifiers.Length));
+                    compilation.SynthesizeDynamicAttribute(type.Type, TypeWithAnnotations.CustomModifiers.Length));
             }
 
-            if (type.TypeSymbol.ContainsTupleNames())
+            if (type.Type.ContainsTupleNames())
             {
                 AddSynthesizedAttribute(ref attributes,
-                    DeclaringCompilation.SynthesizeTupleNamesAttribute(type.TypeSymbol));
+                    compilation.SynthesizeTupleNamesAttribute(type.Type));
             }
 
-            if (type.ContainsNullableReferenceTypes())
+            if (compilation.ShouldEmitNullableAttributes(this))
             {
-                AddSynthesizedAttribute(ref attributes, moduleBuilder.SynthesizeNullableAttribute(this, type));
+                AddSynthesizedAttribute(ref attributes, moduleBuilder.SynthesizeNullableAttributeIfNecessary(this, ContainingType.GetNullableContextValue(), type));
             }
         }
     }

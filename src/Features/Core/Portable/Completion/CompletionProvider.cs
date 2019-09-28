@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.Completion
 
         protected CompletionProvider()
         {
-            this.Name = this.GetType().FullName;
+            Name = GetType().FullName;
         }
 
         /// <summary>
@@ -57,9 +57,17 @@ namespace Microsoft.CodeAnalysis.Completion
             return Task.FromResult(CompletionChange.Create(new TextChange(item.Span, item.DisplayText)));
         }
 
+        internal virtual Task<CompletionChange> GetChangeAsync(Document document, CompletionItem item, TextSpan completionListSpan, char? commitKey, CancellationToken cancellationToken)
+            => GetChangeAsync(document, item, commitKey, cancellationToken);
+
         /// <summary>
         /// True if the provider produces snippet items.
         /// </summary>
         internal virtual bool IsSnippetProvider => false;
+
+        /// <summary>
+        /// True if the provider produces items show be shown in expanded list only.
+        /// </summary>
+        internal virtual bool IsExpandItemProvider => false;
     }
 }

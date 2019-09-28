@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,42 +23,33 @@ namespace Microsoft.CodeAnalysis.ConvertToInterpolatedString
     {
         public override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
         {
-            // Currently only supported if there is no selection.  We could consider relaxing
-            // this if the selection is of a string concatenation expression.
-            if (context.Span.Length > 0)
+            var (document, textSpan, cancellationToken) = context;
+
+            // Currently only supported if there is no selection, to prevent possible confusion when
+            // selecting part of what would become an interpolated string
+            if (textSpan.Length > 0)
             {
                 return;
             }
 
-            var cancellationToken = context.CancellationToken;
-
-            var document = context.Document;
-            var position = context.Span.Start;
+            var position = textSpan.Start;
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var token = root.FindToken(position);
 
-            // Cursor has to at least be touching a string token.
             var syntaxFacts = document.GetLanguageService<ISyntaxFactsService>();
-            if (!token.Span.IntersectsWith(position) ||
-                !syntaxFacts.IsStringLiteral(token))
-            {
-                return;
-            }
-
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            // The string literal has to at least be contained in a concatenation of some form.
-            // i.e.  "goo" + a      or     a + "goo".  However, those concats could be in larger
+            // The selected token has to at least be contained in a concatenation of some form.
+            // i.e.  "goo" + a      or    3 + 1 + "goo".  However, those concats could be in larger
             // concats as well.  Walk to the top of that entire chain.
-
-            var literalExpression = token.Parent;
-            var top = literalExpression;
+            var selectedExpression = token.Parent;
+            var top = selectedExpression;
             while (IsStringConcat(syntaxFacts, top.Parent, semanticModel, cancellationToken))
             {
                 top = top.Parent;
             }
 
-            if (top == literalExpression)
+            if (top == selectedExpression && !IsStringConcat(syntaxFacts, top, semanticModel, cancellationToken))
             {
                 // We weren't in a concatenation at all.
                 return;
@@ -68,25 +60,34 @@ namespace Microsoft.CodeAnalysis.ConvertToInterpolatedString
             var pieces = new List<SyntaxNode>();
             CollectPiecesDown(syntaxFacts, pieces, top, semanticModel, cancellationToken);
 
+            var stringLiterals = pieces
+                .Where(x => syntaxFacts.IsStringLiteralExpression(x) || syntaxFacts.IsCharacterLiteralExpression(x))
+                .ToImmutableArray();
+
             // If the entire expression is just concatenated strings, then don't offer to
             // make an interpolated string.  The user likely manually split this for
             // readability.
-            if (pieces.All(syntaxFacts.IsStringLiteralExpression))
+            if (stringLiterals.Length == pieces.Count)
             {
                 return;
             }
 
-            // Make sure that all the string tokens we're concatenating are the same type
-            // of string literal.  i.e. if we have an expression like: @" "" " + " \r\n "
-            // then we don't merge this.  We don't want to be munging differnet types of
-            // escape sequences in these strings, so we only support combining the string
-            // tokens if they're all teh same type.
-            var firstStringToken = pieces.First(syntaxFacts.IsStringLiteralExpression).GetFirstToken();
-            var isVerbatimStringLiteral = syntaxFacts.IsVerbatimStringLiteral(firstStringToken);
-            if (pieces.Where(syntaxFacts.IsStringLiteralExpression).Any(
-                    lit => isVerbatimStringLiteral != syntaxFacts.IsVerbatimStringLiteral(lit.GetFirstToken())))
+            var isVerbatimStringLiteral = false;
+            if (stringLiterals.Length > 0)
             {
-                return;
+
+                // Make sure that all the string tokens we're concatenating are the same type
+                // of string literal.  i.e. if we have an expression like: @" "" " + " \r\n "
+                // then we don't merge this.  We don't want to be munging different types of
+                // escape sequences in these strings, so we only support combining the string
+                // tokens if they're all the same type.
+                var firstStringToken = stringLiterals[0].GetFirstToken();
+                isVerbatimStringLiteral = syntaxFacts.IsVerbatimStringLiteral(firstStringToken);
+                if (stringLiterals.Any(
+                        lit => isVerbatimStringLiteral != syntaxFacts.IsVerbatimStringLiteral(lit.GetFirstToken())))
+                {
+                    return;
+                }
             }
 
             var interpolatedString = CreateInterpolatedString(document, isVerbatimStringLiteral, pieces);
@@ -114,12 +115,13 @@ namespace Microsoft.CodeAnalysis.ConvertToInterpolatedString
             var previousContentWasStringLiteralExpression = false;
             foreach (var piece in pieces)
             {
-                var currentContentIsStringLiteral = syntaxFacts.IsStringLiteralExpression(piece);
-                if (currentContentIsStringLiteral)
+                var isCharacterLiteral = syntaxFacts.IsCharacterLiteralExpression(piece);
+                var currentContentIsStringOrCharacterLiteral = syntaxFacts.IsStringLiteralExpression(piece) || isCharacterLiteral;
+                if (currentContentIsStringOrCharacterLiteral)
                 {
                     var text = piece.GetFirstToken().Text;
                     var textWithEscapedBraces = text.Replace("{", "{{").Replace("}", "}}");
-                    var textWithoutQuotes = GetTextWithoutQuotes(textWithEscapedBraces, isVerbatimStringLiteral);
+                    var textWithoutQuotes = GetTextWithoutQuotes(textWithEscapedBraces, isVerbatimStringLiteral, isCharacterLiteral);
                     if (previousContentWasStringLiteralExpression)
                     {
                         // Last part we added to the content list was also an interpolated-string-text-node.
@@ -146,7 +148,7 @@ namespace Microsoft.CodeAnalysis.ConvertToInterpolatedString
                 }
                 // Update this variable to be true every time we encounter a new string literal expression
                 // so we know to concatinate future string literals together if we encounter them.
-                previousContentWasStringLiteralExpression = currentContentIsStringLiteral;
+                previousContentWasStringLiteralExpression = currentContentIsStringOrCharacterLiteral;
             }
 
             return generator.InterpolatedStringExpression(startToken, content, endToken);
@@ -159,7 +161,7 @@ namespace Microsoft.CodeAnalysis.ConvertToInterpolatedString
             return generator.InterpolatedStringText(generator.InterpolatedStringTextToken(newText));
         }
 
-        protected abstract string GetTextWithoutQuotes(string text, bool isVerbatimStringLiteral);
+        protected abstract string GetTextWithoutQuotes(string text, bool isVerbatimStringLiteral, bool isCharacterLiteral);
         protected abstract SyntaxToken CreateInterpolatedStringStartToken(bool isVerbatimStringLiteral);
         protected abstract SyntaxToken CreateInterpolatedStringEndToken();
 
