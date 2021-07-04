@@ -1,8 +1,15 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeRefactorings;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.Utilities;
@@ -37,14 +44,14 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                 Document = document;
             }
 
-            public static State Generate(
+            public static async Task<State> GenerateAsync(
                 TService service,
                 SemanticDocument document,
                 TextSpan textSpan,
                 CancellationToken cancellationToken)
             {
                 var state = new State(service, document);
-                if (!state.TryInitialize(textSpan, cancellationToken))
+                if (!await state.TryInitializeAsync(document, textSpan, cancellationToken).ConfigureAwait(false))
                 {
                     return null;
                 }
@@ -52,29 +59,24 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                 return state;
             }
 
-            private bool TryInitialize(
+            private async Task<bool> TryInitializeAsync(
+                SemanticDocument document,
                 TextSpan textSpan,
                 CancellationToken cancellationToken)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return false;
-                }
+                cancellationToken.ThrowIfCancellationRequested();
 
-                var tree = Document.SyntaxTree;
-                var syntaxFacts = Document.Project.LanguageServices.GetService<ISyntaxFactsService>();
-
-                Expression = GetExpressionUnderSpan(tree, textSpan, cancellationToken);
-                if (Expression == null)
-                {
+                Expression = await document.Document.TryGetRelevantNodeAsync<TExpressionSyntax>(textSpan, cancellationToken).ConfigureAwait(false);
+                if (Expression == null || CodeRefactoringHelpers.IsNodeUnderselected(Expression, textSpan))
                     return false;
-                }
+
+                // Don't introduce constant for another constant. Doesn't apply to sub-expression of constant.
+                if (IsInitializerOfConstant(document, Expression))
+                    return false;
 
                 var expressionType = Document.SemanticModel.GetTypeInfo(Expression, cancellationToken).Type;
                 if (expressionType is IErrorTypeSymbol)
-                {
                     return false;
-                }
 
                 var containingType = Expression.AncestorsAndSelf()
                     .Select(n => Document.SemanticModel.GetDeclaredSymbol(n, cancellationToken))
@@ -84,19 +86,15 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                 containingType ??= Document.SemanticModel.Compilation.ScriptClass;
 
                 if (containingType == null || containingType.TypeKind == TypeKind.Interface)
-                {
                     return false;
-                }
 
                 if (!CanIntroduceVariable(textSpan.IsEmpty, cancellationToken))
-                {
                     return false;
-                }
 
-                IsConstant = Document.SemanticModel.GetConstantValue(Expression, cancellationToken).HasValue;
+                IsConstant = IsExpressionConstant(Document, Expression, _service, cancellationToken);
 
-                // Note: the ordering of these clauses are important.  They go, generally, from 
-                // innermost to outermost order.  
+                // Note: the ordering of these clauses are important.  They go, generally, from
+                // innermost to outermost order.
                 if (IsInQueryContext(cancellationToken))
                 {
                     if (CanGenerateInto<TQueryExpressionSyntax>(cancellationToken))
@@ -135,7 +133,7 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                     return false;
                 }
 
-                /* NOTE: All checks from this point forward are intentionally ordered to be AFTER the check for Block Context. */
+                // NOTE: All checks from this point forward are intentionally ordered to be AFTER the check for Block Context.
 
                 // If we are inside a block within an Expression bodied member we should generate inside the block, 
                 // instead of rewriting a concise expression bodied member to its equivalent that has a body with a block.
@@ -173,7 +171,7 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                         InFieldContext = true;
                         return true;
                     }
-                    else if (IsInAttributeContext(cancellationToken))
+                    else if (IsInAttributeContext())
                     {
                         InAttributeContext = true;
                         return true;
@@ -181,97 +179,58 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                 }
 
                 return false;
+
+                static bool IsInitializerOfConstant(SemanticDocument document, TExpressionSyntax expression)
+                {
+                    var syntaxFacts = document.Document.GetRequiredLanguageService<ISyntaxFactsService>();
+
+                    var current = expression;
+                    while (syntaxFacts.IsParenthesizedExpression(current.Parent))
+                        current = (TExpressionSyntax)current.Parent;
+
+                    if (!syntaxFacts.IsEqualsValueClause(current.Parent))
+                        return false;
+
+                    var equalsValue = current.Parent;
+                    if (!syntaxFacts.IsVariableDeclarator(equalsValue.Parent))
+                        return false;
+
+                    var declaration = equalsValue.AncestorsAndSelf().FirstOrDefault(n => syntaxFacts.IsLocalDeclarationStatement(n) || syntaxFacts.IsFieldDeclaration(n));
+                    if (declaration == null)
+                        return false;
+
+                    var generator = SyntaxGenerator.GetGenerator(document.Document);
+                    return generator.GetModifiers(declaration).IsConst;
+                }
+
+                static bool IsExpressionConstant(SemanticDocument document, TExpressionSyntax expression, TService service, CancellationToken cancellationToken)
+                {
+                    if (document.SemanticModel.GetConstantValue(expression, cancellationToken) is { HasValue: true, Value: var value })
+                    {
+                        var syntaxKindsService = document.Document.GetRequiredLanguageService<ISyntaxKindsService>();
+                        if (syntaxKindsService.InterpolatedStringExpression == expression.RawKind && value is string)
+                        {
+                            // Interpolated strings can have constant values, but if it's being converted to a FormattableString
+                            // or IFormattable then we cannot treat it as one
+                            var typeInfo = document.SemanticModel.GetTypeInfo(expression, cancellationToken);
+                            return typeInfo.ConvertedType?.IsFormattableStringOrIFormattable() != true;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
             }
 
             public SemanticMap GetSemanticMap(CancellationToken cancellationToken)
             {
                 _semanticMap ??= Document.SemanticModel.GetSemanticMap(Expression, cancellationToken);
                 return _semanticMap;
-            }
-
-            private TExpressionSyntax GetExpressionUnderSpan(SyntaxTree tree, TextSpan textSpan, CancellationToken cancellationToken)
-            {
-                var root = tree.GetRoot(cancellationToken);
-
-                // If there is no selection, pick the 'best' expression we're currently touching.
-                if (textSpan.Length == 0)
-                {
-                    return GetBestTouchingExpression(root, textSpan.Start);
-                }
-
-                var startToken = root.FindToken(textSpan.Start);
-                var syntaxFacts = Document.Project.LanguageServices.GetService<ISyntaxFactsService>();
-                if (startToken.Span.End < textSpan.Start && startToken.TrailingTrivia.All(t => syntaxFacts.IsWhitespaceOrEndOfLineTrivia(t)))
-                {
-                    // We are pointing in the trailing whitespace trivia of a token, we shouldn't include that token
-                    startToken = startToken.GetNextToken();
-                    var newStart = startToken.Span.Start;
-
-                    if (textSpan.End < newStart)
-                    {
-                        // Additional trivia exists between 'textSpan' and the start of the next token, so the two are not considered adjacent
-                        return null;
-                    }
-
-                    textSpan = TextSpan.FromBounds(newStart, textSpan.End);
-                }
-
-                var stopToken = root.FindToken(textSpan.End);
-
-                if (textSpan.End <= stopToken.SpanStart)
-                {
-                    stopToken = stopToken.GetPreviousToken(includeSkipped: true);
-                }
-
-                if (startToken.RawKind == 0 || stopToken.RawKind == 0)
-                {
-                    return null;
-                }
-
-                var containingExpressions1 = startToken.GetAncestors<TExpressionSyntax>().ToList();
-                var containingExpressions2 = stopToken.GetAncestors<TExpressionSyntax>().ToList();
-
-                var commonExpression = containingExpressions1.FirstOrDefault(containingExpressions2.Contains);
-                if (commonExpression == null)
-                {
-                    return null;
-                }
-
-                if (!(textSpan.Start >= commonExpression.FullSpan.Start &&
-                      textSpan.Start <= commonExpression.SpanStart))
-                {
-                    return null;
-                }
-
-                if (!(textSpan.End >= commonExpression.Span.End &&
-                      textSpan.End <= commonExpression.FullSpan.End))
-                {
-                    return null;
-                }
-
-                return commonExpression;
-            }
-
-            private static TExpressionSyntax GetBestTouchingExpression(SyntaxNode root, int position)
-            {
-                var exprOnRight = root.FindToken(position).Parent as TExpressionSyntax;
-                var exprOnLeft = position > 0
-                    ? root.FindToken(position - 1).Parent as TExpressionSyntax
-                    : null;
-
-                // Only get the expr on the left if we're right at the end of it.
-                if (exprOnLeft?.Span.End != position)
-                {
-                    return exprOnRight;
-                }
-
-                // If we have two non-overlapping expressions, then just pick the expression
-                // to the right of the caret.  However, if they overlap, pick the smaller of
-                // the two as the user likely thinks that ones is more closely associated 
-                // with the caret.
-                return exprOnRight == null || exprOnRight.Span.Contains(exprOnLeft.Span)
-                    ? exprOnLeft
-                    : exprOnRight;
             }
 
             private bool CanIntroduceVariable(
@@ -289,7 +248,7 @@ namespace Microsoft.CodeAnalysis.IntroduceVariable
                     return false;
                 }
 
-                if (Expression is TTypeSyntax && !(Expression is TNameSyntax))
+                if (Expression is TTypeSyntax and not TNameSyntax)
                 {
                     // name syntax can introduce variables, but not other type syntaxes
                     return false;

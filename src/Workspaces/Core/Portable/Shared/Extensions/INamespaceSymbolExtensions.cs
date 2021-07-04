@@ -1,10 +1,9 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
-
-#nullable enable
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -15,8 +14,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
     internal static partial class INamespaceSymbolExtensions
     {
         private static readonly ConditionalWeakTable<INamespaceSymbol, List<string>> s_namespaceToNameMap =
-            new ConditionalWeakTable<INamespaceSymbol, List<string>>();
-        private static readonly ConditionalWeakTable<INamespaceSymbol, List<string>>.CreateValueCallback s_getNameParts = GetNameParts;
+            new();
 
         public static readonly Comparison<INamespaceSymbol> CompareNamespaces = CompareTo;
         public static readonly IEqualityComparer<INamespaceSymbol> EqualityComparer = new Comparer();
@@ -139,17 +137,15 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             this INamespaceSymbol namespaceSymbol,
             IAssemblySymbol assembly)
         {
-            using (var namespaceQueue = SharedPools.Default<Queue<INamespaceOrTypeSymbol>>().GetPooledObject())
-            {
-                return ContainsAccessibleTypesOrNamespacesWorker(namespaceSymbol, assembly, namespaceQueue.Object);
-            }
+            using var namespaceQueue = SharedPools.Default<Queue<INamespaceOrTypeSymbol>>().GetPooledObject();
+            return ContainsAccessibleTypesOrNamespacesWorker(namespaceSymbol, assembly, namespaceQueue.Object);
         }
 
         public static INamespaceSymbol? GetQualifiedNamespace(
             this INamespaceSymbol globalNamespace,
             string namespaceName)
         {
-            INamespaceSymbol? namespaceSymbol = globalNamespace;
+            var namespaceSymbol = globalNamespace;
             foreach (var name in namespaceName.Split('.'))
             {
                 var members = namespaceSymbol.GetMembers(name);
@@ -162,6 +158,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                     break;
                 }
             }
+
             return namespaceSymbol;
         }
 

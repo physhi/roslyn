@@ -1,4 +1,8 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 using System.Collections.Immutable;
 using System.Threading;
@@ -59,7 +63,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateParameterizedMember
                     return false;
                 }
 
-                var parameters = TryMakeParameters(semanticModel, targetVariables, cancellationToken);
+                var parameters = TryMakeParameters(semanticModel, targetVariables);
                 if (parameters.IsDefault)
                 {
                     return false;
@@ -81,8 +85,7 @@ namespace Microsoft.CodeAnalysis.GenerateMember.GenerateParameterizedMember
                 return await TryFinishInitializingStateAsync(service, document, cancellationToken).ConfigureAwait(false);
             }
 
-            private static ImmutableArray<IParameterSymbol> TryMakeParameters(
-                SemanticModel semanticModel, SyntaxNode target, CancellationToken cancellationToken)
+            private static ImmutableArray<IParameterSymbol> TryMakeParameters(SemanticModel semanticModel, SyntaxNode target)
             {
                 var targetType = semanticModel.GetTypeInfo(target).Type;
                 if (targetType?.IsTupleType != true)

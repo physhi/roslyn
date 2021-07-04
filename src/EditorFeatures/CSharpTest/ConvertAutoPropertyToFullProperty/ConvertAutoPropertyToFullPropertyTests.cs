@@ -1,4 +1,8 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 using System.Collections.Immutable;
 using System.Threading.Tasks;
@@ -18,32 +22,34 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.ConvertAutoPropertyToFu
         protected override CodeRefactoringProvider CreateCodeRefactoringProvider(Workspace workspace, TestParameters parameters)
             => new CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider();
 
-        [Fact, Trait(Traits.Feature, Traits.Features.ConvertAutoPropertyToFullProperty)]
-        public async Task SimpleAutoPropertyTest()
+        [Theory, Trait(Traits.Feature, Traits.Features.ConvertAutoPropertyToFullProperty)]
+        [InlineData("set"), InlineData("init")]
+        [WorkItem(48133, "https://github.com/dotnet/roslyn/issues/48133")]
+        public async Task SimpleAutoPropertyTest(string setter)
         {
-            var text = @"
+            var text = $@"
 class TestClass
-{
-    public int G[||]oo { get; set; }
-}
+{{
+    public int G[||]oo {{ get; {setter}; }}
+}}
 ";
-            var expected = @"
+            var expected = $@"
 class TestClass
-{
+{{
     private int goo;
 
     public int Goo
-    {
+    {{
         get
-        {
+        {{
             return goo;
-        }
-        set
-        {
+        }}
+        {setter}
+        {{
             goo = value;
-        }
-    }
-}
+        }}
+    }}
+}}
 ";
             await TestInRegularAndScriptAsync(text, expected, options: DoNotPreferExpressionBodiedAccessors);
         }
@@ -1219,20 +1225,18 @@ partial class Program
     </Project>
 </Workspace>", LanguageNames.CSharp, file1, file2);
 
-            using (var testWorkspace = TestWorkspace.Create(xmlString))
-            {
-                // refactor file1 and check
-                var (_, action) = await GetCodeActionsAsync(testWorkspace, parameters: default);
-                await TestActionAsync(
-                    testWorkspace,
-                    file1AfterRefactor,
-                    action,
-                    conflictSpans: ImmutableArray<TextSpan>.Empty,
-                    renameSpans: ImmutableArray<TextSpan>.Empty,
-                    warningSpans: ImmutableArray<TextSpan>.Empty,
-                    navigationSpans: ImmutableArray<TextSpan>.Empty,
-                    parameters: default);
-            }
+            using var testWorkspace = TestWorkspace.Create(xmlString);
+            // refactor file1 and check
+            var (_, action) = await GetCodeActionsAsync(testWorkspace, parameters: default);
+            await TestActionAsync(
+                testWorkspace,
+                file1AfterRefactor,
+                action,
+                conflictSpans: ImmutableArray<TextSpan>.Empty,
+                renameSpans: ImmutableArray<TextSpan>.Empty,
+                warningSpans: ImmutableArray<TextSpan>.Empty,
+                navigationSpans: ImmutableArray<TextSpan>.Empty,
+                parameters: default);
         }
 
         [WorkItem(22146, "https://github.com/dotnet/roslyn/issues/22146")]
@@ -1265,20 +1269,18 @@ partial class Program
     </Project>
 </Workspace>", LanguageNames.CSharp, file1, file2);
 
-            using (var testWorkspace = TestWorkspace.Create(xmlString))
-            {
-                // refactor file2 and check
-                var (_, action) = await GetCodeActionsAsync(testWorkspace, parameters: default);
-                await TestActionAsync(
-                    testWorkspace,
-                    file2AfterRefactor,
-                    action,
-                    conflictSpans: ImmutableArray<TextSpan>.Empty,
-                    renameSpans: ImmutableArray<TextSpan>.Empty,
-                    warningSpans: ImmutableArray<TextSpan>.Empty,
-                    navigationSpans: ImmutableArray<TextSpan>.Empty,
-                    parameters: default);
-            }
+            using var testWorkspace = TestWorkspace.Create(xmlString);
+            // refactor file2 and check
+            var (_, action) = await GetCodeActionsAsync(testWorkspace, parameters: default);
+            await TestActionAsync(
+                testWorkspace,
+                file2AfterRefactor,
+                action,
+                conflictSpans: ImmutableArray<TextSpan>.Empty,
+                renameSpans: ImmutableArray<TextSpan>.Empty,
+                warningSpans: ImmutableArray<TextSpan>.Empty,
+                navigationSpans: ImmutableArray<TextSpan>.Empty,
+                parameters: default);
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.ConvertAutoPropertyToFullProperty)]

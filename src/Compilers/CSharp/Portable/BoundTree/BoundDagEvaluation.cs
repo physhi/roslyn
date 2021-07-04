@@ -1,15 +1,22 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
     partial class BoundDagEvaluation
     {
-        public override bool Equals(object obj) => obj is BoundDagEvaluation other && this.Equals(other);
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is BoundDagEvaluation other && this.Equals(other);
         public virtual bool Equals(BoundDagEvaluation other)
         {
-            return other != (object)null && this.Kind == other.Kind && this.GetOriginalInput().Equals(other.GetOriginalInput()) && this.Symbol == other.Symbol;
+            return this == other ||
+                this.Kind == other.Kind &&
+                this.Input.Equals(other.Input) &&
+                this.Symbol.Equals(other.Symbol, TypeCompareKind.AllIgnoreOptions);
         }
         private Symbol Symbol
         {
@@ -26,35 +33,44 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
         }
+
         public override int GetHashCode()
         {
-            return Hash.Combine(GetOriginalInput().GetHashCode(), this.Symbol?.GetHashCode() ?? 0);
+            return Hash.Combine(Input.GetHashCode(), this.Symbol?.GetHashCode() ?? 0);
         }
 
-        /// <summary>
-        /// Returns the original input for this evaluation, stripped of all Type Evaluations.
-        /// 
-        /// A BoundDagTypeEvaluation doesn't change the underlying object being pointed to
-        /// So two evaluations act on the same input so long as they have the same original input.
-        /// </summary>
-        private BoundDagTemp GetOriginalInput()
+#if DEBUG
+        private int _id = -1;
+
+        public int Id
         {
-            var input = this.Input;
-            while (input.Source is BoundDagTypeEvaluation source)
+            get
             {
-                input = source.Input;
+                return _id;
             }
-            return input;
+            internal set
+            {
+                Debug.Assert(value > 0, "Id must be positive but was set to " + value);
+                Debug.Assert(_id == -1, $"Id was set to {_id} and set again to {value}");
+                _id = value;
+            }
         }
 
-        public static bool operator ==(BoundDagEvaluation left, BoundDagEvaluation right)
+        internal string GetOutputTempDebuggerDisplay()
         {
-            return (left is null) ? right is null : left.Equals(right);
+            var id = Id;
+            return id switch
+            {
+                -1 => "<uninitialized>",
+
+                // Note that we never expect to create an evaluation with id 0
+                // To do so would imply that dag evaluation assigns to the original input
+                0 => "<error>",
+
+                _ => $"t{id}"
+            };
         }
-        public static bool operator !=(BoundDagEvaluation left, BoundDagEvaluation right)
-        {
-            return !(left == right);
-        }
+#endif
     }
 
     partial class BoundDagIndexEvaluation
@@ -62,7 +78,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override int GetHashCode() => base.GetHashCode() ^ this.Index;
         public override bool Equals(BoundDagEvaluation obj)
         {
-            return base.Equals(obj) &&
+            return this == obj ||
+                base.Equals(obj) &&
                 // base.Equals checks the kind field, so the following cast is safe
                 this.Index == ((BoundDagIndexEvaluation)obj).Index;
         }

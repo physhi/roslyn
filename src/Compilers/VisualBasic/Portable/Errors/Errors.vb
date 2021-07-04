@@ -1,4 +1,6 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿' Licensed to the .NET Foundation under one or more agreements.
+' The .NET Foundation licenses this file to you under the MIT license.
+' See the LICENSE file in the project root for more information.
 
 '//-------------------------------------------------------------------------------------------------
 '//
@@ -68,6 +70,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_MissingGuidForOption = 2044
         ERR_BadChecksumAlgorithm = 2045
         ERR_MutuallyExclusiveOptions = 2046
+        ERR_BadSwitchValue = 2047
 
         '// The naming convention is that if your error requires arguments, to append
         '// the number of args taken, e.g. AmbiguousName2
@@ -1381,7 +1384,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         'ERR_QueryStartsWithLet = 36608
         'ERR_NoQueryExpressionsInDebugger = 36609
         ERR_QueryNameNotDeclared = 36610
-        '// Available 36611
+
+        ERR_SharedEventNeedsHandlerInTheSameType = 36611
 
         ERR_NestedFunctionArgumentNarrowing3 = 36612
 
@@ -1744,6 +1748,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         ERR_CommentsAfterLineContinuationNotAvailable1 = 37306
 
+        ERR_DefaultInterfaceImplementationInNoPIAType = 37307
+        ERR_ReAbstractionInNoPIAType = 37308
+        ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation = 37309
+        ERR_RuntimeDoesNotSupportProtectedAccessForInterfaceMember = 37310
+
+        ERR_AssignmentInitOnly = 37311
+        ERR_OverridingInitOnlyProperty = 37312
+        ERR_PropertyDoesntImplementInitOnly = 37313
+
         '// WARNINGS BEGIN HERE
         WRN_UseOfObsoleteSymbol2 = 40000
         WRN_InvalidOverrideDueToTupleNames2 = 40001
@@ -1942,7 +1955,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         'WRN_PDBConstantStringValueTooLong = 42363  we gave up on this warning. See comments in commonCompilation.Emit()
         WRN_ReturnTypeAttributeOnWriteOnlyProperty = 42364
 
-        ' // AVAILABLE 42365
+        ERR_UnmanagedCallersOnlyNotSupported = 42365
 
         WRN_InvalidVersionFormat = 42366
         WRN_MainIgnored = 42367
@@ -1966,7 +1979,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         WRN_AttributeIgnoredWhenPublicSigning = 42379
         WRN_Experimental = 42380
 
+        WRN_AttributeNotSupportedInVB = 42381
         ERR_MultipleAnalyzerConfigsInSameDir = 42500
+        WRN_GeneratorFailedDuringInitialization = 42501
+        WRN_GeneratorFailedDuringGeneration = 42502
+        WRN_AnalyzerReferencesFramework = 42503
 
         ' // AVAILABLE                             42600 - 49998
         ERRWRN_NextAvailable = 42600
@@ -1991,6 +2008,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         IDS_VBCHelp = 56009
         IDS_LangVersions = 56010
         IDS_ToolName = 56011
+
+        ERR_StdInOptionProvidedButConsoleInputIsNotRedirected = 56032
 
         ' Feature codes
         FEATURE_AutoProperties
@@ -2024,5 +2043,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         FEATURE_InterpolatedStrings
         FEATURE_UnconstrainedTypeParameterInConditional
         FEATURE_CommentsAfterLineContinuation
+        FEATURE_InitOnlySettersUsage
     End Enum
 End Namespace
