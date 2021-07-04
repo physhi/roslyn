@@ -1,8 +1,11 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,6 +62,31 @@ namespace Microsoft.CodeAnalysis.Completion
         }
 
         /// <summary>
+        /// Returns true if the character recently inserted or deleted in the text should trigger completion.
+        /// </summary>
+        /// <param name="project">The project containing the document and text</param>
+        /// <param name="text">The document text to trigger completion within </param>
+        /// <param name="caretPosition">The position of the caret after the triggering action.</param>
+        /// <param name="trigger">The potential triggering action.</param>
+        /// <param name="roles">Optional set of roles associated with the editor state.</param>
+        /// <param name="options">Optional options that override the default options.</param>
+        /// <remarks>
+        /// We pass the project here to retrieve information about the <see cref="Project.AnalyzerReferences"/>,
+        /// <see cref="WorkspaceKind"/> and <see cref="Project.Language"/> which are fast operations.
+        /// It should not be used for syntactic or semantic operations.
+        /// </remarks>
+        internal virtual bool ShouldTriggerCompletion(
+            Project project,
+            SourceText text,
+            int caretPosition,
+            CompletionTrigger trigger,
+            ImmutableHashSet<string> roles = null,
+            OptionSet options = null)
+        {
+            return ShouldTriggerCompletion(text, caretPosition, trigger, roles, options);
+        }
+
+        /// <summary>
         /// Gets the span of the syntax element at the caret position.
         /// This is the most common value used for <see cref="CompletionItem.Span"/>.
         /// </summary>
@@ -66,9 +94,7 @@ namespace Microsoft.CodeAnalysis.Completion
         /// <param name="caretPosition">The position of the caret within the text.</param>
         [Obsolete("Not used anymore. CompletionService.GetDefaultCompletionListSpan is used instead.", error: true)]
         public virtual TextSpan GetDefaultItemSpan(SourceText text, int caretPosition)
-        {
-            return GetDefaultCompletionListSpan(text, caretPosition);
-        }
+            => GetDefaultCompletionListSpan(text, caretPosition);
 
         public virtual TextSpan GetDefaultCompletionListSpan(SourceText text, int caretPosition)
         {
@@ -143,21 +169,6 @@ namespace Microsoft.CodeAnalysis.Completion
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(CompletionChange.Create(new TextChange(item.Span, item.DisplayText)));
-        }
-
-        /// <summary>
-        /// Preferred overload of <see cref="GetChangeAsync(Document, CompletionItem, char?,
-        /// CancellationToken)"/>.
-        ///
-        /// This overload is passed the value of <see cref="CompletionContext.CompletionListSpan"/>
-        /// which should be used to determine what span should be updated in the original <paramref
-        /// name="document"/> passed in.
-        /// </summary>
-        internal virtual Task<CompletionChange> GetChangeAsync(
-            Document document, CompletionItem item, TextSpan completionListSpan,
-            char? commitCharacter = null, CancellationToken cancellationToken = default)
-        {
-            return GetChangeAsync(document, item, commitCharacter, cancellationToken);
         }
 
         /// <summary>

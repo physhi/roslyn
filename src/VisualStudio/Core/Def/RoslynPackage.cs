@@ -1,14 +1,18 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Immutable;
 using System.ComponentModel.Design;
-using System.Reflection;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.ChangeSignature;
 using Microsoft.CodeAnalysis.Completion.Log;
-using Microsoft.CodeAnalysis.Editor;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Experiments;
@@ -16,8 +20,10 @@ using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Logging;
 using Microsoft.CodeAnalysis.Notification;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Versions;
+using Microsoft.CodeAnalysis.Telemetry;
 using Microsoft.VisualStudio.ComponentModelHost;
+using Microsoft.VisualStudio.LanguageServices.ColorSchemes;
+using Microsoft.VisualStudio.LanguageServices.EditorConfigSettings;
 using Microsoft.VisualStudio.LanguageServices.Experimentation;
 using Microsoft.VisualStudio.LanguageServices.Implementation;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Diagnostics;
@@ -26,27 +32,74 @@ using Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem.RuleSets;
 using Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource;
+using Microsoft.VisualStudio.LanguageServices.Implementation.UnusedReferences;
 using Microsoft.VisualStudio.LanguageServices.Telemetry;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TaskStatusCenter;
+using Microsoft.VisualStudio.Telemetry;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Threading;
+using Roslyn.Utilities;
 using Task = System.Threading.Tasks.Task;
 
 namespace Microsoft.VisualStudio.LanguageServices.Setup
 {
     [Guid(Guids.RoslynPackageIdString)]
-    [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-    [ProvideMenuResource("Menus.ctmenu", version: 17)]
-    internal class RoslynPackage : AbstractPackage
+
+    // The option page configuration is duplicated in PackageRegistration.pkgdef
+    [ProvideToolWindow(typeof(ValueTracking.ValueTrackingToolWindow))]
+    internal sealed class RoslynPackage : AbstractPackage
     {
-        private VisualStudioWorkspace _workspace;
-        private WorkspaceFailureOutputPane _outputPane;
-        private IComponentModel _componentModel;
-        private RuleSetEventHandler _ruleSetEventHandler;
-        private IDisposable _solutionEventMonitor;
+        // The randomly-generated key name is used for serializing the ILSpy decompiler EULA preference to the .SUO
+        // file. It doesn't have any semantic meaning, but is intended to not conflict with any other extension that
+        // might be saving an "ILSpy" named stream to the same file.
+        // note: must be <= 31 characters long
+        private const string DecompilerEulaOptionKey = "ILSpy-234190A6EE66";
+        private const byte DecompilerEulaOptionVersion = 1;
+
+        private VisualStudioWorkspace? _workspace;
+        private IComponentModel? _componentModel;
+        private RuleSetEventHandler? _ruleSetEventHandler;
+        private ColorSchemeApplier? _colorSchemeApplier;
+        private IDisposable? _solutionEventMonitor;
+
+        public RoslynPackage()
+        {
+            // We need to register an option in order for OnLoadOptions/OnSaveOptions to be called
+            AddOptionKey(DecompilerEulaOptionKey);
+        }
+
+        public bool IsDecompilerEulaAccepted { get; set; }
+
+        protected override void OnLoadOptions(string key, Stream stream)
+        {
+            if (key == DecompilerEulaOptionKey)
+            {
+                if (stream.ReadByte() == DecompilerEulaOptionVersion)
+                {
+                    IsDecompilerEulaAccepted = stream.ReadByte() == 1;
+                }
+                else
+                {
+                    IsDecompilerEulaAccepted = false;
+                }
+            }
+
+            base.OnLoadOptions(key, stream);
+        }
+
+        protected override void OnSaveOptions(string key, Stream stream)
+        {
+            if (key == DecompilerEulaOptionKey)
+            {
+                stream.WriteByte(DecompilerEulaOptionVersion);
+                stream.WriteByte(IsDecompilerEulaAccepted ? (byte)1 : (byte)0);
+            }
+
+            base.OnSaveOptions(key, stream);
+        }
 
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
@@ -58,27 +111,24 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
             cancellationToken.ThrowIfCancellationRequested();
             Assumes.Present(_componentModel);
 
-            FatalError.Handler = FailFast.OnFatalException;
-            FatalError.NonFatalHandler = WatsonReporter.Report;
-
-            // We also must set the FailFast handler for the compiler layer as well
-            var compilerAssembly = typeof(Compilation).Assembly;
-            var compilerFatalError = compilerAssembly.GetType("Microsoft.CodeAnalysis.FatalError", throwOnError: true);
-            var property = compilerFatalError.GetProperty(nameof(FatalError.Handler), BindingFlags.Static | BindingFlags.Public);
-            var compilerFailFast = compilerAssembly.GetType(typeof(FailFast).FullName, throwOnError: true);
-            var method = compilerFailFast.GetMethod(nameof(FailFast.OnFatalException), BindingFlags.Static | BindingFlags.NonPublic);
-            property.SetValue(null, Delegate.CreateDelegate(property.PropertyType, method));
+            // Ensure the options persisters are loaded since we have to fetch options from the shell
+            foreach (var provider in await GetOptionPersistersAsync(_componentModel, cancellationToken).ConfigureAwait(true))
+            {
+                _ = await provider.GetOrCreatePersisterAsync(cancellationToken).ConfigureAwait(true);
+            }
 
             _workspace = _componentModel.GetService<VisualStudioWorkspace>();
             _workspace.Services.GetService<IExperimentationService>();
 
-            // Ensure the options persisters are loaded since we have to fetch options from the shell
-            _componentModel.GetExtensions<IOptionPersister>();
+            // Fetch the session synchronously on the UI thread; if this doesn't happen before we try using this on
+            // the background thread then we will experience hangs like we see in this bug:
+            // https://devdiv.visualstudio.com/DefaultCollection/DevDiv/_workitems?_a=edit&id=190808 or
+            // https://devdiv.visualstudio.com/DevDiv/_workitems?id=296981&_a=edit
+            var telemetryService = (VisualStudioWorkspaceTelemetryService)_workspace.Services.GetRequiredService<IWorkspaceTelemetryService>();
+            telemetryService.InitializeTelemetrySession(TelemetryService.DefaultSession);
 
-            RoslynTelemetrySetup.Initialize(this);
-
-            // set workspace output pane
-            _outputPane = new WorkspaceFailureOutputPane(_componentModel.GetService<IThreadingContext>(), this, _workspace);
+            Logger.Log(FunctionId.Run_Environment,
+                KeyValueLogMessage.Create(m => m["Version"] = FileVersionInfo.GetVersionInfo(typeof(VisualStudioWorkspace).Assembly.Location).FileVersion));
 
             InitializeColors();
 
@@ -88,6 +138,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
             _solutionEventMonitor = new SolutionEventMonitor(_workspace);
 
             TrackBulkFileOperations();
+
+            var settingsEditorFactory = _componentModel.GetService<SettingsEditorFactory>();
+            RegisterEditorFactory(settingsEditorFactory);
+
+            static async Task<ImmutableArray<IOptionPersisterProvider>> GetOptionPersistersAsync(IComponentModel componentModel, CancellationToken cancellationToken)
+            {
+                // Switch to a background thread to ensure assembly loads don't show up as UI delays attributed to
+                // InitializeAsync.
+                await TaskScheduler.Default;
+
+                return componentModel.GetExtensions<IOptionPersisterProvider>().ToImmutableArray();
+            }
         }
 
         private void InitializeColors()
@@ -99,6 +161,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
             CodeAnalysisColors.BackgroundBrushKey = VsBrushes.CommandBarGradientBeginKey;
             CodeAnalysisColors.ButtonStyleKey = VsResourceKeys.ButtonStyleKey;
             CodeAnalysisColors.AccentBarColorKey = EnvironmentColors.FileTabInactiveDocumentBorderEdgeBrushKey;
+
+            // Initialize ColorScheme support
+            _colorSchemeApplier = ComponentModel.GetService<ColorSchemeApplier>();
+            _colorSchemeApplier.Initialize();
         }
 
         protected override async Task LoadComponentsAsync(CancellationToken cancellationToken)
@@ -118,16 +184,35 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
             this.ComponentModel.GetService<VisualStudioDiagnosticListTableCommandHandler>().Initialize(this);
 
             this.ComponentModel.GetService<VisualStudioMetadataAsSourceFileSupportService>();
-            this.ComponentModel.GetService<VirtualMemoryNotificationListener>();
 
             // The misc files workspace needs to be loaded on the UI thread.  This way it will have
             // the appropriate task scheduler to report events on.
             this.ComponentModel.GetService<MiscellaneousFilesWorkspace>();
 
+            // Load and initialize the services detecting and adding new analyzer config documents as solution item.
+            this.ComponentModel.GetService<AnalyzerConfigDocumentAsSolutionItemHandler>().Initialize(this);
+            this.ComponentModel.GetService<VisualStudioAddSolutionItemService>().Initialize(this);
+
+            this.ComponentModel.GetService<IVisualStudioDiagnosticAnalyzerService>().Initialize(this);
+            this.ComponentModel.GetService<RemoveUnusedReferencesCommandHandler>().Initialize(this);
+
             LoadAnalyzerNodeComponents();
 
             LoadComponentsBackgroundAsync(cancellationToken).Forget();
         }
+
+        // Overrides for VSSDK003 fix 
+        // See https://github.com/Microsoft/VSSDK-Analyzers/blob/main/doc/VSSDK003.md
+        public override IVsAsyncToolWindowFactory GetAsyncToolWindowFactory(Guid toolWindowType)
+            => toolWindowType == typeof(ValueTracking.ValueTrackingToolWindow).GUID
+                ? this
+                : base.GetAsyncToolWindowFactory(toolWindowType);
+
+        protected override string GetToolWindowTitle(Type toolWindowType, int id)
+                => base.GetToolWindowTitle(toolWindowType, id);
+
+        protected override Task<object?> InitializeToolWindowAsync(Type toolWindowType, int id, CancellationToken cancellationToken)
+            => Task.FromResult((object?)null);
 
         private async Task LoadComponentsBackgroundAsync(CancellationToken cancellationToken)
         {
@@ -191,19 +276,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
 
         private void ReportSessionWideTelemetry()
         {
-            PersistedVersionStampLogger.ReportTelemetry();
-            LinkedFileDiffMergingLogger.ReportTelemetry();
             SolutionLogger.ReportTelemetry();
             AsyncCompletionLogger.ReportTelemetry();
             CompletionProvidersLogger.ReportTelemetry();
-            SyntacticLspLogger.ReportTelemetry();
+            ChangeSignatureLogger.ReportTelemetry();
         }
 
         private void DisposeVisualStudioServices()
         {
             if (_workspace != null)
             {
-                _workspace.Services.GetService<VisualStudioMetadataReferenceManager>().DisconnectFromVisualStudioNativeServices();
+                _workspace.Services.GetRequiredService<VisualStudioMetadataReferenceManager>().DisconnectFromVisualStudioNativeServices();
             }
         }
 
@@ -219,9 +302,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
         }
 
         private void UnregisterAnalyzerTracker()
-        {
-            this.ComponentModel.GetService<IAnalyzerNodeSetup>().Unregister();
-        }
+            => this.ComponentModel.GetService<IAnalyzerNodeSetup>().Unregister();
 
         private void UnregisterRuleSetEventHandler()
         {
@@ -234,18 +315,20 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
 
         private void TrackBulkFileOperations()
         {
+            RoslynDebug.AssertNotNull(_workspace);
+
             // we will pause whatever ambient work loads we have that are tied to IGlobalOperationNotificationService
             // such as solution crawler, pre-emptive remote host synchronization and etc. any background work users didn't
             // explicitly asked for.
             //
             // this should give all resources to BulkFileOperation. we do same for things like build, 
             // debugging, wait dialog and etc. BulkFileOperation is used for things like git branch switching and etc.
-            var globalNotificationService = _workspace.Services.GetService<IGlobalOperationNotificationService>();
+            var globalNotificationService = _workspace.Services.GetRequiredService<IGlobalOperationNotificationService>();
 
             // BulkFileOperation can't have nested events. there will be ever only 1 events (Begin/End)
             // so we only need simple tracking.
             var gate = new object();
-            GlobalOperationRegistration localRegistration = null;
+            GlobalOperationRegistration? localRegistration = null;
 
             BulkFileOperation.End += (s, a) =>
             {
@@ -259,13 +342,16 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
 
             void StartBulkFileOperationNotification()
             {
+                RoslynDebug.Assert(gate != null);
+                RoslynDebug.Assert(globalNotificationService != null);
+
                 lock (gate)
                 {
                     // this shouldn't happen, but we are using external component
                     // so guarding us from them
                     if (localRegistration != null)
                     {
-                        WatsonReporter.Report(new Exception("BulkFileOperation already exist"));
+                        FatalError.ReportAndCatch(new InvalidOperationException("BulkFileOperation already exist"));
                         return;
                     }
 
@@ -275,6 +361,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Setup
 
             void StopBulkFileOperationNotification()
             {
+                RoslynDebug.Assert(gate != null);
+
                 lock (gate)
                 {
                     // this can happen if BulkFileOperation was already in the middle

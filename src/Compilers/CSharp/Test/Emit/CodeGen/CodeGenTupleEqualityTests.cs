@@ -1,4 +1,8 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -142,12 +146,6 @@ class C
             // Can we relax the requirement on ValueTuple types being found?
 
             comp.VerifyDiagnostics(
-                // (6,16): error CS8179: Predefined type 'System.ValueTuple`2' is not defined or imported
-                //         return (1, 2) == (3, 4);
-                Diagnostic(ErrorCode.ERR_PredefinedValueTupleTypeNotFound, "(1, 2)").WithArguments("System.ValueTuple`2").WithLocation(6, 16),
-                // (6,26): error CS8179: Predefined type 'System.ValueTuple`2' is not defined or imported
-                //         return (1, 2) == (3, 4);
-                Diagnostic(ErrorCode.ERR_PredefinedValueTupleTypeNotFound, "(3, 4)").WithArguments("System.ValueTuple`2").WithLocation(6, 26),
                 // (6,16): error CS8179: Predefined type 'System.ValueTuple`2' is not defined or imported
                 //         return (1, 2) == (3, 4);
                 Diagnostic(ErrorCode.ERR_PredefinedValueTupleTypeNotFound, "(1, 2)").WithArguments("System.ValueTuple`2").WithLocation(6, 16),
@@ -1258,10 +1256,10 @@ class C
             comp.VerifyDiagnostics(
                 // (6,30): error CS8315: Operator '==' is ambiguous on operands 'default' and 'default'
                 //         System.Console.Write((default, default) == (default, default));
-                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(default, default) == (default, default)").WithArguments("==").WithLocation(6, 30),
+                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(default, default) == (default, default)").WithArguments("==", "default", "default").WithLocation(6, 30),
                 // (6,30): error CS8315: Operator '==' is ambiguous on operands 'default' and 'default'
                 //         System.Console.Write((default, default) == (default, default));
-                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(default, default) == (default, default)").WithArguments("==").WithLocation(6, 30),
+                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(default, default) == (default, default)").WithArguments("==", "default", "default").WithLocation(6, 30),
                 // (7,30): error CS0034: Operator '==' is ambiguous on operands of type 'default' and '(default, default)'
                 //         System.Console.Write(default == (default, default));
                 Diagnostic(ErrorCode.ERR_AmbigBinaryOps, "default == (default, default)").WithArguments("==", "default", "(default, default)").WithLocation(7, 30)
@@ -1305,10 +1303,10 @@ class C
             comp.VerifyDiagnostics(
                 // (6,30): error CS8315: Operator '==' is ambiguous on operands 'default' and 'default'
                 //         System.Console.Write((null, (default, default)) == (null, (default, default)));
-                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(null, (default, default)) == (null, (default, default))").WithArguments("==").WithLocation(6, 30),
+                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(null, (default, default)) == (null, (default, default))").WithArguments("==", "default", "default").WithLocation(6, 30),
                 // (6,30): error CS8315: Operator '==' is ambiguous on operands 'default' and 'default'
                 //         System.Console.Write((null, (default, default)) == (null, (default, default)));
-                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(null, (default, default)) == (null, (default, default))").WithArguments("==").WithLocation(6, 30)
+                Diagnostic(ErrorCode.ERR_AmbigBinaryOpsOnDefault, "(null, (default, default)) == (null, (default, default))").WithArguments("==", "default", "default").WithLocation(6, 30)
                 );
         }
 
@@ -1355,14 +1353,27 @@ class C
         System.Console.Write((null, () => 2) == default);
     }
 }";
-            var comp = CreateCompilation(source);
+            var comp = CreateCompilation(source, parseOptions: TestOptions.Regular9);
             comp.VerifyDiagnostics(
                 // (6,30): error CS0034: Operator '==' is ambiguous on operands of type '<null>' and 'default'
                 //         System.Console.Write((null, () => 1) == (default, default));
                 Diagnostic(ErrorCode.ERR_AmbigBinaryOps, "(null, () => 1) == (default, default)").WithArguments("==", "<null>", "default").WithLocation(6, 30),
-                // (6,30): error CS0019: Operator '==' cannot be applied to operands of type 'lambda expression' and 'default'
+                // (6,37): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
                 //         System.Console.Write((null, () => 1) == (default, default));
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "(null, () => 1) == (default, default)").WithArguments("==", "lambda expression", "default").WithLocation(6, 30),
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "() => 1").WithArguments("inferred delegate type", "10.0").WithLocation(6, 37),
+                // (6,37): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, () => 1) == (default, default));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "() => 1").WithArguments("inferred delegate type", "10.0").WithLocation(6, 37),
+                // (7,30): error CS0034: Operator '==' is ambiguous on operands of type '(<null>, lambda expression)' and 'default'
+                //         System.Console.Write((null, () => 2) == default);
+                Diagnostic(ErrorCode.ERR_AmbigBinaryOps, "(null, () => 2) == default").WithArguments("==", "(<null>, lambda expression)", "default").WithLocation(7, 30)
+                );
+
+            comp = CreateCompilation(source);
+            comp.VerifyDiagnostics(
+                // (6,30): error CS0034: Operator '==' is ambiguous on operands of type '<null>' and 'default'
+                //         System.Console.Write((null, () => 1) == (default, default));
+                Diagnostic(ErrorCode.ERR_AmbigBinaryOps, "(null, () => 1) == (default, default)").WithArguments("==", "<null>", "default").WithLocation(6, 30),
                 // (7,30): error CS0034: Operator '==' is ambiguous on operands of type '(<null>, lambda expression)' and 'default'
                 //         System.Console.Write((null, () => 2) == default);
                 Diagnostic(ErrorCode.ERR_AmbigBinaryOps, "(null, () => 2) == default").WithArguments("==", "(<null>, lambda expression)", "default").WithLocation(7, 30)
@@ -1656,66 +1667,94 @@ class C
 {
     static void Main()
     {
-        System.Console.Write((null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; }));
+        System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
     }
 }";
-            var comp = CreateCompilation(source);
+            var comp = CreateCompilation(source, parseOptions: TestOptions.Regular9);
             comp.VerifyDiagnostics(
-                // (6,30): error CS0019: Operator '==' cannot be applied to operands of type '<null>' and 'lambda expression'
-                //         System.Console.Write((null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; }));
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "(null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; })").WithArguments("==", "<null>", "lambda expression").WithLocation(6, 30),
-                // (6,30): error CS0019: Operator '==' cannot be applied to operands of type '<null>' and 'method group'
-                //         System.Console.Write((null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; }));
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "(null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; })").WithArguments("==", "<null>", "method group").WithLocation(6, 30),
-                // (6,30): error CS0019: Operator '==' cannot be applied to operands of type '<null>' and 'lambda expression'
-                //         System.Console.Write((null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; }));
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "(null, null, null, null) == (null, () => { }, Main, (int i) => { int j = 0; return i + j; })").WithArguments("==", "<null>", "lambda expression").WithLocation(6, 30)
-                );
+                // (6,65): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "x => x").WithArguments("inferred delegate type", "10.0").WithLocation(6, 65),
+                // (6,65): error CS8917: The delegate type could not be inferred.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_CannotInferDelegateType, "x => x").WithLocation(6, 65),
+                // (6,65): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "x => x").WithArguments("inferred delegate type", "10.0").WithLocation(6, 65),
+                // (6,65): error CS8917: The delegate type could not be inferred.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_CannotInferDelegateType, "x => x").WithLocation(6, 65),
+                // (6,73): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "Main").WithArguments("inferred delegate type", "10.0").WithLocation(6, 73),
+                // (6,73): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "Main").WithArguments("inferred delegate type", "10.0").WithLocation(6, 73),
+                // (6,79): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "(int i) => { int j = 0; return i + j; }").WithArguments("inferred delegate type", "10.0").WithLocation(6, 79),
+                // (6,79): error CS8773: Feature 'inferred delegate type' is not available in C# 9.0. Please use language version 10.0 or greater.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_FeatureNotAvailableInVersion9, "(int i) => { int j = 0; return i + j; }").WithArguments("inferred delegate type", "10.0").WithLocation(6, 79));
+            verify(comp);
 
-            var tree = comp.SyntaxTrees[0];
-            var model = comp.GetSemanticModel(tree);
+            comp = CreateCompilation(source, parseOptions: TestOptions.RegularPreview);
+            comp.VerifyDiagnostics(
+                // (6,65): error CS8917: The delegate type could not be inferred.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_CannotInferDelegateType, "x => x").WithLocation(6, 65),
+                // (6,65): error CS8917: The delegate type could not be inferred.
+                //         System.Console.Write((null, null, null, null) == (null, x => x, Main, (int i) => { int j = 0; return i + j; }));
+                Diagnostic(ErrorCode.ERR_CannotInferDelegateType, "x => x").WithLocation(6, 65));
+            verify(comp);
 
-            // check tuple on the left
-            var tuple1 = tree.GetCompilationUnitRoot().DescendantNodes().OfType<TupleExpressionSyntax>().ElementAt(0);
-            Assert.Equal("(null, null, null, null)", tuple1.ToString());
+            static void verify(CSharpCompilation comp)
+            {
+                var tree = comp.SyntaxTrees[0];
+                var model = comp.GetSemanticModel(tree);
 
-            var tupleType1 = model.GetTypeInfo(tuple1);
-            Assert.Null(tupleType1.Type);
-            Assert.Null(tupleType1.ConvertedType);
+                // check tuple on the left
+                var tuple1 = tree.GetCompilationUnitRoot().DescendantNodes().OfType<TupleExpressionSyntax>().ElementAt(0);
+                Assert.Equal("(null, null, null, null)", tuple1.ToString());
 
-            // check tuple on the right ...
-            var tuple2 = tree.GetCompilationUnitRoot().DescendantNodes().OfType<TupleExpressionSyntax>().ElementAt(1);
-            Assert.Equal("(null, () => { }, Main, (int i) => { int j = 0; return i + j; })", tuple2.ToString());
+                var tupleType1 = model.GetTypeInfo(tuple1);
+                Assert.Null(tupleType1.Type);
+                Assert.Null(tupleType1.ConvertedType);
 
-            var tupleType2 = model.GetTypeInfo(tuple2);
-            Assert.Null(tupleType2.Type);
-            Assert.Null(tupleType2.ConvertedType);
+                // check tuple on the right ...
+                var tuple2 = tree.GetCompilationUnitRoot().DescendantNodes().OfType<TupleExpressionSyntax>().ElementAt(1);
+                Assert.Equal("(null, x => x, Main, (int i) => { int j = 0; return i + j; })", tuple2.ToString());
 
-            // ... its first lambda ...
-            var firstLambda = tuple2.Arguments[1].Expression;
-            Assert.Null(model.GetTypeInfo(firstLambda).Type);
-            Assert.Null(model.GetTypeInfo(firstLambda).ConvertedType);
+                var tupleType2 = model.GetTypeInfo(tuple2);
+                Assert.Null(tupleType2.Type);
+                Assert.Null(tupleType2.ConvertedType);
 
-            // ... its method group ...
-            var methodGroup = tuple2.Arguments[2].Expression;
-            Assert.Null(model.GetTypeInfo(methodGroup).Type);
-            Assert.Null(model.GetTypeInfo(methodGroup).ConvertedType);
-            Assert.Null(model.GetSymbolInfo(methodGroup).Symbol);
-            Assert.Equal(new[] { "void C.Main()" }, model.GetSymbolInfo(methodGroup).CandidateSymbols.Select(s => s.ToTestDisplayString()));
+                // ... its first lambda ...
+                var firstLambda = tuple2.Arguments[1].Expression;
+                Assert.Null(model.GetTypeInfo(firstLambda).Type);
+                Assert.Equal("System.Delegate", model.GetTypeInfo(firstLambda).ConvertedType.ToTestDisplayString());
 
-            // ... its second lambda and the symbols it uses
-            var secondLambda = tuple2.Arguments[3].Expression;
-            Assert.Null(model.GetTypeInfo(secondLambda).Type);
-            Assert.Null(model.GetTypeInfo(secondLambda).ConvertedType);
+                // ... its method group ...
+                var methodGroup = tuple2.Arguments[2].Expression;
+                Assert.Null(model.GetTypeInfo(methodGroup).Type);
+                Assert.Equal("System.Delegate", model.GetTypeInfo(methodGroup).ConvertedType.ToTestDisplayString());
+                Assert.Null(model.GetSymbolInfo(methodGroup).Symbol);
+                Assert.Equal(new[] { "void C.Main()" }, model.GetSymbolInfo(methodGroup).CandidateSymbols.Select(s => s.ToTestDisplayString()));
 
-            var addition = tree.GetCompilationUnitRoot().DescendantNodes().OfType<BinaryExpressionSyntax>().Last();
-            Assert.Equal("i + j", addition.ToString());
+                // ... its second lambda and the symbols it uses
+                var secondLambda = tuple2.Arguments[3].Expression;
+                Assert.Equal("System.Func<System.Int32, System.Int32>", model.GetTypeInfo(secondLambda).Type.ToTestDisplayString());
+                Assert.Equal("System.Delegate", model.GetTypeInfo(secondLambda).ConvertedType.ToTestDisplayString());
 
-            var i = addition.Left;
-            Assert.Equal("System.Int32 i", model.GetSymbolInfo(i).Symbol.ToTestDisplayString());
+                var addition = tree.GetCompilationUnitRoot().DescendantNodes().OfType<BinaryExpressionSyntax>().Last();
+                Assert.Equal("i + j", addition.ToString());
 
-            var j = addition.Right;
-            Assert.Equal("System.Int32 j", model.GetSymbolInfo(j).Symbol.ToTestDisplayString());
+                var i = addition.Left;
+                Assert.Equal("System.Int32 i", model.GetSymbolInfo(i).Symbol.ToTestDisplayString());
+
+                var j = addition.Right;
+                Assert.Equal("System.Int32 j", model.GetSymbolInfo(j).Symbol.ToTestDisplayString());
+            }
         }
 
         [Fact]
@@ -1988,9 +2027,6 @@ public class C
                 // (6,13): error CS0815: Cannot assign (<null>, <null>) to an implicitly-typed variable
                 //         var t = (null, null);
                 Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "t = (null, null)").WithArguments("(<null>, <null>)").WithLocation(6, 13),
-                // (7,13): error CS0019: Operator '==' cannot be applied to operands of type '<null>' and 'lambda expression'
-                //         if (null == (() => {}) ) {}
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "null == (() => {})").WithArguments("==", "<null>", "lambda expression").WithLocation(7, 13),
                 // (8,13): error CS0019: Operator '==' cannot be applied to operands of type 'string' and 'int'
                 //         if ("" == 1) {}
                 Diagnostic(ErrorCode.ERR_BadBinaryOps, @""""" == 1").WithArguments("==", "string", "int").WithLocation(8, 13)
@@ -2528,24 +2564,24 @@ namespace System
 
             var comp = CreateCompilation(source);
             comp.VerifyDiagnostics(
-                // (6,30): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T1' in the generic type or method 'ValueTuple<T1, T2>'
+                // (6,30): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T1' in the generic type or method '(T1, T2)'
                 //         _ = (this, this) == (0, 1); // constraint violated by tuple in source
-                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "0").WithArguments("System.ValueTuple<T1, T2>", "T1", "int").WithLocation(6, 30),
-                // (6,33): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T2' in the generic type or method 'ValueTuple<T1, T2>'
+                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "0").WithArguments("(T1, T2)", "T1", "int").WithLocation(6, 30),
+                // (6,30): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T1' in the generic type or method '(T1, T2)'
                 //         _ = (this, this) == (0, 1); // constraint violated by tuple in source
-                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "1").WithArguments("System.ValueTuple<T1, T2>", "T2", "int").WithLocation(6, 33),
-                // (6,30): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T1' in the generic type or method 'ValueTuple<T1, T2>'
+                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "0").WithArguments("(T1, T2)", "T1", "int").WithLocation(6, 30),
+                // (6,33): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T2' in the generic type or method '(T1, T2)'
                 //         _ = (this, this) == (0, 1); // constraint violated by tuple in source
-                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "0").WithArguments("System.ValueTuple<T1, T2>", "T1", "int").WithLocation(6, 30),
-                // (6,33): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T2' in the generic type or method 'ValueTuple<T1, T2>'
+                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "1").WithArguments("(T1, T2)", "T2", "int").WithLocation(6, 33),
+                // (6,33): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T2' in the generic type or method '(T1, T2)'
                 //         _ = (this, this) == (0, 1); // constraint violated by tuple in source
-                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "1").WithArguments("System.ValueTuple<T1, T2>", "T2", "int").WithLocation(6, 33),
-                // (7,30): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T1' in the generic type or method 'ValueTuple<T1, T2>'
+                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "1").WithArguments("(T1, T2)", "T2", "int").WithLocation(6, 33),
+                // (7,30): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T1' in the generic type or method '(T1, T2)'
                 //         _ = (this, this) == (this, this); // constraint violated by converted tuple
-                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "this").WithArguments("System.ValueTuple<T1, T2>", "T1", "int").WithLocation(7, 30),
-                // (7,36): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T2' in the generic type or method 'ValueTuple<T1, T2>'
+                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "this").WithArguments("(T1, T2)", "T1", "int").WithLocation(7, 30),
+                // (7,36): error CS0452: The type 'int' must be a reference type in order to use it as parameter 'T2' in the generic type or method '(T1, T2)'
                 //         _ = (this, this) == (this, this); // constraint violated by converted tuple
-                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "this").WithArguments("System.ValueTuple<T1, T2>", "T2", "int").WithLocation(7, 36)
+                Diagnostic(ErrorCode.ERR_RefConstraintNotSatisfied, "this").WithArguments("(T1, T2)", "T2", "int").WithLocation(7, 36)
                 );
 
             var tree = comp.SyntaxTrees.First();
@@ -2589,6 +2625,7 @@ namespace System
     public struct Int32 { }
     public struct Int64 { }
     public struct Nullable<T> where T : struct, IInterface { public T GetValueOrDefault() => default(T); }
+    public class Exception { }
 
     public struct ValueTuple<T1, T2>
     {
@@ -3259,8 +3296,8 @@ class C
             verifier.VerifyIL("C.Compare", @"{
   // Code size      104 (0x68)
   .maxstack  3
-  .locals init ((int, int)? V_0,
-                (int, int)? V_1,
+  .locals init (System.ValueTuple<int, int>? V_0,
+                System.ValueTuple<int, int>? V_1,
                 bool V_2,
                 System.ValueTuple<int, int> V_3,
                 System.ValueTuple<int, int> V_4)
@@ -3271,11 +3308,11 @@ class C
   IL_0008:  ldarg.1
   IL_0009:  stloc.1
   IL_000a:  ldloca.s   V_0
-  IL_000c:  call       ""bool (int, int)?.HasValue.get""
+  IL_000c:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0011:  stloc.2
   IL_0012:  ldloc.2
   IL_0013:  ldloca.s   V_1
-  IL_0015:  call       ""bool (int, int)?.HasValue.get""
+  IL_0015:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_001a:  beq.s      IL_001f
   IL_001c:  ldc.i4.0
   IL_001d:  br.s       IL_0057
@@ -3284,10 +3321,10 @@ class C
   IL_0022:  ldc.i4.1
   IL_0023:  br.s       IL_0057
   IL_0025:  ldloca.s   V_0
-  IL_0027:  call       ""(int, int) (int, int)?.GetValueOrDefault()""
+  IL_0027:  call       ""System.ValueTuple<int, int> System.ValueTuple<int, int>?.GetValueOrDefault()""
   IL_002c:  stloc.3
   IL_002d:  ldloca.s   V_1
-  IL_002f:  call       ""(int, int) (int, int)?.GetValueOrDefault()""
+  IL_002f:  call       ""System.ValueTuple<int, int> System.ValueTuple<int, int>?.GetValueOrDefault()""
   IL_0034:  stloc.s    V_4
   IL_0036:  ldloc.3
   IL_0037:  ldfld      ""int System.ValueTuple<int, int>.Item1""
@@ -3436,11 +3473,11 @@ class C
             CompileAndVerify(source, expectedOutput: "TrueFalse", options: TestOptions.ReleaseExe).VerifyIL("C.M", @"{
   // Code size       18 (0x12)
   .maxstack  2
-  .locals init ((int, int)? V_0)
+  .locals init (System.ValueTuple<int, int>? V_0)
   IL_0000:  ldarg.0
   IL_0001:  stloc.0
   IL_0002:  ldloca.s   V_0
-  IL_0004:  call       ""bool (int, int)?.HasValue.get""
+  IL_0004:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0009:  ldc.i4.0
   IL_000a:  ceq
   IL_000c:  call       ""void System.Console.Write(bool)""
@@ -3470,11 +3507,11 @@ class C
             CompileAndVerify(source, expectedOutput: "FalseTrue", options: TestOptions.ReleaseExe).VerifyIL("C.M", @"{
   // Code size       15 (0xf)
   .maxstack  1
-  .locals init ((int, int)? V_0)
+  .locals init (System.ValueTuple<int, int>? V_0)
   IL_0000:  ldarg.0
   IL_0001:  stloc.0
   IL_0002:  ldloca.s   V_0
-  IL_0004:  call       ""bool (int, int)?.HasValue.get""
+  IL_0004:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0009:  call       ""void System.Console.Write(bool)""
   IL_000e:  ret
 }
@@ -3502,11 +3539,11 @@ class C
             CompileAndVerify(source, expectedOutput: "TrueFalse", options: TestOptions.ReleaseExe).VerifyIL("C.M", @"{
   // Code size       18 (0x12)
   .maxstack  2
-  .locals init ((int, int)? V_0)
+  .locals init (System.ValueTuple<int, int>? V_0)
   IL_0000:  ldarg.0
   IL_0001:  stloc.0
   IL_0002:  ldloca.s   V_0
-  IL_0004:  call       ""bool (int, int)?.HasValue.get""
+  IL_0004:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0009:  ldc.i4.0
   IL_000a:  ceq
   IL_000c:  call       ""void System.Console.Write(bool)""
@@ -3559,11 +3596,11 @@ class C
             CompileAndVerify(source, expectedOutput: "TrueFalse", options: TestOptions.ReleaseExe).VerifyIL("C.M", @"{
   // Code size       18 (0x12)
   .maxstack  2
-  .locals init ((int, int)? V_0)
+  .locals init (System.ValueTuple<int, int>? V_0)
   IL_0000:  ldarg.0
   IL_0001:  stloc.0
   IL_0002:  ldloca.s   V_0
-  IL_0004:  call       ""bool (int, int)?.HasValue.get""
+  IL_0004:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0009:  ldc.i4.0
   IL_000a:  ceq
   IL_000c:  call       ""void System.Console.Write(bool)""
@@ -3665,8 +3702,8 @@ class C
             verifier.VerifyIL("C.Compare", @"{
   // Code size      107 (0x6b)
   .maxstack  3
-  .locals init ((int, int)? V_0,
-                (int, int)? V_1,
+  .locals init (System.ValueTuple<int, int>? V_0,
+                System.ValueTuple<int, int>? V_1,
                 bool V_2,
                 System.ValueTuple<int, int> V_3,
                 System.ValueTuple<int, int> V_4)
@@ -3677,11 +3714,11 @@ class C
   IL_0008:  ldarg.1
   IL_0009:  stloc.1
   IL_000a:  ldloca.s   V_0
-  IL_000c:  call       ""bool (int, int)?.HasValue.get""
+  IL_000c:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0011:  stloc.2
   IL_0012:  ldloc.2
   IL_0013:  ldloca.s   V_1
-  IL_0015:  call       ""bool (int, int)?.HasValue.get""
+  IL_0015:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_001a:  beq.s      IL_001f
   IL_001c:  ldc.i4.1
   IL_001d:  br.s       IL_005a
@@ -3690,10 +3727,10 @@ class C
   IL_0022:  ldc.i4.0
   IL_0023:  br.s       IL_005a
   IL_0025:  ldloca.s   V_0
-  IL_0027:  call       ""(int, int) (int, int)?.GetValueOrDefault()""
+  IL_0027:  call       ""System.ValueTuple<int, int> System.ValueTuple<int, int>?.GetValueOrDefault()""
   IL_002c:  stloc.3
   IL_002d:  ldloca.s   V_1
-  IL_002f:  call       ""(int, int) (int, int)?.GetValueOrDefault()""
+  IL_002f:  call       ""System.ValueTuple<int, int> System.ValueTuple<int, int>?.GetValueOrDefault()""
   IL_0034:  stloc.s    V_4
   IL_0036:  ldloc.3
   IL_0037:  ldfld      ""int System.ValueTuple<int, int>.Item1""
@@ -3789,8 +3826,8 @@ class C
             verifier.VerifyIL("C.Compare", @"{
   // Code size      105 (0x69)
   .maxstack  3
-  .locals init ((int, int)? V_0,
-                (byte, long)? V_1,
+  .locals init (System.ValueTuple<int, int>? V_0,
+                System.ValueTuple<byte, long>? V_1,
                 bool V_2,
                 System.ValueTuple<int, int> V_3,
                 System.ValueTuple<byte, long> V_4)
@@ -3801,11 +3838,11 @@ class C
   IL_0008:  ldarg.1
   IL_0009:  stloc.1
   IL_000a:  ldloca.s   V_0
-  IL_000c:  call       ""bool (int, int)?.HasValue.get""
+  IL_000c:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_0011:  stloc.2
   IL_0012:  ldloc.2
   IL_0013:  ldloca.s   V_1
-  IL_0015:  call       ""bool (byte, long)?.HasValue.get""
+  IL_0015:  call       ""bool System.ValueTuple<byte, long>?.HasValue.get""
   IL_001a:  beq.s      IL_001f
   IL_001c:  ldc.i4.0
   IL_001d:  br.s       IL_0058
@@ -3814,10 +3851,10 @@ class C
   IL_0022:  ldc.i4.1
   IL_0023:  br.s       IL_0058
   IL_0025:  ldloca.s   V_0
-  IL_0027:  call       ""(int, int) (int, int)?.GetValueOrDefault()""
+  IL_0027:  call       ""System.ValueTuple<int, int> System.ValueTuple<int, int>?.GetValueOrDefault()""
   IL_002c:  stloc.3
   IL_002d:  ldloca.s   V_1
-  IL_002f:  call       ""(byte, long) (byte, long)?.GetValueOrDefault()""
+  IL_002f:  call       ""System.ValueTuple<byte, long> System.ValueTuple<byte, long>?.GetValueOrDefault()""
   IL_0034:  stloc.s    V_4
   IL_0036:  ldloc.3
   IL_0037:  ldfld      ""int System.ValueTuple<int, int>.Item1""
@@ -3892,8 +3929,8 @@ class C
             verifier.VerifyIL("C.Compare", @"{
   // Code size      114 (0x72)
   .maxstack  3
-  .locals init ((C, int)? V_0,
-                (int, C)? V_1,
+  .locals init (System.ValueTuple<C, int>? V_0,
+                System.ValueTuple<int, C>? V_1,
                 bool V_2,
                 System.ValueTuple<C, int> V_3,
                 System.ValueTuple<int, C> V_4)
@@ -3904,11 +3941,11 @@ class C
   IL_0008:  ldarg.1
   IL_0009:  stloc.1
   IL_000a:  ldloca.s   V_0
-  IL_000c:  call       ""bool (C, int)?.HasValue.get""
+  IL_000c:  call       ""bool System.ValueTuple<C, int>?.HasValue.get""
   IL_0011:  stloc.2
   IL_0012:  ldloc.2
   IL_0013:  ldloca.s   V_1
-  IL_0015:  call       ""bool (int, C)?.HasValue.get""
+  IL_0015:  call       ""bool System.ValueTuple<int, C>?.HasValue.get""
   IL_001a:  beq.s      IL_001f
   IL_001c:  ldc.i4.0
   IL_001d:  br.s       IL_0061
@@ -3917,10 +3954,10 @@ class C
   IL_0022:  ldc.i4.1
   IL_0023:  br.s       IL_0061
   IL_0025:  ldloca.s   V_0
-  IL_0027:  call       ""(C, int) (C, int)?.GetValueOrDefault()""
+  IL_0027:  call       ""System.ValueTuple<C, int> System.ValueTuple<C, int>?.GetValueOrDefault()""
   IL_002c:  stloc.3
   IL_002d:  ldloca.s   V_1
-  IL_002f:  call       ""(int, C) (int, C)?.GetValueOrDefault()""
+  IL_002f:  call       ""System.ValueTuple<int, C> System.ValueTuple<int, C>?.GetValueOrDefault()""
   IL_0034:  stloc.s    V_4
   IL_0036:  ldloc.3
   IL_0037:  ldfld      ""C System.ValueTuple<C, int>.Item1""
@@ -3937,10 +3974,10 @@ class C
   IL_005e:  br.s       IL_0061
   IL_0060:  ldc.i4.0
   IL_0061:  box        ""bool""
-  IL_0066:  call       ""string string.Format(string, object)""
-  IL_006b:  call       ""void System.Console.Write(string)""
-  IL_0070:  nop
-  IL_0071:  ret
+      IL_0066:  call       ""string string.Format(string, object)""
+      IL_006b:  call       ""void System.Console.Write(string)""
+      IL_0070:  nop
+      IL_0071:  ret
 }");
         }
 
@@ -3969,19 +4006,19 @@ class C
             verifier.VerifyIL("C.M", @"{
   // Code size       53 (0x35)
   .maxstack  2
-  .locals init ((byte, int)? V_0,
+  .locals init (System.ValueTuple<byte, int>? V_0,
                 System.ValueTuple<byte, int> V_1)
   IL_0000:  nop
   IL_0001:  ldarg.0
   IL_0002:  stloc.0
   IL_0003:  ldloca.s   V_0
-  IL_0005:  call       ""bool (byte, int)?.HasValue.get""
+  IL_0005:  call       ""bool System.ValueTuple<byte, int>?.HasValue.get""
   IL_000a:  brtrue.s   IL_000f
   IL_000c:  ldc.i4.0
   IL_000d:  br.s       IL_002e
   IL_000f:  br.s       IL_0011
   IL_0011:  ldloca.s   V_0
-  IL_0013:  call       ""(byte, int) (byte, int)?.GetValueOrDefault()""
+  IL_0013:  call       ""System.ValueTuple<byte, int> System.ValueTuple<byte, int>?.GetValueOrDefault()""
   IL_0018:  stloc.1
   IL_0019:  ldc.i4.1
   IL_001a:  ldloc.1
@@ -4088,14 +4125,14 @@ class C
             verifier.VerifyIL("C.M", @"{
   // Code size       59 (0x3b)
   .maxstack  2
-  .locals init ((int, int)? V_0,
+  .locals init (System.ValueTuple<int, int>? V_0,
                 bool V_1,
                 System.ValueTuple<int, int> V_2)
   IL_0000:  nop
   IL_0001:  ldarg.0
   IL_0002:  stloc.0
   IL_0003:  ldloca.s   V_0
-  IL_0005:  call       ""bool (int, int)?.HasValue.get""
+  IL_0005:  call       ""bool System.ValueTuple<int, int>?.HasValue.get""
   IL_000a:  stloc.1
   IL_000b:  ldloc.1
   IL_000c:  brtrue.s   IL_0011
@@ -4106,7 +4143,7 @@ class C
   IL_0014:  ldc.i4.1
   IL_0015:  br.s       IL_0034
   IL_0017:  ldloca.s   V_0
-  IL_0019:  call       ""(int, int) (int, int)?.GetValueOrDefault()""
+  IL_0019:  call       ""System.ValueTuple<int, int> System.ValueTuple<int, int>?.GetValueOrDefault()""
   IL_001e:  stloc.2
   IL_001f:  ldloc.2
   IL_0020:  ldfld      ""int System.ValueTuple<int, int>.Item1""
@@ -4230,13 +4267,13 @@ class C
             comp.VerifyDiagnostics(
                 // (8,19): error CS0019: Operator '==' cannot be applied to operands of type 'ValueTuple<int?>' and 'ValueTuple<int?>'
                 //         bool b1 = x1 == x1;
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 == x1").WithArguments("==", "ValueTuple<int?>", "ValueTuple<int?>").WithLocation(8, 19),
+                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 == x1").WithArguments("==", "System.ValueTuple<int?>", "System.ValueTuple<int?>").WithLocation(8, 19),
                 // (9,19): error CS0019: Operator '!=' cannot be applied to operands of type 'ValueTuple<int?>' and 'ValueTuple<int?>'
                 //         bool b2 = x1 != x1;
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 != x1").WithArguments("!=", "ValueTuple<int?>", "ValueTuple<int?>").WithLocation(9, 19),
+                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 != x1").WithArguments("!=", "System.ValueTuple<int?>", "System.ValueTuple<int?>").WithLocation(9, 19),
                 // (18,16): error CS0019: Operator '==' cannot be applied to operands of type 'ValueTuple<int?>' and 'ValueTuple<int?>'
                 //         return t.Rest == t.Rest;
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "t.Rest == t.Rest").WithArguments("==", "ValueTuple<int?>", "ValueTuple<int?>").WithLocation(18, 16)
+                Diagnostic(ErrorCode.ERR_BadBinaryOps, "t.Rest == t.Rest").WithArguments("==", "System.ValueTuple<int?>", "System.ValueTuple<int?>").WithLocation(18, 16)
                 );
 
             var tree = comp.SyntaxTrees.First();
@@ -4245,8 +4282,8 @@ class C
             Assert.Equal("t.Rest == t.Rest", comparison.ToString());
 
             var left = model.GetTypeInfo(comparison.Left);
-            Assert.Equal("ValueTuple<System.Int32?>", left.Type.ToTestDisplayString());
-            Assert.Equal("ValueTuple<System.Int32?>", left.ConvertedType.ToTestDisplayString());
+            Assert.Equal("System.ValueTuple<System.Int32?>", left.Type.ToTestDisplayString());
+            Assert.Equal("System.ValueTuple<System.Int32?>", left.ConvertedType.ToTestDisplayString());
             Assert.True(left.Type.IsTupleType);
         }
 
@@ -4273,10 +4310,10 @@ class C
             comp.VerifyDiagnostics(
                 // (9,19): error CS0019: Operator '==' cannot be applied to operands of type 'ValueTuple<int?>' and 'ValueTuple<int?>'
                 //         bool b1 = x1 == x1;
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 == x1").WithArguments("==", "ValueTuple<int?>", "ValueTuple<int?>").WithLocation(9, 19),
+                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 == x1").WithArguments("==", "System.ValueTuple<int?>", "System.ValueTuple<int?>").WithLocation(9, 19),
                 // (10,19): error CS0019: Operator '!=' cannot be applied to operands of type 'ValueTuple<int?>' and 'ValueTuple<int?>'
                 //         bool b2 = x1 != x1;
-                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 != x1").WithArguments("!=", "ValueTuple<int?>", "ValueTuple<int?>").WithLocation(10, 19)
+                Diagnostic(ErrorCode.ERR_BadBinaryOps, "x1 != x1").WithArguments("!=", "System.ValueTuple<int?>", "System.ValueTuple<int?>").WithLocation(10, 19)
                 );
         }
 

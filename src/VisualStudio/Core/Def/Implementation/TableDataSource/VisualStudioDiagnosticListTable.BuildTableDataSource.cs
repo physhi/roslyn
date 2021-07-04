@@ -1,14 +1,19 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
+using Microsoft.CodeAnalysis.Editor.Shared;
 using Microsoft.VisualStudio.LanguageServices.Implementation.TaskList;
-using Microsoft.VisualStudio.Shell.TableControl;
+using Microsoft.VisualStudio.LanguageServices.Implementation.Utilities;
 using Microsoft.VisualStudio.Shell.TableManager;
 using Microsoft.VisualStudio.Text;
 using Roslyn.Utilities;
@@ -19,9 +24,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
     {
         internal partial class VisualStudioDiagnosticListTable : VisualStudioBaseDiagnosticListTable
         {
-            private class BuildTableDataSource : AbstractTableDataSource<DiagnosticTableItem>
+            /// <summary>
+            /// Error list diagnostic source for "Build only" setting.
+            /// See <see cref="VisualStudioBaseDiagnosticListTable.LiveTableDataSource"/>
+            /// for error list diagnostic source for "Build + Intellisense" setting.
+            /// </summary>
+            private class BuildTableDataSource : AbstractTableDataSource<DiagnosticTableItem, object>
             {
-                private readonly object _key = new object();
+                private readonly object _key = new();
 
                 private readonly ExternalErrorDiagnosticUpdateSource _buildErrorSource;
 
@@ -68,14 +78,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                 public override object GetItemKey(object data) => data;
 
                 protected override object GetOrUpdateAggregationKey(object data)
-                {
-                    return data;
-                }
+                    => data;
 
                 public override AbstractTableEntriesSource<DiagnosticTableItem> CreateTableEntriesSource(object data)
-                {
-                    return new TableEntriesSource(this);
-                }
+                    => new TableEntriesSource(this);
 
                 public override AbstractTableEntriesSnapshot<DiagnosticTableItem> CreateSnapshot(AbstractTableEntriesSource<DiagnosticTableItem> source, int version, ImmutableArray<DiagnosticTableItem> items, ImmutableArray<ITrackingPoint> trackingPoints)
                 {
@@ -97,14 +103,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                     private readonly BuildTableDataSource _source;
 
                     public TableEntriesSource(BuildTableDataSource source)
-                    {
-                        _source = source;
-                    }
+                        => _source = source;
 
                     public override object Key => _source._key;
                     public override string BuildTool => PredefinedBuildTools.Build;
                     public override bool SupportSpanTracking => false;
-                    public override DocumentId TrackingDocumentId => Contract.FailWithReturn<DocumentId>("This should never be called");
+                    public override DocumentId TrackingDocumentId => throw ExceptionUtilities.Unreachable;
 
                     public override ImmutableArray<DiagnosticTableItem> GetItems()
                     {
@@ -114,9 +118,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                     }
 
                     public override ImmutableArray<ITrackingPoint> GetTrackingPoints(ImmutableArray<DiagnosticTableItem> items)
-                    {
-                        return ImmutableArray<ITrackingPoint>.Empty;
-                    }
+                        => ImmutableArray<ITrackingPoint>.Empty;
                 }
 
                 private class TableEntriesSnapshot : AbstractTableEntriesSnapshot<DiagnosticTableItem>
@@ -124,8 +126,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                     private readonly DiagnosticTableEntriesSource _source;
 
                     public TableEntriesSnapshot(
-                        DiagnosticTableEntriesSource source, int version, ImmutableArray<DiagnosticTableItem> items) :
-                        base(version, items, ImmutableArray<ITrackingPoint>.Empty)
+                        DiagnosticTableEntriesSource source, int version, ImmutableArray<DiagnosticTableItem> items)
+                        : base(version, items, ImmutableArray<ITrackingPoint>.Empty)
                     {
                         _source = source;
                     }
@@ -155,13 +157,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                                 content = data.Id;
                                 return content != null;
                             case StandardTableKeyNames.ErrorCodeToolTip:
-                                content = GetHelpLinkToolTipText(item.Workspace, data);
+                                content = BrowserHelper.GetHelpLinkToolTip(data);
                                 return content != null;
                             case StandardTableKeyNames.HelpKeyword:
                                 content = data.Id;
                                 return content != null;
                             case StandardTableKeyNames.HelpLink:
-                                content = GetHelpLink(item.Workspace, data);
+                                content = BrowserHelper.GetHelpLink(data)?.AbsoluteUri;
                                 return content != null;
                             case StandardTableKeyNames.ErrorCategory:
                                 content = data.Category;
@@ -176,7 +178,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                                 content = data.Message;
                                 return content != null;
                             case StandardTableKeyNames.DocumentName:
-                                content = GetFileName(data.DataLocation?.OriginalFilePath, data.DataLocation?.MappedFilePath);
+                                content = data.DataLocation?.GetFilePath();
                                 return content != null;
                             case StandardTableKeyNames.Line:
                                 content = data.DataLocation?.MappedStartLine ?? 0;
@@ -209,7 +211,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                         }
                     }
 
-                    public override bool TryNavigateTo(int index, bool previewTab)
+                    public override bool TryNavigateTo(int index, bool previewTab, bool activate, CancellationToken cancellationToken)
                     {
                         var item = GetItem(index);
                         if (item?.DocumentId == null)
@@ -221,7 +223,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                         var solution = item.Workspace.CurrentSolution;
 
                         return solution.ContainsDocument(documentId) &&
-                            TryNavigateTo(item.Workspace, documentId, item.GetOriginalPosition(), previewTab);
+                            TryNavigateTo(item.Workspace, documentId, item.GetOriginalPosition(), previewTab, activate, cancellationToken);
                     }
 
                     private DocumentId GetProperDocumentId(DiagnosticTableItem item)

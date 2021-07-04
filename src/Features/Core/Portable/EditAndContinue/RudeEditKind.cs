@@ -1,4 +1,8 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#nullable disable
 
 namespace Microsoft.CodeAnalysis.EditAndContinue
 {
@@ -50,7 +54,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         GenericTypeUpdate = 38,
         GenericTypeTriviaUpdate = 39,
         GenericTypeInitializerUpdate = 40,
-        PartialTypeInitializerUpdate = 41,
+        // PartialTypeInitializerUpdate = 41,
         // AsyncMethodUpdate = 42,
         // AsyncMethodTriviaUpdate = 43,
         StackAllocUpdate = 44,
@@ -58,7 +62,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         ExperimentalFeaturesEnabled = 45,
 
         AwaitStatementUpdate = 46,
-        ChangingConstructorVisibility = 47,
+        ChangingAccessibility = 47,
 
         CapturingVariable = 48,
         NotCapturingVariable = 49,
@@ -102,11 +106,28 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         InsertMethodWithExplicitInterfaceSpecifier = 81,
         InsertIntoInterface = 82,
         InsertLocalFunctionIntoInterfaceMethod = 83,
-        SwitchExpressionUpdate = 84,
+        //SwitchExpressionUpdate = 84,
         ChangingFromAsynchronousToSynchronous = 85,
         ChangingStateMachineShape = 86,
 
-        // Chagned from 0x103 in 16.1
-        ComplexQueryExpression = 82,
+        // Chagned from 0x103 in 16.1 and from 82 to 87 in 16.8
+        ComplexQueryExpression = 87,
+
+        MemberBodyInternalError = 88,
+        SourceFileTooBig = 89,
+        MemberBodyTooBig = 90,
+        InsertIntoGenericType = 91,
+
+        ImplementRecordParameterAsReadOnly = 92,
+        ImplementRecordParameterWithSet = 93,
+        AddRecordPositionalParameter = 94,
+        DeleteRecordPositionalParameter = 95,
+        ExplicitRecordMethodParameterNamesMustMatch = 96,
+
+        NotSupportedByRuntime = 97,
+        MakeMethodAsync = 98,
+        MakeMethodIterator = 99,
+        InsertNotSupportedByRuntime = 100,
+        ChangingAttributesNotSupportedByRuntime = 101
     }
 }
