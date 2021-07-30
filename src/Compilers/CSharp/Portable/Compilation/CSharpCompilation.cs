@@ -92,6 +92,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
+        internal Action<MethodSymbol, BoundStatementList, BoundStatementList>? _onBoundExpressionGenerated;
         /// <summary>
         /// Manages anonymous types declared in this compilation. Unifies types that are structurally equivalent.
         /// </summary>
@@ -233,6 +234,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 return InterlockedOperations.Initialize(ref _lazyAnonymousTypeManager, static self => new AnonymousTypeManager(self), this);
             }
+        }
+
+        internal Action<MethodSymbol, BoundStatementList, BoundStatementList>? OnBoundExpressionGenerated
+        {
+            get => _onBoundExpressionGenerated;
+            set => _onBoundExpressionGenerated = value;
         }
 
         internal override CommonAnonymousTypeManager CommonAnonymousTypeManager
@@ -543,8 +550,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool reuseReferenceManager,
             SyntaxAndDeclarationManager syntaxAndDeclarations,
             SemanticModelProvider? semanticModelProvider,
-            AsyncQueue<CompilationEvent>? eventQueue = null)
-            : this(assemblyName, options, references, previousSubmission, submissionReturnType, hostObjectType, isSubmission, referenceManager, reuseReferenceManager, syntaxAndDeclarations, SyntaxTreeCommonFeatures(syntaxAndDeclarations.ExternalSyntaxTrees), semanticModelProvider, eventQueue)
+            AsyncQueue<CompilationEvent>? eventQueue = null,
+            Action<MethodSymbol, BoundStatementList, BoundStatementList>? onBoundedExpressionGenerated = null)
+            : this(assemblyName, options, references, previousSubmission, submissionReturnType, hostObjectType, isSubmission, referenceManager, reuseReferenceManager, syntaxAndDeclarations, SyntaxTreeCommonFeatures(syntaxAndDeclarations.ExternalSyntaxTrees), semanticModelProvider, eventQueue, onBoundedExpressionGenerated)
         {
         }
 
@@ -561,10 +569,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             SyntaxAndDeclarationManager syntaxAndDeclarations,
             IReadOnlyDictionary<string, string> features,
             SemanticModelProvider? semanticModelProvider,
-            AsyncQueue<CompilationEvent>? eventQueue = null)
+            AsyncQueue<CompilationEvent>? eventQueue = null,
+            Action<MethodSymbol, BoundStatementList, BoundStatementList>? onBoundedExpressionGenerated = null)
             : base(assemblyName, references, features, isSubmission, semanticModelProvider, eventQueue)
         {
             _options = options;
+            _onBoundExpressionGenerated = onBoundedExpressionGenerated;
 
             this.LanguageVersion = CommonLanguageVersion(syntaxAndDeclarations.ExternalSyntaxTrees);
 

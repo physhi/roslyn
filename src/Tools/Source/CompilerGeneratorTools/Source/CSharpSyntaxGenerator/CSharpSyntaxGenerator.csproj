@@ -9,7 +9,9 @@
     <OutputType Condition="'$(TargetFramework)' != 'netstandard2.0'">Exe</OutputType>
     <RuntimeIdentifiers>$(RoslynPortableRuntimeIdentifiers)</RuntimeIdentifiers>
     <IsShipping>false</IsShipping>
-    <ExcludeFromSourceOnlyBuild>false</ExcludeFromSourceOnlyBuild>
+    <ExcludeFromSourceBuild>false</ExcludeFromSourceBuild>
+    <SignAssembly>false</SignAssembly>
+    <PublicKey></PublicKey>
   </PropertyGroup>
   <ItemGroup>
     <!-- Make sure to reference the same version of Microsoft.CodeAnalysis.Analyzers as the rest of the build -->
