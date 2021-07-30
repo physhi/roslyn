@@ -13,6 +13,8 @@
     <UseAppHost>false</UseAppHost>
     <GenerateMicrosoftCodeAnalysisCommitHashAttribute>true</GenerateMicrosoftCodeAnalysisCommitHashAttribute>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <SignAssembly>false</SignAssembly>
+    <PublicKey></PublicKey>
   </PropertyGroup>
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\..\Core\Portable\Microsoft.CodeAnalysis.csproj" />
