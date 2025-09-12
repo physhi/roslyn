@@ -92,7 +92,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal Action<MethodSymbol, BoundStatementList, BoundStatementList>? _onBoundExpressionGenerated;
+        internal Action<MethodSymbol, BoundStatementList, BoundStatementList?>? _onBoundExpressionGenerated;
         /// <summary>
         /// Manages anonymous types declared in this compilation. Unifies types that are structurally equivalent.
         /// </summary>
@@ -236,7 +236,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal Action<MethodSymbol, BoundStatementList, BoundStatementList>? OnBoundExpressionGenerated
+        internal Action<MethodSymbol, BoundStatementList, BoundStatementList?>? OnBoundExpressionGenerated
         {
             get => _onBoundExpressionGenerated;
             set => _onBoundExpressionGenerated = value;

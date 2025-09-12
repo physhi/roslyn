@@ -1369,7 +1369,10 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                             if (this._compilation.OnBoundExpressionGenerated != null)
                             {
-                                _compilation.OnBoundExpressionGenerated(methodSymbol, boundBody, processedInitializers.BoundInitializers);
+                                var initializersForCallback = processedInitializers.LoweredInitializers.Kind == BoundKind.StatementList 
+                                    ? (BoundStatementList)processedInitializers.LoweredInitializers 
+                                    : null;
+                                _compilation.OnBoundExpressionGenerated(methodSymbol, boundBody, initializersForCallback);
                             }
 
                             lambdaRuntimeRudeEditsBuilder.Sort(static (x, y) => x.LambdaId.CompareTo(y.LambdaId));
