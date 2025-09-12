@@ -1237,6 +1237,8 @@ namespace Microsoft.CodeAnalysis
 
             try
             {
+                this.OnBeforeCompilation(compilation);
+
                 // NOTE: Unlike the PDB path, the XML doc path is not embedded in the assembly, so we don't need to pass it to emit.
                 var emitOptions = Arguments.EmitOptions.
                     WithOutputNameOverride(outputName).
@@ -1736,6 +1738,12 @@ namespace Microsoft.CodeAnalysis
                 return Arguments.PreferredUILang ?? CultureInfo.CurrentUICulture;
             }
         }
+
+        /// <summary>
+        /// Called before compilation starts. Override to perform custom actions before compilation begins.
+        /// </summary>
+        /// <param name="compilation">The compilation that is about to start</param>
+        protected virtual void OnBeforeCompilation(Compilation compilation) { }
 
         private void EmitDeterminismKey(
             Compilation compilation,

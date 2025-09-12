@@ -1367,6 +1367,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                         {
                             var boundBody = BoundStatementList.Synthesized(syntax, boundStatements);
 
+                            if (this._compilation.OnBoundExpressionGenerated != null)
+                            {
+                                _compilation.OnBoundExpressionGenerated(methodSymbol, boundBody, processedInitializers.BoundInitializers);
+                            }
+
                             lambdaRuntimeRudeEditsBuilder.Sort(static (x, y) => x.LambdaId.CompareTo(y.LambdaId));
 
                             var emittedBody = GenerateMethodBody(
