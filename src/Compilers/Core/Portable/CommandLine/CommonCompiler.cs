@@ -1238,6 +1238,7 @@ namespace Microsoft.CodeAnalysis
             try
             {
                 this.OnBeforeCompilation(compilation);
+                var manifestResources = this.GetManifestResources(compilation);
 
                 // NOTE: Unlike the PDB path, the XML doc path is not embedded in the assembly, so we don't need to pass it to emit.
                 var emitOptions = Arguments.EmitOptions.
@@ -1282,7 +1283,7 @@ namespace Microsoft.CodeAnalysis
                         Arguments.PathMap,
                         emitOptions,
                         sourceLinkStreamDisposerOpt?.Stream,
-                        Arguments.ManifestResources);
+                        manifestResources);
                 }
 
                 // Need to ensure the PDB file path validation is done on the original path as that is the
@@ -1296,7 +1297,7 @@ namespace Microsoft.CodeAnalysis
 
                 var moduleBeingBuilt = compilation.CheckOptionsAndCreateModuleBuilder(
                     diagnostics,
-                    Arguments.ManifestResources,
+                    manifestResources,
                     emitOptions,
                     debugEntryPoint: null,
                     sourceLinkStream: sourceLinkStreamDisposerOpt?.Stream,
@@ -1744,6 +1745,12 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         /// <param name="compilation">The compilation that is about to start</param>
         protected virtual void OnBeforeCompilation(Compilation compilation) { }
+
+        /// <summary>
+        /// Called after <see cref="OnBeforeCompilation(Compilation)"/> to obtain the manifest resources that should be emitted.
+        /// </summary>
+        protected virtual ImmutableArray<ResourceDescription> GetManifestResources(Compilation compilation)
+            => Arguments.ManifestResources;
 
         private void EmitDeterminismKey(
             Compilation compilation,

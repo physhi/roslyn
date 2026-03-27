@@ -1194,6 +1194,17 @@ namespace Microsoft.CodeAnalysis.CSharp
                     }
                 }
 
+                if (_emitMethodBodies &&
+                    this._compilation.OnBoundExpressionGenerated != null &&
+                    (methodSymbol is not SynthesizedStaticConstructor callbackCctor || callbackCctor.ShouldEmit(processedInitializers.BoundInitializers)))
+                {
+                    BoundNode boundBodyForCallback = body;
+                    if (boundBodyForCallback != null)
+                    {
+                        _compilation.OnBoundExpressionGenerated(methodSymbol, boundBodyForCallback, analyzedInitializers);
+                    }
+                }
+
                 // Don't lower if we're not emitting or if there were errors.
                 // Methods that had binding errors are considered too broken to be lowered reliably.
                 if (_moduleBeingBuiltOpt == null || hasErrors)
@@ -1366,14 +1377,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                         if (_emitMethodBodies && (methodSymbol is not SynthesizedStaticConstructor cctor || cctor.ShouldEmit(processedInitializers.BoundInitializers)))
                         {
                             var boundBody = BoundStatementList.Synthesized(syntax, boundStatements);
-
-                            if (this._compilation.OnBoundExpressionGenerated != null)
-                            {
-                                var initializersForCallback = processedInitializers.LoweredInitializers.Kind == BoundKind.StatementList 
-                                    ? (BoundStatementList)processedInitializers.LoweredInitializers 
-                                    : null;
-                                _compilation.OnBoundExpressionGenerated(methodSymbol, boundBody, initializersForCallback);
-                            }
 
                             lambdaRuntimeRudeEditsBuilder.Sort(static (x, y) => x.LambdaId.CompareTo(y.LambdaId));
 

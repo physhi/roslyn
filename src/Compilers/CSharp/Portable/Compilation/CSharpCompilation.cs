@@ -92,7 +92,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal Action<MethodSymbol, BoundStatementList, BoundStatementList?>? _onBoundExpressionGenerated;
+        internal Action<MethodSymbol, BoundNode, BoundStatementList?>? _onBoundExpressionGenerated;
         /// <summary>
         /// Manages anonymous types declared in this compilation. Unifies types that are structurally equivalent.
         /// </summary>
@@ -236,7 +236,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        internal Action<MethodSymbol, BoundStatementList, BoundStatementList?>? OnBoundExpressionGenerated
+        internal Action<MethodSymbol, BoundNode, BoundStatementList?>? OnBoundExpressionGenerated
         {
             get => _onBoundExpressionGenerated;
             set => _onBoundExpressionGenerated = value;
@@ -551,7 +551,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             SyntaxAndDeclarationManager syntaxAndDeclarations,
             SemanticModelProvider? semanticModelProvider,
             AsyncQueue<CompilationEvent>? eventQueue = null,
-            Action<MethodSymbol, BoundStatementList, BoundStatementList>? onBoundedExpressionGenerated = null)
+            Action<MethodSymbol, BoundNode, BoundStatementList?>? onBoundedExpressionGenerated = null)
             : this(assemblyName, options, references, previousSubmission, submissionReturnType, hostObjectType, isSubmission, referenceManager, reuseReferenceManager, syntaxAndDeclarations, SyntaxTreeCommonFeatures(syntaxAndDeclarations.ExternalSyntaxTrees), semanticModelProvider, eventQueue, onBoundedExpressionGenerated)
         {
         }
@@ -570,7 +570,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             IReadOnlyDictionary<string, string> features,
             SemanticModelProvider? semanticModelProvider,
             AsyncQueue<CompilationEvent>? eventQueue = null,
-            Action<MethodSymbol, BoundStatementList, BoundStatementList>? onBoundedExpressionGenerated = null)
+            Action<MethodSymbol, BoundNode, BoundStatementList?>? onBoundedExpressionGenerated = null)
             : base(assemblyName, references, features, isSubmission, semanticModelProvider, eventQueue)
         {
             _options = options;
